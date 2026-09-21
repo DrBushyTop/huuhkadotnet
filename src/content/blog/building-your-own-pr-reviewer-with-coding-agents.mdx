@@ -30,9 +30,7 @@ I've now built a couple versions of automated PR reviewers, and the main thing t
 
 That may sound odd for a post about AI review agents, but in practice most of the system is normal software engineering. You receive an event, decide whether to do anything, gather context, start an isolated run, call the model through a coding harness, parse the result, and post findings back to the source system.
 
-The model matters, of course. But the architecture matters more.
-
-This post is about that architecture. I'll use [GitHub Copilot SDK](https://github.com/github/copilot-sdk?ref=huuhka.net) in the examples for the LLM side, because it maps cleanly to this kind of coding-agent workflow. The overall pattern works just as well with other harnesses or plain CLIs.
+This post is about the architecture. I'll use [GitHub Copilot SDK](https://github.com/github/copilot-sdk?ref=huuhka.net) in the examples for the LLM side, because it maps cleanly to this kind of coding-agent workflow. The overall pattern works just as well with other harnesses or plain CLIs.
 
 It builds on a few earlier posts, especially [A mental model for LLM tooling primitives](/a-mental-model-for-llm-tooling-primitives/) and [Primary vs Subagents in LLM harnesses](/primary-vs-subagents-in-llm-harnesses/).
 
