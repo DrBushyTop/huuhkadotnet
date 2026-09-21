@@ -399,19 +399,15 @@ The native image dialog shows the enlarged image, its caption when present, Open
 
 ### Privacy and comments
 
-The footer adds Privacy and Privacy settings. A non-modal analytics panel sits
-at the bottom of the viewport without blocking reading. It uses the existing
-paper, ink, line, and link colors. Accept analytics and Reject analytics use the
-same outlined button treatment and 46px minimum height. The panel stacks its copy
-and actions on narrow screens and can scroll on short viewports. It does not
-steal focus when first shown. Opening it from the footer focuses a choice;
-closing or choosing returns focus to Privacy settings.
+The footer includes Privacy. Umami analytics has no banner or settings panel.
+The privacy page explains cookieless collection, Do Not Track, and separate
+third-party embeds. Keep these details out of the article reading flow.
 
 Blog posts add a Comments section after the continuation link, within the prose
 width. A quiet top border separates it from the article. Explain public GitHub
 comments before the Show comments button; retain a GitHub link as the no-script
 and error fallback. The embed loads only on request, uses the light giscus theme,
-and stays off on preview hosts. Loading comments never grants analytics consent.
+and stays off on preview hosts. Loading comments does not change analytics behavior.
 The shared visual tokens are unchanged.
 
 ### Code, tables, and callouts

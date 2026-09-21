@@ -60,7 +60,8 @@ Font licenses and code-font provenance are under `public/fonts/`.
 
 Azure deployment and GitHub Actions are configured under [deployment/](deployment/README.md).
 Production indexing is enabled after domain cutover. Local builds remain blocked.
-GA4 requires explicit reader consent and runs only on the public HTTPS domains.
+Umami Cloud runs without analytics cookies or a consent banner on the public HTTPS
+domains. Do Not Track is honored; query strings and fragments are excluded.
 Giscus comments load on request on blog posts. Both stay off on local and preview
 hosts. Setup and verification notes are in `docs/analytics-and-comments.md`.
 

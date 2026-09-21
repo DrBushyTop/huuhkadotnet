@@ -2,8 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
-import {createAnalytics, mountAnalytics, readConsent, clearAnalyticsCookies, consentKey, consentLifetime} from '../src/lib/analytics.ts';
-import {isPublicSite, measurementId} from '../src/lib/site-integrations.ts';
+import {mountAnalytics} from '../src/lib/analytics.ts';
+import {isPublicSite, publicHostnames, umamiWebsiteId} from '../src/lib/site-integrations.ts';
 import {mountComments} from '../src/lib/comments.ts';
 
 const homepage = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
@@ -26,7 +26,7 @@ function browser(html = homepage, url = 'https://www.huuhka.net/article/?giscus=
     },
   });
   const window = {
-    document, location: new URL(url),
+    document, location: new URL(url), navigator: {doNotTrack: null},
     localStorage: {
       getItem: key => values.get(key) ?? null,
       setItem: (key, value) => values.set(key, value),
@@ -48,88 +48,71 @@ test('integrations only run on exact public HTTPS hosts', () => {
   }
 });
 
-test('consent rejects missing, invalid, future, and expired storage', () => {
-  const now = 10 * consentLifetime;
-  const storage = value => ({getItem: () => value});
-  for (const value of [null, '{', '{}', '{"accepted":"yes"}',
-    JSON.stringify({accepted:true,savedAt:now + 1}),
-    JSON.stringify({accepted:true,savedAt:now - consentLifetime})]) {
-    assert.equal(readConsent(storage(value), now), null);
-  }
-  for (const accepted of [true, false]) {
-    assert.equal(readConsent(storage(JSON.stringify({accepted,savedAt:now - 1})), now), accepted);
-  }
-  assert.equal(readConsent({getItem() { throw Error('blocked'); }}, now), null);
-});
-
-test('GA loads once after consent, sends one page view, and disables on withdrawal', () => {
+test('Umami loads once on public pages without a consent prompt', () => {
   const {window, document} = browser();
-  const analytics = createAnalytics(window);
-  analytics.apply(false);
+  mountAnalytics(window);
+  mountAnalytics(window);
+  const scripts = document.querySelectorAll('script[src="https://cloud.umami.is/script.js"]');
+  assert.equal(scripts.length, 1);
+  const script = scripts[0];
+  assert.equal(script.defer, true);
+  assert.equal(script.getAttribute('data-website-id'), umamiWebsiteId);
+  assert.equal(umamiWebsiteId, '3f673ea9-160f-4880-8d92-226feaa1e6d9');
+  assert.equal(script.getAttribute('data-domains'), publicHostnames.join(','));
+  assert.equal(script.getAttribute('data-do-not-track'), 'true');
+  assert.equal(script.getAttribute('data-exclude-search'), 'true');
+  assert.equal(script.getAttribute('data-exclude-hash'), 'true');
   assert.equal(document.querySelector('script[src*="googletagmanager"]'), null);
   assert.equal(window.dataLayer, undefined);
-  analytics.apply(true);
-  analytics.apply(true);
-  assert.equal(document.querySelectorAll('script[src*="googletagmanager"]').length, 1);
-  const commands = window.dataLayer.map(args => [...args]);
-  assert.equal(commands.filter(args => args[0] === 'event' && args[1] === 'page_view').length, 1);
-  assert.equal(commands.find(args => args[0] === 'event')[2].page_location, 'https://www.huuhka.net/article/');
-  const config = commands.find(args => args[0] === 'config');
-  assert.equal(config[1], measurementId);
-  assert.equal(config[2].send_page_view, false);
-  assert.equal(config[2].allow_google_signals, false);
-  assert.equal(commands[0][2].ad_storage, 'denied');
-  analytics.apply(false);
-  assert.equal(window[`ga-disable-${measurementId}`], true);
-  assert.equal([...window.dataLayer.at(-1)][2].analytics_storage, 'denied');
 });
 
-test('preview acceptance never inserts Google or giscus scripts', () => {
-  const {window, document, click} = browser(article, 'http://localhost:4321/article/');
+test('all public HTTPS hosts load Umami, previews never load analytics', () => {
+  for (const host of publicHostnames) {
+    const {window, document} = browser(homepage, `https://${host}/`);
+    mountAnalytics(window);
+    assert.ok(document.querySelector('script[data-website-id]'));
+  }
+  for (const url of ['http://huuhka.net', 'http://localhost:4321', 'https://preview.azurestaticapps.net', 'https://huuhka.net.example.com']) {
+    const {window, document} = browser(homepage, url);
+    mountAnalytics(window);
+    assert.equal(document.querySelector('script[data-website-id]'), null);
+  }
+});
+
+test('Do Not Track prevents even loading the analytics script', () => {
+  for (const value of ['1', 'yes']) {
+    const {window, document} = browser();
+    window.navigator.doNotTrack = value;
+    mountAnalytics(window);
+    assert.equal(document.querySelector('script[data-website-id]'), null);
+  }
+});
+
+test('analytics bootstrap does not read or write cookies or browser storage', () => {
+  const {window, document} = browser();
+  Object.defineProperty(window, 'localStorage', {get() { throw Error('storage accessed'); }});
+  mountAnalytics(window);
+  assert.ok(document.querySelector('script[data-website-id]'));
+  assert.equal(document.cookie, '');
+});
+
+test('preview hosts load neither Umami nor giscus', () => {
+  const {window, document} = browser(article, 'http://localhost:4321/article/');
   mountAnalytics(window);
   mountComments(window);
-  click('[data-consent="accept"]');
-  assert.equal(document.querySelector('script[src*="googletagmanager"]'), null);
+  assert.equal(document.querySelector('script[data-website-id]'), null);
   assert.equal(document.querySelector('script[src*="giscus.app"]'), null);
   assert.equal(document.querySelector('[data-load-comments]').hidden, true);
 });
 
-test('privacy controls persist choices, reopen, and honor rejection in another tab', () => {
-  const {window, document, click, values, events} = browser();
-  mountAnalytics(window);
-  assert.equal(document.querySelector('#analytics-preferences').hidden, false);
-  click('[data-consent="reject"]');
-  assert.equal(JSON.parse(values.get(consentKey)).accepted, false);
-  assert.equal(document.querySelector('#analytics-preferences').hidden, true);
-  click('[data-privacy-settings]');
-  assert.equal(document.querySelector('#analytics-preferences').hidden, false);
-  click('[data-consent="accept"]');
-  assert.ok(document.querySelector('script[src*="googletagmanager"]'));
-  values.set(consentKey, JSON.stringify({accepted:false,savedAt:Date.now()}));
-  events.get('storage')({key:consentKey});
-  assert.equal(window[`ga-disable-${measurementId}`], true);
-});
-
-test('stored consent loads GA, blocked storage fails closed without breaking controls', () => {
-  const accepted = browser();
-  accepted.values.set(consentKey, JSON.stringify({accepted:true,savedAt:Date.now()}));
-  mountAnalytics(accepted.window);
-  assert.ok(accepted.document.querySelector('script[src*="googletagmanager"]'));
-  const blocked = browser();
-  Object.defineProperty(blocked.window, 'localStorage', {get() { throw Error('denied'); }});
-  mountAnalytics(blocked.window);
-  assert.equal(blocked.document.querySelector('script[src*="googletagmanager"]'), null);
-  blocked.click('[data-consent="reject"]');
-  assert.equal(blocked.document.querySelector('#analytics-preferences').hidden, true);
-});
-
-test('withdrawal clears GA cookies across host and parent domains, not unrelated cookies', () => {
-  const {document, cookies, deletions} = browser();
-  for (const key of ['_ga', '_ga_X678YYBF80', '_gid', 'other']) cookies.set(key, 'value');
-  clearAnalyticsCookies(document, 'www.huuhka.net');
-  assert.deepEqual([...cookies.keys()], ['other']);
-  assert.ok(deletions.some(value => value.includes('Domain=huuhka.net')));
-  assert.ok(deletions.some(value => !value.includes('Domain=')));
+test('built pages retain Privacy but remove the GA consent UI', () => {
+  for (const html of [homepage, article, readFileSync(new URL('../dist/privacy/index.html', import.meta.url), 'utf8')]) {
+    const {document} = parseHTML(html);
+    assert.ok(document.querySelector('footer a[href="/privacy/"]'));
+    assert.equal(document.querySelector('#analytics-preferences'), null);
+    assert.equal(document.querySelector('[data-privacy-settings]'), null);
+    assert.doesNotMatch(html, /googletagmanager|G-X678YYBF80|Accept analytics|Reject analytics/);
+  }
 });
 
 test('giscus loads only on request with stable strict mapping and no analytics consent', () => {

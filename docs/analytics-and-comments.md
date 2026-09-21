@@ -1,23 +1,40 @@
 # Analytics and comments
 
 Investigated September 21, 2026. A future analytics replacement must be free.
-The owner chose to keep GA4 for now and add giscus without importing Disqus data.
+The owner chose Umami Cloud and giscus without importing Disqus data.
 
 ## Current implementation
 
-GA4 uses the existing measurement ID through `src/lib/analytics.ts`. It loads
-only after explicit analytics consent, and only on the HTTPS public hostnames in
-`src/lib/site-integrations.ts`. Local and Azure preview hosts never send analytics,
-even when their consent controls are exercised. The basic-consent implementation
-does not load Google or send cookieless pings before acceptance.
+The owner replaced GA4 with Umami Cloud on September 21, 2026. The supplied
+website ID is `3f673ea9-160f-4880-8d92-226feaa1e6d9`; it is a public embed ID,
+not a secret. `src/lib/analytics.ts` loads `https://cloud.umami.is/script.js`
+once on the exact public HTTPS hostnames in `src/lib/site-integrations.ts`.
+Local and Azure preview hosts never load the tracker. The loader and tracker
+honor Do Not Track.
 
-Accept and Reject have equal prominence. Privacy settings in the footer reopens
-the controls. Choices expire after 180 days; missing, invalid, expired, or
-inaccessible storage defaults to no consent. Changes in another tab are honored.
-Rejection sets Google's collection-disable flag and clears accessible GA cookies.
-It does not delete events Google previously received. Advertising consent and
-Google signals stay disabled. Page URLs and referrers omit query strings and
-fragments; campaign query parameters are therefore not retained by this setup.
+There is no consent banner or settings panel. The owner confirmed there are no
+existing rejection choices to migrate. The GA script, consent persistence, and
+cookie-writing integration have been removed. `/privacy/` explains the switch.
+The loader does not read or write browser storage. Umami's tracker can read its
+own optional `umami.disabled` opt-out flag and does not write analytics cookies.
+No existing Google data or browser cookies are deleted by this change.
+
+The tracker excludes query strings and fragments from page URLs and referrers,
+including site search terms and giscus authentication tokens. This also omits
+UTM campaign attribution; referring sites are still available. There are no
+custom events, persistent distinct IDs, or performance collection configured.
+
+The owner will handle export automation separately. Do not add a paid plan,
+API integration, export job, or storage service. Umami Cloud Hobby's documented
+six-month retention makes that follow-up important for long-term history.
+Cookieless tracking is not a blanket statement of legal compliance; keep the
+public privacy disclosure accurate about third-party processing.
+
+Tracker configuration checked against the actual Cloud script and:
+
+- https://umami.is/docs/tracker-configuration
+- https://umami.is/docs/data-collection
+- https://umami.is/privacy
 
 Comments appear only on blog posts. Show comments loads giscus separately from
 analytics consent. Each thread maps to the article's root-level path with strict
@@ -49,12 +66,11 @@ sign-in button for a real article path. No test comment was posted.
 branch alongside the site changes. Publish both through the existing Blog
 workflow, then run the live checks below.
 
-After publication, verify GA4 Realtime after acceptance, no Google requests
-before acceptance or after rejection, giscus sign-in and posting, and moderation
-in GitHub. Review the GA4 property's retention and enhanced-measurement settings;
-the website code does not change account-level settings. Existing video embeds
-are not controlled by the new analytics consent setting and need a separate
-privacy audit. `/privacy/` describes these boundaries.
+After publication, verify a page-view request to Umami with the supplied website
+ID, no Google requests, and no analytics cookies. Check the Umami dashboard
+separately for ingestion. Giscus sign-in, posting, and moderation still need an
+authenticated check. Existing video embeds are separate third-party services
+and need a separate privacy audit. `/privacy/` describes these boundaries.
 
 Implementation references:
 
@@ -62,6 +78,90 @@ Implementation references:
 - https://developers.google.com/tag-platform/security/guides/privacy
 - https://developers.google.com/analytics/devguides/collection/ga4/reference/config
 - https://github.com/giscus/giscus/blob/main/ADVANCED-USAGE.md
+
+## Historical GA4 investigation: cookieless collection after rejection
+
+Investigated September 21, 2026. This option was considered before the owner
+chose Umami. It was not implemented.
+
+Google calls this Advanced Consent Mode. Load the Google tag on public pages
+after queuing default consent as denied, rather than waiting for acceptance.
+Keep `analytics_storage` denied after rejection; grant it only after acceptance.
+Keep advertising consent denied in either case. With denied analytics storage,
+Google sends measurements without reading or writing analytics cookies.
+
+Our current `ga-disable-G-X678YYBF80` flag blocks collection altogether.
+Advanced mode would need to stop using that flag for ordinary cookie rejection,
+while keeping all collection disabled on preview hosts. Initialization would
+move outside the accepted-only branch. Keep the explicit page-view guard and
+sanitized URLs, and test unknown, rejected, accepted, revoked, expired, and
+cross-tab consent states. Verify actual requests and cookies, not just queued
+consent commands.
+
+These requests still disclose activity to Google. Its documentation lists
+timestamps, user agents, referrers, consent state, and a random value generated
+per page load among possible ping contents. Without persistent identifiers,
+ten page views do not establish whether one person or ten people visited.
+
+There is also a reporting limitation. Google's behavioral-modeling prerequisites
+include both:
+
+- At least 1,000 events per day with analytics storage denied for at least
+  seven days.
+- At least 1,000 daily users sending events with analytics storage granted for
+  at least seven of the preceding 28 days.
+
+Meeting these thresholds does not guarantee eligibility. Google explicitly
+says that when there is insufficient consented traffic to train the model,
+events from users who decline consent are not reported. Do not promise that
+enabling cookieless collection will recover missing visitor counts in standard
+reports for this blog. We have not inspected its traffic or modeling eligibility.
+
+The existing controls say Reject analytics and promise that Google loads only
+after acceptance. They cannot stay unchanged if rejected visits are sent to
+Google. Both the controls and privacy page would need to disclose the new
+behavior. Merely changing the button to Reject cookies does not establish a
+lawful basis for the collection.
+
+Traficom's guidance covers technologies beyond cookies, including tracking
+pixels and access to information on terminal devices. Avoid assuming that
+Google's cookieless mode is automatically exempt from consent requirements.
+Assess the actual collection and applicable legal basis before enabling it.
+The owner subsequently chose Umami instead; this GA4 option is superseded.
+
+Primary sources checked:
+
+- https://developers.google.com/tag-platform/security/concepts/consent-mode
+- https://developers.google.com/tag-platform/security/guides/consent
+- https://support.google.com/analytics/answer/11161109?hl=en
+- https://www.traficom.fi/files/media/file/Guidance_on_the_use_of_web_cookies_for_the_service_providers.pdf
+
+## Historical GA4 production deployment check
+
+The Blog workflow run `35629780493` successfully deployed commit
+`7a9e2a47508aadb550fb223806b9976ca9a9490c` on September 21, 2026.
+Build, tests, packaging, infrastructure compilation, deployment, and the
+published-route verification passed.
+
+On the public article `/ci-with-azure-pipelines-yaml/`, the shared browser
+showed the new navigation, privacy controls, and click-to-load comments.
+Before acceptance and after initial rejection there were no Google or giscus
+resource requests and no cookies. Acceptance loaded the Google tag and created
+the two GA4 cookies. The tag attempted a `page_view` for `G-X678YYBF80`, with
+the verification query parameter omitted from the reported page location.
+An enhanced-measurement scroll event was also attempted.
+
+The browser network diagnostics marked both collector requests
+`net::ERR_ABORTED`. Consequently this verifies tag initialization and event
+construction, not successful delivery or GA4 reporting. An authenticated
+Realtime check remains outstanding. Do not describe the collector as verified.
+
+Revoking consent cleared the GA cookies, restored the collection-disable flag,
+and produced no additional collector entries during the subsequent check.
+Show comments loaded the giscus iframe after rejection. Its article-path
+mapping was correct; the widget reported no existing discussion, which is
+expected before the first comment. Posting, authentication, and moderation
+were not exercised.
 
 ## Existing Google Analytics
 

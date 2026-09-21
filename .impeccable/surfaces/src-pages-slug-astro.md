@@ -64,9 +64,9 @@ FINISH: Record source-backed reader rules without claiming all articles, externa
 - Blog posts include click-to-load giscus comments after the continuation link.
   Community pages do not. Thread keys use root-level article paths. Keep a
   GitHub fallback link, and keep giscus off on preview hosts.
-- The footer includes Privacy and Privacy settings. The non-modal analytics
-  panel uses equal Accept and Reject controls, with GA4 off until consent.
-  Neither optional service loads on local previews.
+- The footer includes Privacy, with no analytics banner or settings panel.
+  Umami loads on public HTTPS hosts and honors Do Not Track.
+  Neither analytics nor comments load on local previews.
 
 ## Review disposition
 

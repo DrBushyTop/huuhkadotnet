@@ -116,10 +116,10 @@ images remain available, but overwriting the same blob path is not versioned.
 
 ## Analytics and comments
 
-GA4 and giscus are configured in source, not deployment secrets. They activate
+Umami and giscus are configured in source, not deployment secrets. They activate
 only on the public HTTPS domains listed in `src/lib/site-integrations.ts`.
 The Azure default hostname remains a safe preview without third-party collection.
-Analytics also requires reader consent; giscus requires Show comments.
+Umami loads without a banner and honors Do Not Track; giscus requires Show comments.
 
 Before publishing the comment integration, install the giscus GitHub App on
 `DrBushyTop/huuhkadotnet` and include the root `giscus.json` in the default branch.
