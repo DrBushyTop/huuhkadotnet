@@ -1,7 +1,12 @@
+import { readingMinutes } from './reading-time.mjs';
+
 // Put Ghost's explicit anchors on the following heading, before Astro collects
 // headings for the contents list. New posts use Astro's normal generated IDs.
 export default function rehypeContent() {
-  return tree => {
+  return (tree, file) => {
+    if (file?.data?.astro?.frontmatter) {
+      file.data.astro.frontmatter.readingMinutes = readingMinutes(tree);
+    }
     // Imported Ghost captions follow a sole-image paragraph. Keep them with
     // their image in a real figure without changing the MDX or caption text.
     for (let i = 0; i < tree.children.length; i++) {

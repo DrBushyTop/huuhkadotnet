@@ -16,7 +16,7 @@ export async function getStaticPaths() {
 }
 const { post } = Astro.props;
 const { data } = post;
-const { Content, headings } = await render(post);
+const { Content, headings, remarkPluginFrontmatter } = await render(post);
 const contents = contentsHeadings(headings);
 const posts = await getPosts();
 const bySlug = new Map(posts.map(post => [post.data.slug, post.data]));
@@ -53,6 +53,7 @@ const structured = {
         <div class="reading-meta">
           <a href="/author/pasi/">{author.name}</a>
           <time datetime={data.publishedAt}>{dateFormat.format(new Date(data.publishedAt))}</time>
+          {post.collection === 'blog' && <span class="reading-time" title="Estimated at 200 words per minute">{remarkPluginFrontmatter.readingMinutes} min read</span>}
           {updated && <span class="updated-date">Updated <time datetime={data.updatedAt}>{dateFormat.format(new Date(data.updatedAt))}</time></span>}
         </div>
         <ul class="article-tags reading-tags" aria-label="Topics">
