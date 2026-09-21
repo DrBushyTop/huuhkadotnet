@@ -204,4 +204,5 @@ test('comments keep the GitHub link without the load button or explanatory text'
   assert.equal(section.querySelector('button'), null);
   assert.doesNotMatch(section.textContent, /Choose Show comments|You.ll need a GitHub account/);
   assert.ok(section.querySelector('a[href*="github.com"]'));
+  assert.ok(section.querySelector('.giscus + .comments-actions a[href*="github.com"]'));
 });

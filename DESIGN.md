@@ -264,9 +264,9 @@ components:
   reading-contents:
     textColor: "{colors.muted}"
     typography: "{typography.reading-rail}"
-    padding: "7px 0 7px 14px"
+    padding: "7px 8px 7px 14px"
   reading-contents-subheading:
-    padding: "7px 0 7px 24px"
+    padding: "7px 8px 7px 24px"
   reading-callout:
     backgroundColor: "{colors.popular-ground}"
     textColor: "{colors.ink}"
@@ -343,7 +343,7 @@ There are no shadows. White space, image blocks, borders, and cool card fills se
 
 Keyboard focus uses a 3px blue outline offset by 5px. Search instead uses a 2px outline offset by 2px on focus within. Card transitions take 160ms with `ease-out`; navigation changes take 150ms. The mobile menu uses a 160ms clipping animation. Reduced-motion preferences disable animations and transitions and use automatic scroll behavior. The sticky header uses z-index 10; modal dialogs use the browser top layer. The image viewer uses the `image-backdrop` scrim rather than a shadow and contains its own scrolling.
 
-The contents marker is a 2px blue line beside the active link. Its vertical transform and the disclosure chevron rotation use 160ms `ease-out` transitions. Reduced-motion preferences remove both transitions. Current-link text uses ink and semibold weight; the marker carries position, not additional elevation.
+The contents marker is a 2px blue line beside the active link. Its vertical transform and the disclosure chevron rotation use 160ms `ease-out` transitions. Reduced-motion preferences remove both transitions. Contents links keep the same font weight in every state to preserve line wrapping. The active link uses purple text, a tinted background, and the marker.
 
 ## Shapes
 
@@ -383,9 +383,9 @@ unrelated cards between them. Clearing the query restores popular articles.
 
 The header contains an All articles link, title, author link, original publication date, and linked tags. If the updated calendar date differs, show Updated beside the author and publication date rather than repeating it below the article. Tag archives reuse the index card treatment. The optional feature image starts the centered article body and retains its original caption.
 
-The compact rail groups native series disclosures with On this page. Series disclosures start collapsed at every width and remain user-controlled. Contents includes the shallowest eligible heading depth of two or greater and its immediate subheading depth, in article order. Show On this page when that combined list has more than one entry. Primary links use a 14px left inset; immediate subheadings use 24px. JavaScript opens contents at 1200px and above and closes it below that threshold, resetting the default when the breakpoint changes. Without JavaScript, all disclosures remain usable and initially collapsed. On narrow screens summaries have at least 44px height and links at least 38px height.
+The compact rail groups native series disclosures with On this page. Series disclosures start collapsed at every width and remain user-controlled. Contents includes the shallowest eligible heading depth of two or greater and its immediate subheading depth, in article order. Show On this page when that combined list has more than one entry. Primary links use a 14px left inset; immediate subheadings use 24px. Both keep 8px of right padding. JavaScript opens contents at 1200px and above and closes it below that threshold, resetting the default when the breakpoint changes. Without JavaScript, all disclosures remain usable and initially collapsed. On narrow screens summaries have at least 44px height and links at least 38px height.
 
-Contents links track the section crossing a 112px reading line below the viewport top. The active link receives `aria-current="location"`, darker semibold text, and the moving blue marker. Scroll, resize, hash changes, disclosure changes, body resizing, and font readiness schedule updates. On desktop, tracking keeps the selected rail entry visible without scrolling the article. Heading anchors combine 24px scroll margins with global 80px scroll padding, placing targets 104px below the top.
+Contents links track the section crossing a reading line one third down the viewport, clamped between 112px and 320px. The active link receives `aria-current="location"`, purple text, a tinted background, and the moving accent marker. Scroll, resize, hash changes, disclosure changes, body resizing, and font readiness schedule updates. On desktop, tracking keeps the selected rail entry visible without scrolling the article. Heading anchors combine 24px scroll margins with global 80px scroll padding, placing targets 104px below the top.
 
 Series membership and ordered post lists come from content metadata, not title matching. An article can appear in several series; the current article uses `aria-current="page"` in each list. Only explicit theme-navigation callouts move into this navigation. Warnings and other author notes remain in the article.
 

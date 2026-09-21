@@ -58,10 +58,10 @@ figcaption a { color: var(--link); text-decoration: underline; }
 .series-list a:hover { color: var(--link); text-decoration: underline; }
 .toc-track { position: relative; margin-top: 10px; border-left: 1px solid var(--line); }
 .toc-list { list-style: none; margin: 0; padding: 0; }
-.toc-list a { display: block; padding: 7px 0 7px 14px; color: var(--muted); text-decoration: none; }
+.toc-list a { display: block; padding: 7px 8px 7px 14px; color: var(--muted); text-decoration: none; }
 .toc-list .toc-subheading a { padding-left: 24px; }
 .toc-list a:hover { color: var(--link); background: var(--nav-highlight); }
-.toc-list a[aria-current] { color: var(--link); background: var(--nav-highlight); font-weight: 600; }
+.toc-list a[aria-current] { color: var(--link); background: var(--nav-highlight); }
 .toc-marker { position: absolute; top: 0; left: -1px; width: 2px; height: var(--active-height, 0px); transform: translateY(var(--active-offset, 0px)); background: var(--accent); transition: transform 160ms ease-out; pointer-events: none; }
 
 .article-end { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line); }

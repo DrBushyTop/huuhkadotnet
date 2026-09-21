@@ -52,7 +52,7 @@ const contentsDepth = Math.min(...contents.map(heading => heading.depth));
     queued = false;
     if (!rail || !list || !links.length) return;
     const tops = headings.map(heading => heading ? heading.getBoundingClientRect().top + window.scrollY : Infinity);
-    const active = activeHeadingIndex(tops, window.scrollY);
+    const active = activeHeadingIndex(tops, window.scrollY, window.innerHeight);
     links.forEach((link, index) => {
       if (index === active) link.setAttribute('aria-current', 'location');
       else link.removeAttribute('aria-current');

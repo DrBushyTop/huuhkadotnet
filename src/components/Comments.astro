@@ -10,11 +10,11 @@ const discussionUrl = `https://github.com/${config.repo}/discussions?discussions
   data-category={config.category} data-category-id={config.categoryId}
   data-thread={thread}>
   <h2 id="comments-heading">Comments</h2>
+  <p class="comments-status" data-comments-status role="status"></p>
+  <div class="giscus"></div>
   <div class="comments-actions">
     <a href={discussionUrl}>View discussions on GitHub</a>
   </div>
-  <p class="comments-status" data-comments-status role="status"></p>
-  <div class="giscus"></div>
   <noscript><p>JavaScript is off. Use the GitHub link to read or add comments.</p></noscript>
 </section>
 <script>
@@ -25,7 +25,7 @@ const discussionUrl = `https://github.com/${config.repo}/discussions?discussions
   .article-comments { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line); }
   h2 { font-size: 24px; margin-bottom: 12px; }
   p { font-size: 16px; line-height: 1.5; margin-block: 12px; }
-  .comments-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .comments-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
   a { color: var(--link); text-decoration: underline; font-size: 16px; }
   .comments-status { color: var(--muted); }
   .comments-status:empty { display: none; }
