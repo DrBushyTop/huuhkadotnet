@@ -397,6 +397,13 @@ JavaScript wraps unlinked article images outside authored `ReaderFigure` blocks 
 
 The native image dialog shows the enlarged image, its caption when present, Open original, and Close. Open original links to the same full local asset in a new tab. Close, Escape, and a backdrop click dismiss the dialog, restore focus without scrolling, and release the document scroll lock. Toolbar targets are at least 44px high. Caption content and links are retained, with copied IDs removed. Dialog behavior has desktop and phone spot checks, not a full-site keyboard or real Safari audit.
 
+### Presentations navigation
+
+Desktop navigation and the mobile page menu include Presentations, linking to
+`https://github.com/DrBushyTop/presentations`. It uses the existing navigation
+styles and opens in the same tab. The mobile row has a decorative external-link
+icon. Articles remains the only local page link in this group; About stays hidden.
+
 ### Privacy and comments
 
 The footer includes Privacy. Umami analytics has no banner or settings panel.

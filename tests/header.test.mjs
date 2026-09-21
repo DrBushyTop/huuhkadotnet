@@ -25,3 +25,12 @@ test('Sessionize is accessible in both headers and the mobile menu', () => {
   }
   assert.ok(document.querySelector('.mobile-social-links a[href="https://github.com/DrBushyTop"]'));
 });
+
+test('Presentations links to the repository in desktop and mobile navigation', () => {
+  for (const selector of ['.main-nav', '.mobile-page-links']) {
+    const link = document.querySelector(`${selector} a[href="https://github.com/DrBushyTop/presentations"]`);
+    assert.ok(link, selector);
+    assert.equal(link.textContent.trim(), 'Presentations');
+    assert.equal(link.hasAttribute('aria-current'), false);
+  }
+});
