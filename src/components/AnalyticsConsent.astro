@@ -1,0 +1,43 @@
+<aside id="analytics-preferences" class="analytics-preferences" aria-labelledby="analytics-heading" hidden>
+  <div class="analytics-copy">
+    <h2 id="analytics-heading">Allow analytics?</h2>
+    <p>Google Analytics uses cookies to measure visits, popular posts, and traffic sources.
+      It only loads if you accept. You can change your choice in Privacy settings.</p>
+    <p><span data-consent-status>Analytics is currently off.</span> <a href="/privacy/">Privacy details</a></p>
+  </div>
+  <div class="analytics-actions">
+    <button class="load-more" type="button" data-consent="accept">Accept analytics</button>
+    <button class="load-more" type="button" data-consent="reject">Reject analytics</button>
+    <button class="text-button" type="button" data-consent-close hidden>Close</button>
+  </div>
+</aside>
+
+<script>
+  import {mountAnalytics} from '../lib/analytics';
+  mountAnalytics(window);
+</script>
+
+<style>
+  .analytics-preferences {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 20px max(20px, calc((100vw - 1200px) / 2));
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    max-height: 70dvh;
+    overflow-y: auto;
+  }
+  .analytics-preferences[hidden] { display: none; }
+  h2 { font-size: 19px; font-weight: 600; margin-bottom: 8px; }
+  p { font-size: 16px; margin-block: 4px; max-width: 65ch; }
+  p a { color: var(--link); text-decoration: underline; }
+  .analytics-actions { display: flex; flex-wrap: wrap; gap: 12px; flex-shrink: 0; }
+  .analytics-actions .text-button { min-height: 44px; padding-inline: 8px; }
+  @media (max-width: 1000px) {
+    .analytics-preferences { align-items: flex-start; flex-direction: column; gap: 12px; }
+  }
+</style>

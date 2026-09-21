@@ -24,8 +24,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm test
       - run: npm run build
+      - run: npm test
       - name: Check deployment packaging
         run: node deployment/prepare.mjs
         env:

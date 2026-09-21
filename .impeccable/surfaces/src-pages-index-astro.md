@@ -20,9 +20,9 @@ THESIS: A personal article index with provisional popular picks before the dated
 
 OWN-WORLD: White header, small blue geometric H, uppercase Geist Mono navigation, slate text, and quiet blue links. Popular cards are compact filled rectangles. Archive cards retain pale fill, fine borders, rounded image corners, 19px medium Geist Sans titles, up to two topic tags, and the date/read-more footer. Geist Sans also sets the wordmark and section headings. Preserve the shared palette, card padding, and code font in DESIGN.md.
 
-STORY: Readers recognize Pasi, choose a suggested article, or search titles and topics across all 55 imported posts. Article cards, About, community activities, and RSS now open local routes. The popular group uses the newest three entries as provisional picks without a sample-selection label or a verified analytics claim.
+STORY: Readers recognize Pasi, choose a suggested article, or search titles and topics across all 55 imported posts. Article cards, community activities, and RSS open local routes. About is hidden from navigation until its content is ready; the author archive is preserved. The popular group uses the newest three entries as provisional picks without a sample-selection label or a verified analytics claim.
 
-FIRST VIEWPORT: A compact header with LinkedIn, GitHub, and RSS links. A small portrait introduction, three popular cards, then the dated archive with search beside its heading. Desktop archive cards use three columns; phone cards stack. The phone header stays on one row with GitHub and a full-screen navigation menu.
+FIRST VIEWPORT: A compact header with LinkedIn, GitHub, Sessionize, and RSS links. A small portrait introduction, three popular cards, then the dated archive with search beside its heading. Desktop archive cards use three columns; phone cards stack. The phone header stays on one row with Sessionize and a full-screen navigation menu. GitHub remains available in that menu.
 
 FORM: The approved image-led homepage remains the composition reference. Use the real portrait and published post images, with local WebP archive thumbnails. Keep introduction padding at 24px and the archive separation at 28px on desktop and 24px on phones. Preserve padding inside archive cards. Card images fit fully within the existing containers, with a blurred, muted copy of the same image behind them to fill unused space.
 
@@ -54,4 +54,6 @@ and a portrait-image search result at 390 by 844 CSS pixels. All 20 tests, the
 Browser checks confirmed fuzzy search, empty results, Escape reset, 12 initial
 articles, and 24 after Load more, with focus on the first newly revealed card.
 The dev-server Fuse import fix preserves these behaviors; it does not change
-pagination to infinite scrolling. Suggested top-corner changes remain unapproved.
+pagination to infinite scrolling. On September 21, 2026, the owner requested hiding
+About and adding Sessionize to the top right. These navigation changes are now
+implemented without changing the shared visual tokens.

@@ -25,7 +25,7 @@ A personal technical publication. Readers should be able to find a relevant post
 - The September 21, 2026 public snapshot contains 55 posts, one community page, 36 tags, and one author. All 94 source sitemap URLs have local routes.
 - Search covers the complete post collection. The homepage initially shows 12 posts and loads 12 more at a time; without JavaScript every post is visible.
 - Builds use committed MDX and assets, not a live Ghost dependency. The public import is not a backup of unpublished Ghost data.
-- Current work is local only. Do not deploy, change DNS, or modify production Ghost or Azure resources. Keep analytics off, `noindex, nofollow`, and the blocking robots file.
+- Current work is local only. Do not deploy, change DNS, or modify production Ghost or Azure resources. Keep `noindex, nofollow` and the blocking robots file locally. GA4 may run on the public HTTPS domains after explicit reader consent; previews never load analytics or giscus.
 - Eventual hosting belongs in Microsoft Azure Sponsorship, subscription `ede0939c-80c4-4dfe-bf3d-84521f3f6d1f`. The hosting adapter and DNS provider remain open decisions.
 
 ## Brand commitments
@@ -44,6 +44,6 @@ Keep desktop article text centered independently of the compact left reading rai
 
 `docs/migration.md` records the implemented public Content API import, converter provenance, reimport commands, content handling, and validation scope. It supersedes the original plan's database-export approach for this local migration. `migration/inventory.json` is a comparison snapshot, not the application content source.
 
-Before production, confirm the host's HTTP redirects and RSS content type, decide whether older paginated archive URLs need redirects, and verify canonical URLs and indexing at cutover. The live homepage contained only legacy Universal Analytics ID `UA-152228894-1`, not a GA4 measurement ID. A working analytics property remains deferred. Optional editors remain deferred.
+Before production, confirm the host's HTTP redirects and RSS content type, decide whether older paginated archive URLs need redirects, and verify canonical URLs and indexing at cutover. On September 21, 2026, browser checks on the old Azure hostname found that the legacy `UA-152228894-1` tag also loads GA4 `G-X678YYBF80` and emits page views. The owner chose that GA4 property for now, with opt-in consent, and giscus for new comments without Disqus import. The source repository is now public with Discussions enabled. Dashboard ingestion and live comment posting remain unverified. `docs/analytics-and-comments.md` records setup requirements and free replacement options. Analytics stays disabled locally. Optional editors remain deferred.
 
 Browser spot checks are not a whole-site keyboard or screen-reader certification. External link destinations and embedded playback are not exhaustively verified.

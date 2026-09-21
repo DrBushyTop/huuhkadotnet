@@ -12,15 +12,15 @@ import '@fontsource-variable/geist-mono';
     </a>
     <nav class="main-nav" aria-label="Main navigation">
       <a href="/" aria-current={Astro.url.pathname === "/" ? "page" : undefined}>Articles</a>
-      <a href="/author/pasi/" aria-current={Astro.url.pathname === "/author/pasi/" ? "page" : undefined}>About</a>
     </nav>
     <nav class="social-nav" aria-label="Social links">
       <a href="https://www.linkedin.com/in/pasihuuhka/" aria-label="Pasi on LinkedIn"><Icon name="linkedin" /></a>
       <a href="https://github.com/DrBushyTop" aria-label="Pasi on GitHub"><Icon name="github" /></a>
+      <a href="https://sessionize.com/pasi-huuhka/" aria-label="Pasi on Sessionize" title="Sessionize"><Icon name="sessionize" /></a>
       <a href="/rss/" aria-label="Subscribe via RSS"><Icon name="rss" size={18} /></a>
     </nav>
     <div class="mobile-header-actions">
-      <a class="mobile-github icon-button" href="https://github.com/DrBushyTop" aria-label="Pasi on GitHub"><Icon name="github" /></a>
+      <a class="icon-button" href="https://sessionize.com/pasi-huuhka/" aria-label="Pasi on Sessionize" title="Sessionize"><Icon name="sessionize" /></a>
       <button class="menu-toggle icon-button" type="button" aria-label="Open navigation menu" aria-controls="mobile-navigation" aria-expanded="false" hidden>
         <Icon name="menu" size={22} />
       </button>
@@ -41,11 +41,11 @@ import '@fontsource-variable/geist-mono';
     </div>
     <nav class="mobile-page-links" aria-label="Pages">
       <a href="/" aria-current={Astro.url.pathname === "/" ? "page" : undefined}><span>Articles</span><Icon name="arrow" /></a>
-      <a href="/author/pasi/" aria-current={Astro.url.pathname === "/author/pasi/" ? "page" : undefined}><span>About</span><Icon name="external" /></a>
     </nav>
     <nav class="mobile-social-links" aria-label="Social links">
       <a href="https://www.linkedin.com/in/pasihuuhka/"><Icon name="linkedin" /><span>LinkedIn</span><Icon name="external" size={17} /></a>
       <a href="https://github.com/DrBushyTop"><Icon name="github" /><span>GitHub</span><Icon name="external" size={17} /></a>
+      <a href="https://sessionize.com/pasi-huuhka/"><Icon name="sessionize" /><span>Sessionize</span><Icon name="external" size={17} /></a>
       <a href="/rss/"><Icon name="rss" size={18} /><span>RSS feed</span><Icon name="external" size={17} /></a>
     </nav>
   </div>

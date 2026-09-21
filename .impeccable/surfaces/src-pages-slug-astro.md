@@ -61,6 +61,12 @@ FINISH: Record source-backed reader rules without claiming all articles, externa
 - Series memberships come from frontmatter arrays and ordered groups in `src/data/series.json`, including overlapping themes. Only explicit theme-navigation callouts move into the rail. Warnings and other author notes stay in the body.
 - Remaining callouts use blockquotes; bookmark links retain their title and description. Embedded video remains external. Exact conversion limits belong in `docs/migration.md`.
 - Keep canonical and SEO metadata, while noindex and blocking robots remain in place for this local pass.
+- Blog posts include click-to-load giscus comments after the continuation link.
+  Community pages do not. Thread keys use root-level article paths. Keep a
+  GitHub fallback link, and keep giscus off on preview hosts.
+- The footer includes Privacy and Privacy settings. The non-modal analytics
+  panel uses equal Accept and Reject controls, with GA4 off until consent.
+  Neither optional service loads on local previews.
 
 ## Review disposition
 

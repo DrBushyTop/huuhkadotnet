@@ -205,7 +205,8 @@ html { scroll-padding-top: 80px; }
 .load-more:hover { color: var(--link); border-color: var(--blue); }
 .pagination-count, .no-script { color: var(--muted); font-size: 14px; }
 .site-footer { margin-top: 68px; padding-block: 26px 36px; border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 24px; color: var(--muted); font-size: 14px; }
-.site-footer nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-left: auto; }
+.site-footer nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; margin-left: auto; }
+.site-footer [data-privacy-settings] { min-height: 44px; }
 .site-footer a { color: var(--link); white-space: nowrap; }
 .site-footer a:hover { text-decoration: underline; }
 

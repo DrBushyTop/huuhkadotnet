@@ -105,14 +105,25 @@ With Azure CLI signed in to an identity with both roles listed above:
 
 ```sh
 npm ci
-npm test
 npm run build
+npm test
 bash deployment/deploy.sh
 ```
 
 Set `SITE_INDEXABLE=true` only after domain cutover. Rerun a previous successful
 GitHub Actions run to roll back the site. Image uploads are additive; previous
 images remain available, but overwriting the same blob path is not versioned.
+
+## Analytics and comments
+
+GA4 and giscus are configured in source, not deployment secrets. They activate
+only on the public HTTPS domains listed in `src/lib/site-integrations.ts`.
+The Azure default hostname remains a safe preview without third-party collection.
+Analytics also requires reader consent; giscus requires Show comments.
+
+Before publishing the comment integration, install the giscus GitHub App on
+`DrBushyTop/huuhkadotnet` and include the root `giscus.json` in the default branch.
+See `docs/analytics-and-comments.md` for setup checks and the remaining live tests.
 
 References: [Static Web Apps configuration](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration),
 [managed identity with GitHub OIDC](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure-identity).

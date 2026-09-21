@@ -1,0 +1,35 @@
+---
+import config from '../data/giscus.json';
+interface Props { slug: string; }
+const {slug} = Astro.props;
+const thread = `/${slug}/`;
+const discussionUrl = `https://github.com/${config.repo}/discussions?discussions_q=${encodeURIComponent(thread)}`;
+---
+<section class="article-comments" aria-labelledby="comments-heading" data-comments
+  data-repo={config.repo} data-repo-id={config.repoId}
+  data-category={config.category} data-category-id={config.categoryId}
+  data-thread={thread}>
+  <h2 id="comments-heading">Comments</h2>
+  <p>Comments are public GitHub Discussions. Choose Show comments to connect to giscus and GitHub.
+    You'll need a GitHub account to comment.</p>
+  <div class="comments-actions">
+    <button class="load-more" type="button" data-load-comments hidden>Show comments</button>
+    <a href={discussionUrl}>View discussions on GitHub</a>
+  </div>
+  <p class="comments-status" data-comments-status role="status" tabindex="-1"></p>
+  <div class="giscus"></div>
+  <noscript><p>JavaScript is off. Use the GitHub link to read or add comments.</p></noscript>
+</section>
+<script>
+  import {mountComments} from '../lib/comments';
+  mountComments(window);
+</script>
+<style>
+  .article-comments { margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line); }
+  h2 { font-size: 24px; margin-bottom: 12px; }
+  p { font-size: 16px; line-height: 1.5; margin-block: 12px; }
+  .comments-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+  a { color: var(--link); text-decoration: underline; font-size: 16px; }
+  .comments-status { color: var(--muted); }
+  .giscus { margin-top: 16px; }
+</style>

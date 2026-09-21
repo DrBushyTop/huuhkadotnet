@@ -128,9 +128,13 @@ or real Safari audit was performed.
   file. Dev sets its XML content type, but a generic static server may not.
 - Preserve older paginated archive URLs if required. They are outside Ghost's
   sitemap and have not been migrated; the new homepage uses Load more.
-- Confirm a working analytics property. The live homepage contains only legacy
-  Universal Analytics ID `UA-152228894-1`, not a GA4 measurement ID. No analytics
-  script is copied or run locally.
+- Confirm analytics ingestion in the GA4 dashboard after deploying the opt-in integration.
+  September 21, 2026 browser checks on the old Azure hostname found that legacy
+  `UA-152228894-1` dynamically loads `G-X678YYBF80` and emits GA4 page views.
+  This corrects the earlier HTML-only finding. See `analytics-and-comments.md`
+  for evidence, verification limits, consent questions, and replacement options.
+  The legacy script is not copied. The new integration loads GA4 only after
+  consent on public HTTPS domains, never on local or preview hosts.
 - Remove the deliberate `noindex, nofollow` and blocking `robots.txt` only as part
   of the eventual cutover. Verify canonical URLs, redirects, feed headers, and
   indexing on the chosen host before changing DNS.

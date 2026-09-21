@@ -4,6 +4,7 @@ import '@fontsource-variable/source-sans-3';
 import '../styles/global.css';
 import '../styles/code.css';
 import Header from '../components/Header.astro';
+import AnalyticsConsent from '../components/AnalyticsConsent.astro';
 interface Props {
   title: string; description?:string; canonicalUrl?:string; image?:string;
   ogTitle?:string; ogDescription?:string; twitterTitle?:string; twitterDescription?:string; twitterImage?:string;
@@ -45,7 +46,8 @@ const absolute = (path:string) => new URL(path,Astro.site).href;
     <slot />
     <footer class:list={['site-footer', 'page-width', {'reading-footer':reading}]}>
       <p>© {new Date().getFullYear()} Pasi Huuhka</p>
-      <nav aria-label="Footer"><a href="/community-activities/">Community activities</a><a href="/rss/">RSS feed</a></nav>
+      <nav aria-label="Footer"><a href="/community-activities/">Community activities</a><a href="/rss/">RSS feed</a><a href="/privacy/">Privacy</a><button type="button" class="text-button" data-privacy-settings hidden>Privacy settings</button></nav>
     </footer>
+    <AnalyticsConsent />
   </body>
 </html>

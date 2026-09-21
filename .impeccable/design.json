@@ -468,7 +468,7 @@
       "kind": "nav",
       "refersTo": "navigation",
       "description": "Lightweight mono navigation with neutral rounded current and hover highlights.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a href=\"#articles\" aria-current=\"page\">Articles</a><a href=\"#about\">About</a></nav>",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a href=\"#articles\" aria-current=\"page\">Articles</a></nav>",
       "css": ".ds-nav{display:flex;align-items:center;gap:4px;min-height:64px}.ds-nav a{font-family:var(--nav-font,'Geist Mono Variable',monospace);display:flex;align-items:center;min-height:34px;padding:7px 12px;border-radius:9px;color:var(--muted,#596574);text-decoration:none;font-size:13px;font-weight:400;line-height:1;letter-spacing:.04em;text-transform:uppercase;transition:color 150ms ease-out,background-color 150ms ease-out}.ds-nav a[aria-current],.ds-nav a:hover,.ds-nav a:focus-visible{color:var(--ink,#202b3a);background:var(--nav-highlight,#eef1f3)}.ds-nav a:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}@media(prefers-reduced-motion:reduce){.ds-nav a{transition:none}}"
     },
     {

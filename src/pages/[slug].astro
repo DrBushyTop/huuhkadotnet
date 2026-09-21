@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 import ReadingRail from '../components/ReadingRail.astro';
 import ImageViewer from '../components/ImageViewer.astro';
 import Icon from '../components/Icon.astro';
+import Comments from '../components/Comments.astro';
 import { getPosts, dateFormat } from '../lib/posts';
 import { contentsHeadings } from '../lib/reading';
 import author from '../data/author.json';
@@ -68,6 +69,7 @@ const structured = {
             <Icon name="arrow" size={22} />
           </a>
         </nav>}
+        {post.collection === 'blog' && <Comments slug={data.slug} />}
       </div>
     </article>
   </main>

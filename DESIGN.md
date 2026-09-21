@@ -335,7 +335,7 @@ Feature images, standalone inline-image figures, and wide authored figures exten
 
 At 1199px and below, the reader becomes a single column of `min(720px, calc(100% - 48px))`. Series and contents disclosures precede the article body, have no sticky positioning or internal height limit, and leave 24px below the rail. At 600px and below, the reader uses 20px side gutters. The reader footer shares the 720px center alignment, uses compact 12px text and 18px/24px vertical padding, and wraps its links on phones rather than creating a large stacked block.
 
-The header switches at 760px independently of the content grid. With JavaScript it stays in one row with the brand, GitHub link, and menu button. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
+The header switches at 760px independently of the content grid. With JavaScript it stays in one row with the brand, Sessionize link, and menu button. GitHub remains in the menu. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
 
 ## Elevation & Depth
 
@@ -355,7 +355,7 @@ Reader feature images use 12px corners and `object-fit: contain`. The desktop re
 
 ### Header and navigation
 
-Keep the blue geometric H beside the capitalized Huuhka.net wordmark. Desktop Articles and About links use uppercase Geist Mono with neutral current, hover, and focus backgrounds. `aria-current` identifies the current page. LinkedIn, GitHub, and RSS icon links have accessible names.
+Keep the blue geometric H beside the capitalized Huuhka.net wordmark. The desktop Articles link uses uppercase Geist Mono with neutral current, hover, and focus backgrounds. `aria-current` identifies the current page. About is hidden from desktop and mobile navigation until its content is ready; the author archive and article bylines remain intact. LinkedIn, GitHub, Sessionize, and RSS icon links have accessible names. Sessionize uses the inline Simple Icons mark documented in `docs/icon-sources.md`.
 
 The phone header has a 44px menu button. Its native modal dialog contains the brand, close control, page links, and labeled social links. Opening locks background scrolling. The close button and menu links dismiss it; closing restores focus to the trigger on mobile. Resizing to desktop closes it and focuses the current desktop page link. Preserve the no-JavaScript fallback. These implemented behaviors do not constitute a full keyboard audit.
 
@@ -396,6 +396,23 @@ Standalone image paragraphs become semantic figures at build time. An adjacent i
 JavaScript wraps unlinked article images outside authored `ReaderFigure` blocks in buttons with accessible names. The image itself is the control, with a zoom-in cursor and visible keyboard focus. Do not add a visible Zoom label, icon, or other image overlay cue. Without JavaScript, images and captions remain readable without inactive controls.
 
 The native image dialog shows the enlarged image, its caption when present, Open original, and Close. Open original links to the same full local asset in a new tab. Close, Escape, and a backdrop click dismiss the dialog, restore focus without scrolling, and release the document scroll lock. Toolbar targets are at least 44px high. Caption content and links are retained, with copied IDs removed. Dialog behavior has desktop and phone spot checks, not a full-site keyboard or real Safari audit.
+
+### Privacy and comments
+
+The footer adds Privacy and Privacy settings. A non-modal analytics panel sits
+at the bottom of the viewport without blocking reading. It uses the existing
+paper, ink, line, and link colors. Accept analytics and Reject analytics use the
+same outlined button treatment and 46px minimum height. The panel stacks its copy
+and actions on narrow screens and can scroll on short viewports. It does not
+steal focus when first shown. Opening it from the footer focuses a choice;
+closing or choosing returns focus to Privacy settings.
+
+Blog posts add a Comments section after the continuation link, within the prose
+width. A quiet top border separates it from the article. Explain public GitHub
+comments before the Show comments button; retain a GitHub link as the no-script
+and error fallback. The embed loads only on request, uses the light giscus theme,
+and stays off on preview hosts. Loading comments never grants analytics consent.
+The shared visual tokens are unchanged.
 
 ### Code, tables, and callouts
 
