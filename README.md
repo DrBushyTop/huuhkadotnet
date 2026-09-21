@@ -58,7 +58,8 @@ Headings use Geist Sans, navigation and metadata use Geist Mono, body text uses
 Source Sans 3, and code uses SauceCodePro Nerd Font Mono. All fonts are self-hosted.
 Font licenses and code-font provenance are under `public/fonts/`.
 
-No deployment is configured. Indexing remains blocked and analytics are disabled.
+Azure deployment and GitHub Actions are configured under [deployment/](deployment/README.md).
+Indexing remains blocked until custom-domain cutover. Analytics are disabled.
 
 ## Article images
 

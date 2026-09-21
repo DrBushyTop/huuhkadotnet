@@ -1,0 +1,66 @@
+name: Blog
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blog-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Check deployment packaging
+        run: node deployment/prepare.mjs
+        env:
+          MEDIA_BASE_URL: https://example.blob.core.windows.net/images
+      - name: Compile infrastructure
+        run: az bicep build --file deployment/main.bicep --stdout > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blog
+          path: dist
+          retention-days: 7
+  deploy:
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: blog
+          path: dist
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy infrastructure, images and site
+        run: bash deployment/deploy.sh
+        env:
+          SITE_INDEXABLE: ${{ vars.SITE_INDEXABLE }}

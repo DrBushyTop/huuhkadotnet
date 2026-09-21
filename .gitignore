@@ -11,3 +11,6 @@ dist/
 !.env.example
 .impeccable/review/
 .impeccable/build/
+
+.deployment/
+.deployment-outputs.json
