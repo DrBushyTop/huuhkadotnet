@@ -375,6 +375,10 @@ The search field sits beside the author introduction above popular articles. It 
 
 Load more uses a 46px minimum height and reveals another batch of articles. It disappears when no results remain. Focus moves to the first newly revealed article without forced scrolling. Without JavaScript all articles remain visible and search and loading controls stay hidden. The homepage brief owns the batch size, not the shared tokens.
 
+An active nonblank search hides the popular section at every width and removes
+the archive's extra top margin. Results then follow the search field without
+unrelated cards between them. Clearing the query restores popular articles.
+
 ### Article reading
 
 The header contains an All articles link, title, author link, original publication date, and linked tags. If the updated calendar date differs, show Updated beside the author and publication date rather than repeating it below the article. Tag archives reuse the index card treatment. The optional feature image starts the centered article body and retains its original caption.

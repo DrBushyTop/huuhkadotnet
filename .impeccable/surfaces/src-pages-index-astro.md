@@ -32,6 +32,7 @@ FINISH: Keep documentation matched to source. Browser evidence covers only its r
 
 - Show 12 articles initially and reveal another 12 with Load more, until the collection is exhausted. Do not switch to automatic infinite scrolling.
 - Search all posts, including hidden batches; retain URL query state, clear actions, live counts, and the empty state.
+- Hide popular articles while a nonblank search is active at every width, placing the result count and archive directly below search. Restore popular articles when the query clears, including Escape and browser history changes.
 - Without JavaScript, show all articles and hide search and loading controls.
 - Keep metadata from the collection. Display at most two non-interactive topic labels on cards; full linked tags belong on article pages.
 - Keep noindex and analytics disabled during local migration. Production requirements belong in `docs/migration.md`.

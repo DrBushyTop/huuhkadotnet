@@ -161,6 +161,7 @@ html { scroll-padding-top: 80px; }
 .popular-arrow { color: var(--muted); position: absolute; top: 9px; right: 9px; }
 
 .archive { margin-top: 28px; }
+.popular-section[hidden] + .archive { margin-top: 0; }
 .archive-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px; margin-bottom: 16px; }
 .archive-heading h2 { font-size: 26px; line-height: 1.5; font-weight: 600; letter-spacing: -0.02em; }
 .search-form {

@@ -27,3 +27,49 @@ test('archive heading and single live count share a container', () => {
   assert.equal(count.textContent, '55 articles');
   assert.equal(document.querySelectorAll('.article-card:not([hidden])').length, 55);
 });
+
+// Run the page's actual controller against its built DOM, without loading embeds.
+test('search hides popular articles and restores them on clear and history changes', async () => {
+  const {transpile} = await import('typescript');
+  const {createArticleSearch} = await import('../src/lib/search.ts');
+  const source = readFileSync(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+  const controller = source.match(/<script>\s*([\s\S]*?)<\/script>/)[1]
+    .replace(/import \{ createArticleSearch \} from '\.\.\/lib\/search';/, '');
+  const {document, Event} = parseHTML(readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8'));
+  const events = new Map();
+  const window = {
+    location: new URL('https://www.huuhka.net/?q=azure'),
+    history: {replaceState: (_state, _title, url) => { window.location = new URL(url); }},
+    addEventListener: (name, handler) => events.set(name, handler),
+  };
+  new Function('document', 'window', 'createArticleSearch', transpile(controller))(
+    document, window, createArticleSearch,
+  );
+  const input = document.querySelector('#article-search');
+  const popular = document.querySelector('.popular-section');
+  const count = document.querySelector('#result-count');
+  assert.equal(popular.hidden, true, 'a bookmarked query hides popular on load');
+  assert.match(count.textContent, /articles found/);
+
+  input.value = 'zzzznomatchzzzz';
+  input.dispatchEvent(new Event('input'));
+  assert.equal(popular.hidden, true);
+  assert.equal(document.querySelector('.empty-state').hidden, false);
+  assert.equal(count.textContent, '0 articles found');
+
+  document.querySelector('.clear-search').dispatchEvent(new Event('click'));
+  assert.equal(popular.hidden, false);
+  assert.equal(count.textContent, '12 of 55 articles');
+  assert.equal(window.location.search, '');
+
+  window.location.search = '?q=azure';
+  events.get('popstate')();
+  assert.equal(popular.hidden, true);
+  window.location.search = '';
+  events.get('popstate')();
+  assert.equal(popular.hidden, false);
+
+  input.value = '   ';
+  input.dispatchEvent(new Event('input'));
+  assert.equal(popular.hidden, false, 'whitespace is not an active search');
+});
