@@ -9,6 +9,9 @@ resource_group='huuhkadotnet-prod'
 identity_name='huuhkadotnet-github'
 subscription=$(az account show --query id -o tsv)
 tenant=$(az account show --query tenantId -o tsv)
+# GitHub may use an immutable subject containing owner and repository IDs.
+subject_prefix=$(gh api "repos/$repo/actions/oidc/customization/sub" --jq '.sub_claim_prefix // empty')
+subject_prefix=${subject_prefix:-repo:$repo}
 scope="/subscriptions/$subscription/resourceGroups/$resource_group"
 
 az group create --name "$identity_group" --location "$location" --output none
@@ -19,7 +22,7 @@ client=$(az identity show -g "$identity_group" -n "$identity_name" --query clien
 az identity federated-credential create --name github-production \
   --identity-name "$identity_name" --resource-group "$identity_group" \
   --issuer 'https://token.actions.githubusercontent.com' \
-  --subject "repo:$repo:environment:production" \
+  --subject "$subject_prefix:environment:production" \
   --audiences 'api://AzureADTokenExchange' --output none
 
 for role in 'Contributor' 'Storage Blob Data Contributor'; do

@@ -58,7 +58,7 @@ export function prepare({source = 'dist', target = '.deployment', mediaBaseUrl, 
   // Give the extensionless Astro feed an XML filename for the host's MIME handling.
   cpSync(join(site, 'rss'), join(site, 'feed.xml'));
   rmSync(join(site, 'rss'));
-  routes.push(...['/rss', '/rss/'].map(route => ({route, rewrite: '/feed.xml', headers: {'Content-Type': 'application/rss+xml; charset=utf-8'}})));
+  routes.push({route: '/rss', rewrite: '/feed.xml', headers: {'Content-Type': 'application/rss+xml; charset=utf-8'}});
   const config = {
     routes,
     responseOverrides: {'404': {rewrite: '/404.html', statusCode: 404}},

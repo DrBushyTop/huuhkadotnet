@@ -20,7 +20,8 @@ Contributor and Storage Blob Data Contributor on `huuhkadotnet-prod` only.
 The identity has no role-assignment permission and no subscription-wide role.
 
 GitHub's `production` environment only accepts deployments from `master`.
-The federated credential trusts `repo:DrBushyTop/huuhkadotnet:environment:production`.
+The federated credential trusts `repo:DrBushyTop@22717844/huuhkadotnet@1379384803:environment:production`
+using GitHub's immutable owner and repository IDs.
 The environment contains the client, tenant and subscription IDs as variables.
 There are no stored Azure credentials or deployment-token secrets in GitHub.
 
