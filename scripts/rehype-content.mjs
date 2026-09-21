@@ -2,6 +2,28 @@
 // headings for the contents list. New posts use Astro's normal generated IDs.
 export default function rehypeContent() {
   return tree => {
+    // Imported Ghost captions follow a sole-image paragraph. Keep them with
+    // their image in a real figure without changing the MDX or caption text.
+    for (let i = 0; i < tree.children.length; i++) {
+      const node = tree.children[i];
+      if (node.type !== 'element' || node.tagName !== 'p') continue;
+      const children = node.children.filter(child => child.type !== 'text' || child.value.trim());
+      const image = children[0];
+      const soleImage = children.length === 1 && image?.type === 'element'
+        && (image.tagName === 'img' || (image.tagName === 'a' && image.children.length === 1 && image.children[0].tagName === 'img'));
+      if (!soleImage) continue;
+      let j = i + 1;
+      while (tree.children[j]?.type === 'text' && !tree.children[j].value.trim()) j++;
+      const caption = tree.children[j];
+      const hasCaption = (caption?.type === 'element' && caption.tagName === 'figcaption')
+        || (caption?.type === 'mdxJsxFlowElement' && caption.name === 'figcaption');
+      node.tagName = 'figure';
+      node.properties = {...node.properties, className: ['prose-image']};
+      if (hasCaption) {
+        node.children.push(caption);
+        tree.children.splice(i + 1, j - i);
+      }
+    }
     function visit(node) {
       if (node.children) {
         for (let i=0;i<node.children.length-1;i++) {

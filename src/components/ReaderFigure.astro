@@ -1,0 +1,7 @@
+---
+interface Props { width?: 'text' | 'wide'; label: string }
+const { width = 'wide', label } = Astro.props;
+---
+<figure class="reader-figure" data-width={width} aria-label={label}>
+  <slot />
+</figure>

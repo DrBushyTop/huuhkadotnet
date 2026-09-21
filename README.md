@@ -34,6 +34,9 @@ root-relative paths. Author information lives in `src/data/author.json`.
 For a series, add its ID to the post's `series` array and add the post slug to the
 ordered definition in `src/data/series.json`. Keep both in sync. Series links
 appear in the reader's collapsible navigation, not in an opening callout.
+Contents includes section headings and their immediate subheadings in article
+order, starting at the shallowest heading depth of two or greater. The contents
+disclosure appears when that list has more than one entry.
 
 Plain Markdown works inside MDX. Use fenced code with a language identifier.
 Migrated files include explicit anchors to preserve old links; new headings get
@@ -56,6 +59,28 @@ Source Sans 3, and code uses SauceCodePro Nerd Font Mono. All fonts are self-hos
 Font licenses and code-font provenance are under `public/fonts/`.
 
 No deployment is configured. Indexing remains blocked and analytics are disabled.
+
+## Article images
+
+The reader keeps text centered at 720px and puts the desktop
+reading rail on the left. Feature images and standalone inline images widen to
+800px at a 1200px viewport and 960px at 1440px. Captions stay at text width. Phone
+images retain the 20px page gutters.
+
+Click or focus and press Enter on an unlinked image to open its enlarged view with
+the original caption. Open original links to the full asset. Close, Escape, or a
+backdrop click dismisses the view and restores focus. Authored image links keep
+their destinations. Without JavaScript, images and captions remain readable.
+The build groups imported images and adjacent captions without rewriting MDX.
+Image buttons have accessible names, focus rings, and a zoom-in cursor, with no
+visible Zoom label or icon. Only the centered reader remains; comparison query
+parameters and demos have been removed.
+
+`ReaderFigure.astro` defaults to `width="wide"` for future MDX diagrams or
+interactive components. It uses the approved wider media width on desktop; choose
+`width="text"` to keep it within the prose column. Its children keep their own
+behavior and are excluded from automatic image zoom. No animation framework is
+required.
 
 ## Shared local preview
 

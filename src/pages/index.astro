@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
+import CardImage from '../components/CardImage.astro';
 import {getPosts, cardPost} from '../lib/posts';
 const posts = (await getPosts()).map(cardPost);
 
@@ -26,7 +27,7 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
       <div class="popular-grid">
         {popular.map((post) => (
           <a class="popular-card" href={post.url}>
-            <img src={post.image || "/images/pasi.webp"} width="72" height="72" alt="" decoding="async" />
+            <CardImage src={post.image || "/images/pasi.webp"} compact loading="eager" />
             <h3>{post.title}</h3>
             <span class="popular-arrow"><Icon name="external" size={17} /></span>
           </a>
@@ -49,9 +50,7 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
         {posts.map((post, index) => (
           <article class="article-card" data-slug={post.slug}>
             <a href={post.url} aria-labelledby={`title-${post.slug}`}>
-              <div class="article-image">
-                <img src={post.image || "/images/pasi.webp"} alt="" width="960" height="504" loading={index < 3 ? 'eager' : 'lazy'} decoding="async" />
-              </div>
+              <CardImage src={post.image || "/images/pasi.webp"} loading={index < 3 ? 'eager' : 'lazy'} />
               <div class="article-content">
                 <ul class="article-tags" aria-label="Topics">
                   {post.tags.filter((tag) => tag !== 'Artificial Intelligence' || !post.tags.includes('AI')).slice(0, 2).map((tag) => (

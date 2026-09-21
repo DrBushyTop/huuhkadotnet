@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-21T11:22:19.169640+00:00",
+  "generatedAt": "2026-09-21T15:56:08.526Z",
   "title": "Design system: Huuhka.net",
   "extensions": {
     "colorMeta": {
@@ -183,6 +183,21 @@
           "oklch(84% 0.00252 228.78)",
           "oklch(95% 0.00252 228.78)"
         ]
+      },
+      "image-backdrop": {
+        "role": "neutral",
+        "displayName": "Image backdrop",
+        "canonical": "rgb(20 29 40 / 82%)",
+        "tonalRamp": [
+          "oklch(15% 0.02523 253.81 / 82%)",
+          "oklch(26% 0.02523 253.81 / 82%)",
+          "oklch(38% 0.02523 253.81 / 82%)",
+          "oklch(49% 0.02523 253.81 / 82%)",
+          "oklch(61% 0.02523 253.81 / 82%)",
+          "oklch(72% 0.02523 253.81 / 82%)",
+          "oklch(84% 0.02523 253.81 / 82%)",
+          "oklch(95% 0.02523 253.81 / 82%)"
+        ]
       }
     },
     "typographyMeta": {
@@ -265,6 +280,10 @@
       "reading-next-title": {
         "displayName": "Reading next title",
         "purpose": "Compact continuation-link title; 16px on phones."
+      },
+      "image-toolbar": {
+        "displayName": "Image toolbar",
+        "purpose": "Open original and Close controls in the enlarged-image dialog."
       }
     },
     "shadows": [],
@@ -327,6 +346,10 @@
       {
         "name": "reader-inline-rail-max",
         "value": "1199px"
+      },
+      {
+        "name": "reader-large-min",
+        "value": "1440px"
       }
     ],
     "focus": {
@@ -351,14 +374,23 @@
         "docs/migration.md",
         "src/components/ReadingRail.astro",
         "src/data/series.json",
-        "src/lib/reading.ts"
+        "src/lib/reading.ts",
+        "src/styles/image-viewer.css",
+        "src/components/ImageViewer.astro",
+        "src/components/ReaderFigure.astro",
+        "scripts/rehype-content.mjs",
+        ".impeccable/review/reader-images/verification.md",
+        ".impeccable/review/reader-contents/verification.md",
+        "src/components/CardImage.astro",
+        "src/components/ArticleCard.astro"
       ],
-      "authority": "Approved homepage composition and fonts preserved. Reader refinements use a centered content column, compact footer, native series disclosures, and scroll-tracking contents without changing the index system.",
-      "status": "Local migration and refined reader implemented, including three overlapping series groups. Deployment, production indexing, and analytics remain deferred.",
+      "authority": "Approved homepage composition and fonts preserved. The selected centered reader is the only layout, with a compact left rail, wider images, and captioned image zoom. Image buttons retain accessible names, focus rings, and a zoom-in cursor without a visible label or icon. Comparison layouts and demos have been removed, not canonized.",
+      "status": "Centered reader, captioned image viewer, and two-depth contents navigation implemented locally. Deployment, production indexing, and analytics remain deferred.",
       "tonalRamps": "Synthesized OKLCH panel previews, not additional application color tokens.",
-      "componentSamples": "Isolated style specimens, not working application search, pagination, mobile-menu, or scroll-tracking behavior. Image slots are placeholders; the homepage uses real published imagery.",
+      "componentSamples": "Isolated style specimens, not working application search, pagination, mobile-menu, image-viewer, or scroll-tracking behavior. Card image specimens use self-contained placeholder graphics in both layers; application cards reuse existing image URLs.",
       "popularSelection": "Newest three collection entries remain provisional, without a visible sample-selection label or measured-ranking claim.",
-      "verification": "Source-backed documentation refresh. Browser spot-check evidence is bounded to its recorded pages and interactions; no whole-site, keyboard, or screen-reader certification."
+      "verification": "Ship for reader cleanup and targeted contents fix, with no material fixes. Build: 95 pages. Tests: 20 passed. Migration: 56 content pages and 94 source URLs, zero errors. Local: 94 routes, 56 AMP redirects, RSS, and 404 passed. Desktop and phone captures at 1440 by 1000 and 390 by 844 CSS pixels document no overflow, disclosure behavior, resolving links, a 104px anchor landing, and forward/reverse contents tracking. Earlier image-dialog checks retain their recorded scope and predate removal of the visible Zoom cue. No whole-site keyboard, screen-reader, or real Safari audit.",
+      "cardImageReview": "Implementation ready to ship; reviewer requested only stale cropping documentation be fixed. Desktop and phone captures in .impeccable/review/card-images/. Twenty tests, 95-page build, migration, and local route checks passed. Fuzzy search, empty results, Escape reset, and 12-to-24 Load more with focus verified. No top-corner redesign approved."
     },
     "fontAssets": {
       "code": {
@@ -384,6 +416,26 @@
         "license": "public/fonts/sauce-code-pro/LICENSE.txt",
         "provenance": "public/fonts/sauce-code-pro/provenance.json"
       }
+    },
+    "imageViewer": {
+      "maxWidth": "1600px",
+      "maxHeight": "calc(100dvh - 48px)",
+      "mobileMaxHeight": "calc(100dvh - 24px)",
+      "imageMaxHeight": "calc(100dvh - 220px)",
+      "toolbarMinHeight": "44px",
+      "layer": "Native modal dialog top layer",
+      "behavior": "Progressively enhance unlinked article images outside ReaderFigure with accessible button names, focus rings, and a zoom-in cursor; no visible overlay cue. Preserve captions and authored links. Close, Escape, and backdrop dismissal return focus without scrolling and restore document overflow."
+    },
+    "cardImages": {
+      "foregroundFit": "contain",
+      "backdropFit": "cover",
+      "backdropBlur": "16px",
+      "backdropScale": 1.12,
+      "backdropOpacity": 0.3,
+      "archiveAspectRatio": 1.6,
+      "backdropAccessibility": "Decorative, aria-hidden, empty alt, pointer-events none.",
+      "source": "Both layers reuse the same existing URL and loading policy. Default lazy; callers can request eager. No generated or edited image assets.",
+      "scope": "Homepage popular and archive cards, tag archives, and author archives. Reader images are unchanged."
     }
   },
   "components": [
@@ -423,17 +475,17 @@
       "name": "Popular card",
       "kind": "card",
       "refersTo": "popular-card",
-      "description": "Filled compact link. The image slot stands in for a published thumbnail in this isolated specimen.",
-      "html": "<a class=\"ds-popular\" href=\"#article\"><span class=\"ds-thumb\" aria-hidden=\"true\"></span><span class=\"ds-popular-title\">Article title</span><svg class=\"ds-external\" width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M14 4h6v6m0-6L10 14M10 4H4v16h16v-6\"/></svg></a>",
-      "css": ".ds-popular{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:flex;align-items:center;position:relative;min-height:116px;gap:15px;padding:16px;background:var(--popular-ground,#f1f5f7);border:1px solid var(--line,#dce3e8);border-radius:12px;color:var(--ink,#202b3a);text-decoration:none;transition:background 160ms ease-out,border-color 160ms ease-out}.ds-popular:hover{background:var(--popular-hover,#e8f0f5);border-color:#aabfcc}.ds-popular:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}.ds-thumb{width:72px;height:72px;flex:0 0 72px;border-radius:6px;background:var(--line,#dce3e8)}.ds-popular-title{font-family:var(--brand-font,'Geist Variable',sans-serif);font-size:16px;line-height:1.4;font-weight:500;letter-spacing:-.012em;padding-right:6px}.ds-external{position:absolute;top:9px;right:9px;color:var(--muted,#596574)}@media(prefers-reduced-motion:reduce){.ds-popular{transition:none}}"
+      "description": "Compact article link with a contained foreground image over a blurred copy. The specimen repeats one placeholder graphic; real cards reuse their existing image URL.",
+      "html": "<a class=\"ds-popular\" href=\"#article\"><span class=\"ds-thumb ds-card-image\"><img class=\"ds-card-backdrop\" src=\"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22600%22%20viewBox%3D%220%200%20400%20600%22%3E%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22%23dce3e8%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2280%22%20width%3D%22280%22%20height%3D%22160%22%20rx%3D%226%22%20fill%3D%22%23087caf%22%2F%3E%3Cpath%20d%3D%22M60%20300h280M60%20360h280M60%20420h180%22%20stroke%3D%22%23596574%22%20stroke-width%3D%2220%22%2F%3E%3C%2Fsvg%3E\" alt=\"\" aria-hidden=\"true\" width=\"400\" height=\"600\" loading=\"lazy\"/><img class=\"ds-card-foreground\" src=\"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22600%22%20viewBox%3D%220%200%20400%20600%22%3E%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22%23dce3e8%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2280%22%20width%3D%22280%22%20height%3D%22160%22%20rx%3D%226%22%20fill%3D%22%23087caf%22%2F%3E%3Cpath%20d%3D%22M60%20300h280M60%20360h280M60%20420h180%22%20stroke%3D%22%23596574%22%20stroke-width%3D%2220%22%2F%3E%3C%2Fsvg%3E\" alt=\"\" width=\"400\" height=\"600\" loading=\"lazy\"/></span><span class=\"ds-popular-title\">Article title</span><svg class=\"ds-external\" width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M14 4h6v6m0-6L10 14M10 4H4v16h16v-6\"/></svg></a>",
+      "css": ".ds-popular{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:flex;align-items:center;position:relative;min-height:116px;gap:15px;padding:16px;background:var(--popular-ground,#f1f5f7);border:1px solid var(--line,#dce3e8);border-radius:12px;color:var(--ink,#202b3a);text-decoration:none;transition:background 160ms ease-out,border-color 160ms ease-out}.ds-popular:hover{background:var(--popular-hover,#e8f0f5);border-color:#aabfcc}.ds-popular:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}.ds-thumb{width:72px;height:72px;flex:0 0 72px;border-radius:6px;background:var(--line,#dce3e8)}.ds-popular-title{font-family:var(--brand-font,'Geist Variable',sans-serif);font-size:16px;line-height:1.4;font-weight:500;letter-spacing:-.012em;padding-right:6px}.ds-external{position:absolute;top:9px;right:9px;color:var(--muted,#596574)}@media(prefers-reduced-motion:reduce){.ds-popular{transition:none}}.ds-card-image{position:relative;overflow:hidden;isolation:isolate;background:var(--popular-ground,#f1f5f7)}.ds-card-image img{position:absolute;inset:0;width:100%;height:100%}.ds-card-backdrop{object-fit:cover;filter:blur(16px);transform:scale(1.12);opacity:.3;pointer-events:none}.ds-card-foreground{object-fit:contain}@media(min-width:701px) and (max-width:1000px){.ds-popular{flex-direction:column;align-items:flex-start;gap:12px;padding:14px}.ds-thumb{width:56px;height:56px;flex-basis:56px}}@media(max-width:700px){.ds-popular{min-height:96px;padding:13px;gap:15px}.ds-thumb{width:62px;height:62px;flex-basis:62px}}"
     },
     {
       "name": "Archive card",
       "kind": "card",
       "refersTo": "article-card",
-      "description": "Rounded image-led card with padded topic tags, title, date, and Read more cue. Empty image slot represents published imagery.",
-      "html": "<article class=\"ds-article\"><a href=\"#article\" aria-labelledby=\"ds-article-title\"><div class=\"ds-article-image\" aria-hidden=\"true\"></div><div class=\"ds-article-content\"><ul class=\"ds-tags\" aria-label=\"Topics\"><li>Azure</li><li>DevOps</li></ul><h3 id=\"ds-article-title\">Article title</h3><div class=\"ds-meta\"><time datetime=\"2026-09-21\">21 Sep 2026</time><span class=\"ds-read\" aria-hidden=\"true\">Read more <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></span></div></div></a></article>",
-      "css": ".ds-article{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);min-width:0}.ds-article>a{display:flex;flex-direction:column;height:100%;border:1px solid var(--line,#dce3e8);border-radius:14px;background:var(--article-ground,#f7f9fa);color:var(--ink,#202b3a);text-decoration:none;transition:border-color 160ms ease-out}.ds-article-image{aspect-ratio:1.6;overflow:hidden;border-radius:13px 13px 0 0;background:var(--popular-ground,#f1f5f7)}.ds-article-content{display:flex;flex-direction:column;flex:1;padding:22px}.ds-tags{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0 0 14px;list-style:none}.ds-tags li{font-family:var(--nav-font,'Geist Mono Variable',monospace);max-width:100%;padding:3px 8px;border-radius:6px;background:var(--nav-highlight,#eef1f3);color:var(--muted,#596574);font-size:10px;line-height:1.5;letter-spacing:.04em;text-transform:uppercase;overflow-wrap:anywhere}.ds-article h3{font-family:var(--brand-font,'Geist Variable',sans-serif);margin:0;font-size:19px;font-weight:500;line-height:1.4;letter-spacing:-.02em}.ds-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:auto;padding-top:30px}.ds-article time{font-family:var(--nav-font,'Geist Mono Variable',monospace);color:var(--muted,#596574);font-size:11px;font-weight:400;line-height:1.5;letter-spacing:.04em;text-transform:uppercase;font-variant-numeric:tabular-nums}.ds-read{display:inline-flex;align-items:center;gap:8px;font-size:15px;white-space:nowrap}.ds-article>a:hover{border-color:var(--muted,#596574)}.ds-article>a:hover .ds-read{color:var(--link,#076b97);text-decoration:underline;text-underline-offset:.2em}.ds-article>a:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}@media(max-width:700px){.ds-article-content{padding:20px}}@media(prefers-reduced-motion:reduce){.ds-article>a{transition:none}}"
+      "description": "Rounded article card with an uncropped foreground image over a blurred copy, padded tags, title, date, and Read more. Image treatment is shared with tag and author archives.",
+      "html": "<article class=\"ds-article\"><a href=\"#article\" aria-labelledby=\"ds-article-title\"><div class=\"ds-article-image ds-card-image\"><img class=\"ds-card-backdrop\" src=\"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22600%22%20viewBox%3D%220%200%20400%20600%22%3E%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22%23dce3e8%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2280%22%20width%3D%22280%22%20height%3D%22160%22%20rx%3D%226%22%20fill%3D%22%23087caf%22%2F%3E%3Cpath%20d%3D%22M60%20300h280M60%20360h280M60%20420h180%22%20stroke%3D%22%23596574%22%20stroke-width%3D%2220%22%2F%3E%3C%2Fsvg%3E\" alt=\"\" aria-hidden=\"true\" width=\"400\" height=\"600\" loading=\"lazy\"/><img class=\"ds-card-foreground\" src=\"data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22600%22%20viewBox%3D%220%200%20400%20600%22%3E%3Crect%20width%3D%22400%22%20height%3D%22600%22%20fill%3D%22%23dce3e8%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2280%22%20width%3D%22280%22%20height%3D%22160%22%20rx%3D%226%22%20fill%3D%22%23087caf%22%2F%3E%3Cpath%20d%3D%22M60%20300h280M60%20360h280M60%20420h180%22%20stroke%3D%22%23596574%22%20stroke-width%3D%2220%22%2F%3E%3C%2Fsvg%3E\" alt=\"\" width=\"400\" height=\"600\" loading=\"lazy\"/></div><div class=\"ds-article-content\"><ul class=\"ds-tags\" aria-label=\"Topics\"><li>Azure</li><li>DevOps</li></ul><h3 id=\"ds-article-title\">Article title</h3><div class=\"ds-meta\"><time datetime=\"2026-09-21\">21 Sep 2026</time><span class=\"ds-read\" aria-hidden=\"true\">Read more <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></span></div></div></a></article>",
+      "css": ".ds-article{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);min-width:0}.ds-article>a{display:flex;flex-direction:column;height:100%;border:1px solid var(--line,#dce3e8);border-radius:14px;background:var(--article-ground,#f7f9fa);color:var(--ink,#202b3a);text-decoration:none;transition:border-color 160ms ease-out}.ds-article-image{aspect-ratio:1.6;overflow:hidden;border-radius:13px 13px 0 0;background:var(--popular-ground,#f1f5f7)}.ds-article-content{display:flex;flex-direction:column;flex:1;padding:22px}.ds-tags{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0 0 14px;list-style:none}.ds-tags li{font-family:var(--nav-font,'Geist Mono Variable',monospace);max-width:100%;padding:3px 8px;border-radius:6px;background:var(--nav-highlight,#eef1f3);color:var(--muted,#596574);font-size:10px;line-height:1.5;letter-spacing:.04em;text-transform:uppercase;overflow-wrap:anywhere}.ds-article h3{font-family:var(--brand-font,'Geist Variable',sans-serif);margin:0;font-size:19px;font-weight:500;line-height:1.4;letter-spacing:-.02em}.ds-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:auto;padding-top:30px}.ds-article time{font-family:var(--nav-font,'Geist Mono Variable',monospace);color:var(--muted,#596574);font-size:11px;font-weight:400;line-height:1.5;letter-spacing:.04em;text-transform:uppercase;font-variant-numeric:tabular-nums}.ds-read{display:inline-flex;align-items:center;gap:8px;font-size:15px;white-space:nowrap}.ds-article>a:hover{border-color:var(--muted,#596574)}.ds-article>a:hover .ds-read{color:var(--link,#076b97);text-decoration:underline;text-underline-offset:.2em}.ds-article>a:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}@media(max-width:700px){.ds-article-content{padding:20px}}@media(prefers-reduced-motion:reduce){.ds-article>a{transition:none}}.ds-card-image{position:relative;overflow:hidden;isolation:isolate;background:var(--popular-ground,#f1f5f7)}.ds-card-image img{position:absolute;inset:0;width:100%;height:100%}.ds-card-backdrop{object-fit:cover;filter:blur(16px);transform:scale(1.12);opacity:.3;pointer-events:none}.ds-card-foreground{object-fit:contain}"
     },
     {
       "name": "Topic tags",
@@ -471,9 +523,17 @@
       "name": "Article reader",
       "kind": "custom",
       "refersTo": "reading-prose",
-      "description": "Centered reader typography, compact metadata, and native navigation disclosures. The isolated specimen omits the outside grid columns and scroll-tracking script.",
-      "html": "<article class=\"ds-reader\"><h1>Article title</h1><div class=\"ds-reader-meta\"><span>Pasi Huuhka</span><time datetime=\"2026-09-21\">21 Sep 2026</time></div><aside class=\"ds-reader-rail\" aria-label=\"Reading navigation\"><details><summary><span><span class=\"ds-rail-label\">In this series</span><span class=\"ds-series-name\">Agentic Dev</span></span><svg class=\"ds-chevron\" width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"m4 6 4 4 4-4\" stroke=\"currentColor\" stroke-width=\"1.5\" /></svg></summary><nav aria-label=\"Agentic Dev series\"><a href=\"#ds-reader-section\" aria-current=\"page\">Article title</a></nav></details><details><summary><span class=\"ds-rail-label\">On this page</span><svg class=\"ds-chevron\" width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"m4 6 4 4 4-4\" stroke=\"currentColor\" stroke-width=\"1.5\" /></svg></summary><nav aria-label=\"Table of contents\"><a href=\"#ds-reader-section\">Section title</a></nav></details></aside><div class=\"ds-reader-prose\"><h2 id=\"ds-reader-section\">Section title</h2><p>Technical explanations retain the approved body and code fonts.</p></div></article>",
-      "css": ".ds-reader{max-width:720px;margin-inline:auto;color:var(--ink,#202b3a);font-family:var(--body-font,'Source Sans 3 Variable',sans-serif)}.ds-reader h1,.ds-reader h2{font-family:var(--brand-font,'Geist Variable',sans-serif);font-weight:600}.ds-reader h1{font-size:clamp(30px,3.2vw,44px);line-height:1.18;letter-spacing:-.025em;margin-block:20px}.ds-reader-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;color:var(--muted,#596574);font-size:14px}.ds-reader time{font-family:var(--nav-font,'Geist Mono Variable',monospace);font-size:11px;font-weight:400;line-height:1.5;letter-spacing:.02em;text-transform:uppercase;font-variant-numeric:tabular-nums}.ds-reader-rail{margin-block:24px;font-size:13px;line-height:1.45}.ds-reader-rail summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:5px;list-style:none;cursor:pointer}.ds-reader-rail summary::-webkit-details-marker{display:none}.ds-rail-label{display:block;font-family:var(--nav-font,'Geist Mono Variable',monospace);font-size:10px;line-height:1.6;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#596574)}.ds-series-name{display:block;margin-top:5px;font-family:var(--brand-font,'Geist Variable',sans-serif);font-size:13px;line-height:1.45;font-weight:500}.ds-chevron{flex-shrink:0;color:var(--muted,#596574);transition:transform 160ms ease-out}.ds-reader-rail details[open]>summary .ds-chevron{transform:rotate(180deg)}.ds-reader-rail details+details{margin-top:24px}.ds-reader-rail nav{margin-top:10px}.ds-reader a{display:block;padding-block:7px;color:var(--muted,#596574)}.ds-reader a[aria-current]{color:var(--ink,#202b3a);font-weight:600}.ds-reader a:hover{color:var(--link,#076b97);text-decoration:underline}.ds-reader :is(a,summary):focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px}.ds-reader-prose{font-size:19px;line-height:1.7;overflow-wrap:anywhere}.ds-reader h2{font-size:28px;line-height:1.3;margin-block:1.6em .6em;scroll-margin-top:24px}.ds-reader-prose p{margin-block:0 1.2em}@media(max-width:1199px){.ds-reader-rail details{border-bottom:1px solid var(--line,#dce3e8)}.ds-reader-rail details+details{margin-top:0}.ds-reader-rail summary{min-height:44px;padding-block:10px}.ds-reader-rail a{min-height:38px;padding-block:9px}}@media(max-width:600px){.ds-reader h1{margin-block:18px}.ds-reader-prose{font-size:18px}.ds-reader h2{font-size:25px}}@media(prefers-reduced-motion:reduce){.ds-chevron{transition:none}}"
+      "description": "The centered reader has a compact left desktop rail and native disclosures before prose on narrow screens. Contents lists the shallowest eligible heading depth and immediate subheadings in article order.",
+      "html": "<article class=\"ds-reader\"><h1>Article title</h1><div class=\"ds-reader-meta\"><span>Pasi Huuhka</span><time datetime=\"2026-09-21\">21 Sep 2026</time></div><aside class=\"ds-reader-rail\" aria-label=\"Reading navigation\"><details><summary><span><span class=\"ds-rail-label\">In this series</span><span class=\"ds-series-name\">Agentic Dev</span></span><svg class=\"ds-chevron\" width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"m4 6 4 4 4-4\" stroke=\"currentColor\" stroke-width=\"1.5\" /></svg></summary><nav aria-label=\"Agentic Dev series\"><a href=\"#ds-reader-section\" aria-current=\"page\">Article title</a></nav></details><details><summary><span class=\"ds-rail-label\">On this page</span><svg class=\"ds-chevron\" width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"m4 6 4 4 4-4\" stroke=\"currentColor\" stroke-width=\"1.5\" /></svg></summary><nav class=\"ds-reader-toc\" aria-label=\"Table of contents\"><a href=\"#ds-reader-section\">Section title</a><a class=\"ds-reader-subheading\" href=\"#ds-reader-subsection\">Immediate subheading</a></nav></details></aside><div class=\"ds-reader-prose\"><h2 id=\"ds-reader-section\">Section title</h2><p>Technical explanations retain the approved body and code fonts.</p><h3 id=\"ds-reader-subsection\">Immediate subheading</h3></div></article>",
+      "css": ".ds-reader{max-width:720px;margin-inline:auto;color:var(--ink,#202b3a);font-family:var(--body-font,'Source Sans 3 Variable',sans-serif)}.ds-reader h1,.ds-reader h2{font-family:var(--brand-font,'Geist Variable',sans-serif);font-weight:600}.ds-reader h1{font-size:clamp(30px,3.2vw,44px);line-height:1.18;letter-spacing:-.025em;margin-block:20px}.ds-reader-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;color:var(--muted,#596574);font-size:14px}.ds-reader time{font-family:var(--nav-font,'Geist Mono Variable',monospace);font-size:11px;font-weight:400;line-height:1.5;letter-spacing:.02em;text-transform:uppercase;font-variant-numeric:tabular-nums}.ds-reader-rail{margin-block:24px;font-size:13px;line-height:1.45}.ds-reader-rail summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:5px;list-style:none;cursor:pointer}.ds-reader-rail summary::-webkit-details-marker{display:none}.ds-rail-label{display:block;font-family:var(--nav-font,'Geist Mono Variable',monospace);font-size:10px;line-height:1.6;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#596574)}.ds-series-name{display:block;margin-top:5px;font-family:var(--brand-font,'Geist Variable',sans-serif);font-size:13px;line-height:1.45;font-weight:500}.ds-chevron{flex-shrink:0;color:var(--muted,#596574);transition:transform 160ms ease-out}.ds-reader-rail details[open]>summary .ds-chevron{transform:rotate(180deg)}.ds-reader-rail details+details{margin-top:24px}.ds-reader-rail nav{margin-top:10px}.ds-reader a{display:block;padding-block:7px;color:var(--muted,#596574)}.ds-reader a[aria-current]{color:var(--ink,#202b3a);font-weight:600}.ds-reader a:hover{color:var(--link,#076b97);text-decoration:underline}.ds-reader :is(a,summary):focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px}.ds-reader-prose{font-size:19px;line-height:1.7;overflow-wrap:anywhere}.ds-reader h2{font-size:28px;line-height:1.3;margin-block:1.6em .6em;scroll-margin-top:24px}.ds-reader-prose p{margin-block:0 1.2em}@media(max-width:1199px){.ds-reader-rail details{border-bottom:1px solid var(--line,#dce3e8)}.ds-reader-rail details+details{margin-top:0}.ds-reader-rail summary{min-height:44px;padding-block:10px}.ds-reader-rail a{min-height:38px;padding-block:9px}}@media(max-width:600px){.ds-reader h1{margin-block:18px}.ds-reader-prose{font-size:18px}.ds-reader h2{font-size:25px}}@media(prefers-reduced-motion:reduce){.ds-chevron{transition:none}}@media(min-width:1200px){.ds-reader{display:grid;grid-template-columns:minmax(0,1fr) 720px minmax(0,1fr);column-gap:36px;max-width:1480px}.ds-reader>h1,.ds-reader-meta,.ds-reader-prose{grid-column:2}.ds-reader-rail{grid-column:1;grid-row:3;width:128px;justify-self:start;align-self:start}.ds-reader-prose{grid-row:3}}@media(min-width:1440px){.ds-reader-rail{width:160px}}.ds-reader-toc a{padding-left:14px}.ds-reader-toc .ds-reader-subheading{padding-left:24px}.ds-reader h3{font-family:var(--brand-font,'Geist Variable',sans-serif);font-size:23px;font-weight:600;line-height:1.3;scroll-margin-top:24px}@media(max-width:600px){.ds-reader h3{font-size:21px}}"
+    },
+    {
+      "name": "Article image viewer",
+      "kind": "custom",
+      "refersTo": "image-viewer",
+      "description": "Captioned enlarged-image specimen with an original-asset link and Close control. Application code supplies native dialog behavior.",
+      "html": "<section class=\"ds-viewer-backdrop\"><div class=\"ds-image-viewer\" role=\"group\" aria-label=\"Enlarged article image specimen\"><div class=\"ds-viewer-panel\"><div class=\"ds-viewer-toolbar\"><a href=\"#ds-viewer-caption\">Open original <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 3h7v7M21 3 10 14M10 3H3v18h18v-7\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg></a><button type=\"button\">Close <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"m6 6 12 12M18 6 6 18\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg></button></div><figure class=\"ds-viewer-figure\"><svg class=\"ds-viewer-image\" viewBox=\"0 0 960 360\" role=\"img\" aria-label=\"Original article image placeholder\"><rect width=\"960\" height=\"360\" fill=\"currentColor\"/></svg><figcaption class=\"ds-viewer-caption\" id=\"ds-viewer-caption\">Original article caption remains below the enlarged image.</figcaption></figure></div></div></section>",
+      "css": ".ds-viewer-backdrop{padding:24px 0;background:rgb(20 29 40 / 82%)}.ds-image-viewer{width:calc(100% - 64px);max-width:1600px;max-height:calc(100dvh - 48px);margin:auto;border:0;border-radius:12px;background:var(--paper,#fff);color:var(--ink,#202b3a);overflow:auto;overscroll-behavior:contain}.ds-viewer-panel{padding:16px 24px 24px}.ds-viewer-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;font:13px/1.5 var(--brand-font,'Geist Variable',sans-serif)}.ds-viewer-toolbar a,.ds-viewer-toolbar button{display:inline-flex;align-items:center;gap:8px;min-height:44px}.ds-viewer-toolbar a{color:var(--link,#076b97);text-decoration:underline}.ds-viewer-toolbar button{cursor:pointer;font:inherit;color:var(--ink,#202b3a);padding:8px 12px;border:1px solid var(--control-border,#b9c5ce);border-radius:6px;background:var(--paper,#fff)}.ds-viewer-toolbar button:hover{background:var(--nav-highlight,#eef1f3)}.ds-viewer-toolbar a:hover{text-decoration:none}.ds-viewer-toolbar :is(a,button):focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px}.ds-viewer-figure{margin:0}.ds-viewer-image{display:block;width:100%;height:auto;max-height:calc(100dvh - 220px);object-fit:contain;color:var(--popular-ground,#f1f5f7)}.ds-viewer-caption{max-width:720px;margin:16px auto 0;overflow-wrap:anywhere;font:14px/1.5 var(--body-font,'Source Sans 3 Variable',sans-serif)}@media(max-width:600px){.ds-image-viewer{width:calc(100% - 16px);max-height:calc(100dvh - 24px)}.ds-viewer-panel{padding:12px 4px}.ds-viewer-toolbar{gap:12px;margin-inline:8px}.ds-viewer-caption{padding-inline:8px}}"
     }
   ],
   "narrative": {
@@ -483,7 +543,7 @@
       "Image-led article links with compact topic tags, visible dates, and no excerpts.",
       "A light sticky header with the geometric H, mono navigation, and a single-row mobile menu trigger.",
       "Compact popular cards and roomier rounded archive cards with restrained borders.",
-      "Centered long-form prose with a compact series and contents rail, uncropped feature images, and horizontally scrolling code.",
+      "Centered long-form prose with a compact left reading rail, wider uncropped images, captioned image zoom, and horizontally scrolling code.",
       "A secondary author introduction with a real portrait."
     ],
     "rules": [
@@ -499,13 +559,14 @@
       "Distinguish compact popular links from larger padded archive cards.",
       "Keep keyboard focus visible and preserve usable article links without JavaScript.",
       "Use Geist Sans for headings and the wordmark, Source Sans 3 for body copy, Geist Mono for navigation, tags, and dates, and SauceCodePro Nerd Font Mono for code.",
-      "Keep the contents list before prose in document order and allow code and tables to scroll within the reader."
+      "Keep the contents list before prose in document order and allow code and tables to scroll within the reader.",
+      "Give article images the approved wider measure while keeping prose and captions centered. Preserve authored image links and usable images without JavaScript."
     ],
     "donts": [
       "Don't present provisional popular selections as measured rankings.",
       "Don't replace the light header with a flat pastel navigation band.",
       "Don't introduce a serif publication masthead or invented promotional copy.",
-      "Don't apply archive-image cropping to article diagrams or feature images.",
+      "Don't crop the sharp foreground image in cards, article diagrams, or feature images. Only decorative card backdrops use cover cropping.",
       "Don't treat browser spot checks as a full keyboard or screen-reader audit."
     ]
   }

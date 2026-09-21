@@ -1,0 +1,67 @@
+---
+import Icon from './Icon.astro';
+import '../styles/image-viewer.css';
+---
+<dialog class="image-viewer" aria-label="Enlarged article image">
+  <div class="image-viewer-panel">
+    <div class="image-viewer-toolbar">
+      <a data-original-image target="_blank" rel="noopener">Open original <Icon name="external" size={16} /></a>
+      <button type="button" data-close-image autofocus>Close <Icon name="close" size={20} /></button>
+    </div>
+    <figure class="image-viewer-figure">
+      <figcaption class="image-viewer-caption" hidden></figcaption>
+    </figure>
+  </div>
+</dialog>
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('.image-viewer')!;
+  const enlarged = document.createElement('img');
+  enlarged.className = 'image-viewer-image';
+  enlarged.alt = '';
+  dialog.querySelector('.image-viewer-figure')!.prepend(enlarged);
+  const caption = dialog.querySelector<HTMLElement>('.image-viewer-caption')!;
+  const original = dialog.querySelector<HTMLAnchorElement>('[data-original-image]')!;
+  let trigger: HTMLButtonElement | null = null;
+  let previousOverflow = '';
+
+  document.querySelectorAll<HTMLImageElement>('.article-body img').forEach((image, index) => {
+    // Linked images keep their authored destination. Never nest controls.
+    if (image.closest('a, button, [role="button"], .reader-figure')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'image-zoom';
+    const sourceCaption = image.closest('figure')?.querySelector('figcaption');
+    const description = image.alt.trim() || sourceCaption?.textContent?.trim() || `Article image ${index + 1}`;
+    button.setAttribute('aria-label', `Enlarge image: ${description}`);
+    button.setAttribute('aria-haspopup', 'dialog');
+    image.replaceWith(button);
+    button.append(image);
+    button.addEventListener('click', () => {
+      trigger = button;
+      enlarged.src = image.src;
+      enlarged.alt = description;
+      original.href = image.src;
+      caption.replaceChildren();
+      if (sourceCaption) {
+        for (const child of sourceCaption.childNodes) caption.append(child.cloneNode(true));
+        caption.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+      }
+      caption.hidden = !caption.textContent?.trim();
+      previousOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = 'hidden';
+      dialog.showModal();
+    });
+  });
+  dialog.querySelector('[data-close-image]')!.addEventListener('click', () => dialog.close());
+  let backdropPress = false;
+  dialog.addEventListener('pointerdown', event => { backdropPress = event.target === dialog; });
+  dialog.addEventListener('click', event => {
+    if (backdropPress && event.target === dialog) dialog.close();
+    backdropPress = false;
+  });
+  dialog.addEventListener('close', () => {
+    document.documentElement.style.overflow = previousOverflow;
+    trigger?.focus({preventScroll: true});
+    enlarged.removeAttribute('src');
+  });
+</script>

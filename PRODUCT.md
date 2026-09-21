@@ -36,7 +36,7 @@ The three popular selections are provisional, not measured rankings. Keep room f
 
 ## Reading and series navigation
 
-Keep desktop article content centered independently of the compact reading rail. On narrow screens, native series and contents disclosures sit before the body. Contents tracks the section being read; series navigation starts collapsed.
+Keep desktop article text centered independently of the compact left reading rail. The approved reader gives images more width without widening prose or captions. Unlinked article images can open in a captioned viewer; authored image links retain their destinations. On narrow screens, native series and contents disclosures sit before the body. Contents includes section headings and their immediate subheadings, and tracks the section being read; series navigation starts collapsed. The centered reader is the only layout. Image controls have no visible overlay label or icon.
 
 `src/data/series.json` defines Agentic Dev, AI Dev Platform, and Secure Enterprise AI Tooling On Azure as ordered post groups. Frontmatter `series` arrays support overlapping membership. Move only explicit theme-navigation callouts out of article bodies; preserve warnings, updates, and other author notes. The bottom link follows the first matching series when a next member exists, otherwise the older article. Keep metadata beside the title and the footer compact.
 

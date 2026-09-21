@@ -1,0 +1,12 @@
+---
+interface Props {
+  src: string;
+  compact?: boolean;
+  loading?: 'eager' | 'lazy';
+}
+const {src, compact = false, loading = 'lazy'} = Astro.props;
+---
+<div class:list={['card-image', compact ? 'popular-image' : 'article-image']}>
+  <img class="card-image-backdrop" src={src} alt="" aria-hidden="true" width="960" height="504" loading={loading} decoding="async" />
+  <img class="card-image-foreground" src={src} alt="" width="960" height="504" loading={loading} decoding="async" />
+</div>

@@ -7,6 +7,7 @@ interface SeriesGroup {
 }
 interface Props { contents: MarkdownHeading[]; series: SeriesGroup[]; currentSlug: string }
 const { contents, series, currentSlug } = Astro.props;
+const contentsDepth = Math.min(...contents.map(heading => heading.depth));
 ---
 <aside class="reading-rail" aria-label="Reading navigation">
   {series.map(group => (
@@ -30,7 +31,7 @@ const { contents, series, currentSlug } = Astro.props;
       <nav aria-label="Table of contents">
         <div class="toc-track"><span class="toc-marker" aria-hidden="true"></span>
         <ul class="toc-list">
-          {contents.map(heading => <li><a href={`#${heading.slug}`} data-toc-link>{heading.text}</a></li>)}
+          {contents.map(heading => <li class:list={[{'toc-subheading': heading.depth > contentsDepth}]}><a href={`#${heading.slug}`} data-toc-link>{heading.text}</a></li>)}
         </ul></div>
       </nav>
     </details>
@@ -51,7 +52,7 @@ const { contents, series, currentSlug } = Astro.props;
     queued = false;
     if (!rail || !list || !links.length) return;
     const tops = headings.map(heading => heading ? heading.getBoundingClientRect().top + window.scrollY : Infinity);
-    const active = activeHeadingIndex(tops, window.scrollY, 112);
+    const active = activeHeadingIndex(tops, window.scrollY);
     links.forEach((link, index) => {
       if (index === active) link.setAttribute('aria-current', 'location');
       else link.removeAttribute('aria-current');

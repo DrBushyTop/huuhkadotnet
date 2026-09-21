@@ -2,12 +2,13 @@
 import type {CollectionEntry} from 'astro:content';
 import {dateFormat,cardPost} from '../lib/posts';
 import Icon from './Icon.astro';
+import CardImage from './CardImage.astro';
 interface Props {post:CollectionEntry<'blog'>}
 const post=cardPost(Astro.props.post);
 ---
 <article class="article-card">
   <a href={`/${post.slug}/`}>
-    {post.image && <div class="article-image"><img src={post.image} alt="" width="960" height="504" loading="lazy" decoding="async" /></div>}
+    {post.image && <CardImage src={post.image} />}
     <div class="article-content">
       <ul class="article-tags" aria-label="Topics">{post.tags.slice(0,2).map(tag=><li>{tag}</li>)}</ul>
       <h3>{post.title}</h3>

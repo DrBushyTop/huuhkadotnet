@@ -61,6 +61,11 @@ builds read committed MDX and assets only, never Ghost or Azure.
   search across all posts. Without JavaScript, every post remains visible.
 - Original images live in `public/images/ghost/`. Archive thumbnails are separate
   WebP derivatives. `migration/assets.json` and adjacent JSON files record sources.
+- At build time, `scripts/rehype-content.mjs` groups standalone image paragraphs
+  and adjacent captions into semantic figures without rewriting imported MDX.
+  Authored image links retain their destinations. The approved reader
+  widens these figures on desktop; JavaScript adds a captioned zoom viewer only
+  to unlinked images outside authored `ReaderFigure` blocks.
 - Series callouts become native reading navigation. Other Ghost callouts become
   blockquotes. Bookmark cards retain their link, title, and
   description, but omit publisher badges and remote preview thumbnails.
@@ -86,6 +91,7 @@ block, original titles/timestamps/tags, canonical links, source image references
 original heading anchors, all source sitemap URLs, and local link targets.
 `validate:local` requests those routes, every AMP redirect, RSS, sitemap, and a 404
 from the dev server. Unit tests exercise conversion edge cases and archive search.
+Image tests check figure and caption grouping and preserve linked images.
 Series validation checks that every link from a moved callout appears in the
 native navigation. The inventory records those callouts separately from prose.
 
@@ -93,6 +99,24 @@ The browser spot checks cover a recent article, the oldest article, the reading
 layout on desktop and phone, and horizontal code scrolling. They are not a full
 keyboard or screen-reader audit. External destinations and embedded video playback
 are not exhaustively verified.
+
+The earlier image pass records five viewport captures and its checks in
+`.impeccable/review/reader-images/verification.md`. Desktop and phone checks
+covered image zoom, captions, dismissal, focus return, and scroll unlocking.
+Those captures predate removal of the visible Zoom cue.
+
+The reader cleanup and contents fix passed review with no material fixes.
+`.impeccable/review/reader-cleanup/` and `.impeccable/review/reader-contents/`
+contain desktop and phone captures at 1440 by 1000 and 390 by 844 CSS pixels.
+The phone contents disclosure opens from its initially collapsed state; all three
+tested links resolve. The three agents anchor lands at 104px, and desktop active
+tracking follows forward and reverse scrolling. Neither width has horizontal
+overflow. Original article content and anchors remain unchanged.
+
+Build passed for 95 pages and all 20 tests passed. Migration validation checked
+56 content pages and 94 source URLs with zero errors; local checks covered 94
+routes, 56 AMP redirects, RSS, and the 404. No whole-site keyboard, screen-reader,
+or real Safari audit was performed.
 
 ## Before production, not part of this pass
 

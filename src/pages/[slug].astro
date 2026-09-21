@@ -2,8 +2,10 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import ReadingRail from '../components/ReadingRail.astro';
+import ImageViewer from '../components/ImageViewer.astro';
 import Icon from '../components/Icon.astro';
 import { getPosts, dateFormat } from '../lib/posts';
+import { contentsHeadings } from '../lib/reading';
 import author from '../data/author.json';
 import seriesGroups from '../data/series.json';
 
@@ -14,8 +16,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { data } = post;
 const { Content, headings } = await render(post);
-const contentsDepth = Math.min(...headings.filter(heading => heading.depth >= 2).map(heading => heading.depth));
-const contents = headings.filter(heading => heading.depth === contentsDepth);
+const contents = contentsHeadings(headings);
 const posts = await getPosts();
 const bySlug = new Map(posts.map(post => [post.data.slug, post.data]));
 const series = seriesGroups.filter(group => data.series.includes(group.id)).map(group => ({
@@ -70,4 +71,5 @@ const structured = {
       </div>
     </article>
   </main>
+  <ImageViewer />
 </Base>

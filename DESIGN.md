@@ -14,6 +14,7 @@ colors:
   popular-hover-border: "#aabfcc"
   nav-highlight: "#eef1f3"
   article-ground: "#f7f9fa"
+  image-backdrop: "rgb(20 29 40 / 82%)"
 typography:
   brand:
     fontFamily: "'Geist Variable', sans-serif"
@@ -122,6 +123,11 @@ typography:
     fontSize: "17px"
     fontWeight: 500
     lineHeight: 1.45
+  image-toolbar:
+    fontFamily: "'Geist Variable', sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.5
   inline-code:
     fontFamily: "'SauceCodePro Nerd Font Mono', ui-monospace, monospace"
     fontSize: "0.9em"
@@ -130,6 +136,7 @@ rounded:
   inline-code: "4px"
   popular-card: "12px"
   article-card: "14px"
+  archive-image: "13px 13px 0 0"
   navigation: "9px"
   portrait: "50%"
 spacing:
@@ -176,6 +183,20 @@ components:
     rounded: "{rounded.article-card}"
   article-content:
     padding: "22px"
+  archive-image:
+    backgroundColor: "{colors.popular-ground}"
+    rounded: "{rounded.archive-image}"
+  popular-image:
+    backgroundColor: "{colors.popular-ground}"
+    rounded: "{rounded.control}"
+    width: "72px"
+    height: "72px"
+  popular-image-tablet:
+    width: "56px"
+    height: "56px"
+  popular-image-phone:
+    width: "62px"
+    height: "62px"
   topic-tag:
     backgroundColor: "{colors.nav-highlight}"
     textColor: "{colors.muted}"
@@ -210,9 +231,42 @@ components:
   reading-prose:
     textColor: "{colors.ink}"
     typography: "{typography.reading-body}"
+    width: "720px"
+  reading-rail-desktop:
+    width: "128px"
+  reading-rail-large:
+    width: "160px"
+  reading-media-desktop:
+    width: "800px"
+  reading-media-large:
+    width: "960px"
+  reading-caption:
+    width: "720px"
+  image-viewer:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.popular-card}"
+    width: "calc(100% - 64px)"
+  image-viewer-panel:
+    padding: "16px 24px 24px"
+  image-viewer-mobile:
+    width: "calc(100% - 16px)"
+  image-viewer-panel-mobile:
+    padding: "12px 4px"
+  image-viewer-close:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    typography: "{typography.image-toolbar}"
+    rounded: "{rounded.control}"
+    padding: "8px 12px"
+  image-viewer-close-hover:
+    backgroundColor: "{colors.nav-highlight}"
   reading-contents:
     textColor: "{colors.muted}"
     typography: "{typography.reading-rail}"
+    padding: "7px 0 7px 14px"
+  reading-contents-subheading:
+    padding: "7px 0 7px 24px"
   reading-callout:
     backgroundColor: "{colors.popular-ground}"
     textColor: "{colors.ink}"
@@ -233,10 +287,10 @@ White backgrounds, slate text, restrained blue details, and sans-serif typograph
 - Image-led article links with compact topic tags, visible dates, and no excerpts.
 - A light sticky header with the geometric H, mono navigation, and a single-row mobile menu trigger.
 - Compact popular cards and roomier rounded archive cards with restrained borders.
-- Centered long-form prose with a compact series and contents rail, uncropped feature images, and horizontally scrolling code.
+- Centered long-form prose with a compact left reading rail, wider uncropped images, captioned image zoom, and horizontally scrolling code.
 - A secondary author introduction with a real portrait.
 
-The approved homepage composition and font choices remain unchanged. This document records the shared visual system and its implemented reader extension. Page composition lives in `.impeccable/surfaces/`. Source values come from `src/styles/global.css`, `src/styles/code.css`, and `src/styles/article.css`; behavior comes from the page, layout, and header components. Migration scope and production limits belong in `docs/migration.md`.
+The approved homepage composition and font choices remain unchanged. This document records the shared visual system and its implemented reader extension. Page composition lives in `.impeccable/surfaces/`. Source values come from `src/styles/global.css`, `src/styles/code.css`, `src/styles/article.css`, and `src/styles/image-viewer.css`; behavior comes from the page, layout, and header components. Migration scope and production limits belong in `docs/migration.md`.
 
 ## Colors
 
@@ -254,7 +308,8 @@ The palette uses cool neutrals with a small blue accent. Frontmatter holds the n
 - `line` separates the header and footer and borders cards, code, and tables.
 - `popular-ground` fills popular cards, code fallbacks, callouts, and table headings. `popular-hover` changes the popular-card hover fill.
 - `nav-highlight` fills navigation highlights, menu buttons, and topic tags. `article-ground` fills archive cards.
-- `control-border` outlines search and pagination. `popular-hover-border` defines the popular-card hover edge.
+- `control-border` outlines search, pagination, and image controls. `popular-hover-border` defines the popular-card hover edge.
+- `image-backdrop` dims the article behind an enlarged image. It does not change the page or diagram palette.
 
 **The restrained accent Rule.** Keep the header light. Concentrate blue in the logo, links, and keyboard focus rather than a full-width pastel band.
 
@@ -264,7 +319,7 @@ Geist Sans is the approved heading and wordmark family, exposed as Geist Variabl
 
 The existing index roles remain intact. Author and section headings are semibold; archive and popular titles use medium weight. At content widths of 700px and below, author and section headings become 24px. Archive and popular titles keep their desktop sizes. At the separate 760px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Phone introduction copy is 15px with 1.4 line height and a 29ch limit.
 
-The reader uses the `reading-title`, `reading-body`, `reading-heading`, and `reading-subheading` roles. At 600px and below, prose becomes 18px, second-level headings 25px, and third-level headings 21px. The prose column is capped at 720px. Publication and updated dates use `reading-date`, uppercase letters, and tabular numerals. Archive dates retain their separate `date` role and tracking. Reader bylines and captions use 14px Source Sans 3. Rail links use `reading-rail`; their compact navigation labels use `reading-rail-label`. Series names use 13px medium Geist Sans. The continuation title uses `reading-next-title`, becoming 16px on phones. Its mono navigation label uses 10px type with .04em tracking.
+The reader uses the `reading-title`, `reading-body`, `reading-heading`, and `reading-subheading` roles. At 600px and below, prose becomes 18px, second-level headings 25px, and third-level headings 21px. The prose column is capped at 720px. Publication and updated dates use `reading-date`, uppercase letters, and tabular numerals. Archive dates retain their separate `date` role and tracking. Reader bylines and captions use 14px Source Sans 3. The enlarged-image toolbar uses `image-toolbar`. Existing article and index typography stays unchanged. Rail links use `reading-rail`; their compact navigation labels use `reading-rail-label`. Series names use 13px medium Geist Sans. The continuation title uses `reading-next-title`, becoming 16px on phones. Its mono navigation label uses 10px type with .04em tracking.
 
 SauceCodePro Nerd Font Mono remains the code family for `pre`, `code`, `kbd`, and `samp`, with ligatures disabled. Its self-hosted regular, bold, italic, and bold italic WOFF2 faces use `font-display: swap`. The full glyph set, license, and conversion provenance remain in `public/fonts/sauce-code-pro/`. Inline code uses its existing relative-size role; block code keeps 14px and 1.65 line height. Syntax highlighting does not replace these font settings.
 
@@ -274,7 +329,9 @@ The shared page container is `min(1200px, calc(100% - 96px))`. The header has a 
 
 The index keeps compact section spacing and padded cards. Desktop archive grids have three columns and a 32px gap, then two columns through tablet widths and one at 700px and below. Popular cards have a separate tighter grid. The index brief records its composition and pagination.
 
-The reader has a separate container of `min(1480px, calc(100% - 64px))`. At 1200px and above, its grid has a central 720px column, two equal flexible outside columns, and 36px gaps. Header, feature image, prose, and continuation link occupy the center column. The right-hand rail does not shift the prose away from the viewport center. The rail has a 224px maximum width, sticks at 96px, and scrolls within a maximum height of `calc(100dvh - 120px)` with contained overscroll.
+The reader has a separate container of `min(1480px, calc(100% - 64px))`. At 1200px and above, its grid has a central 720px column, two equal flexible outside columns, and 36px gaps. Header, prose, and continuation link occupy the center column. The approved reader places the rail in the left column without shifting the prose away from the viewport center. Rail and media widths use the `reading-rail-desktop` and `reading-media-desktop` tokens, switching to their `large` variants at 1440px. The rail sticks at 96px and scrolls within a maximum height of `calc(100dvh - 120px)` with contained overscroll.
+
+Feature images, standalone inline-image figures, and wide authored figures extend symmetrically beyond the prose. Captions remain centered and capped at `reading-caption` width. Media returns to text width below 1200px. Code and tables stay within the prose column. The image viewer uses `image-viewer` width with a 1600px maximum and `calc(100dvh - 48px)` maximum height. At 600px and below, it uses the mobile width and panel padding tokens, with a `calc(100dvh - 24px)` maximum height. Its image is contained within `calc(100dvh - 220px)`; captions stay below it.
 
 At 1199px and below, the reader becomes a single column of `min(720px, calc(100% - 48px))`. Series and contents disclosures precede the article body, have no sticky positioning or internal height limit, and leave 24px below the rail. At 600px and below, the reader uses 20px side gutters. The reader footer shares the 720px center alignment, uses compact 12px text and 18px/24px vertical padding, and wraps its links on phones rather than creating a large stacked block.
 
@@ -282,17 +339,17 @@ The header switches at 760px independently of the content grid. With JavaScript 
 
 ## Elevation & Depth
 
-There are no shadows. White space, image blocks, borders, and cool card fills separate content. Hover changes color and border without lifting or scaling cards.
+There are no shadows. White space, image blocks, borders, and cool card fills separate content. Card images place a muted, blurred copy behind the sharp foreground image to fill unused space. This fixed backdrop treatment is not a hover effect. Hover changes color and border without lifting or scaling cards.
 
-Keyboard focus uses a 3px blue outline offset by 5px. Search instead uses a 2px outline offset by 2px on focus within. Card transitions take 160ms with `ease-out`; navigation changes take 150ms. The mobile menu uses a 160ms clipping animation. Reduced-motion preferences disable animations and transitions and use automatic scroll behavior. The sticky header uses z-index 10; the modal dialog uses the browser top layer.
+Keyboard focus uses a 3px blue outline offset by 5px. Search instead uses a 2px outline offset by 2px on focus within. Card transitions take 160ms with `ease-out`; navigation changes take 150ms. The mobile menu uses a 160ms clipping animation. Reduced-motion preferences disable animations and transitions and use automatic scroll behavior. The sticky header uses z-index 10; modal dialogs use the browser top layer. The image viewer uses the `image-backdrop` scrim rather than a shadow and contains its own scrolling.
 
 The contents marker is a 2px blue line beside the active link. Its vertical transform and the disclosure chevron rotation use 160ms `ease-out` transitions. Reduced-motion preferences remove both transitions. Current-link text uses ink and semibold weight; the marker carries position, not additional elevation.
 
 ## Shapes
 
-Archive cards have rounded containers and 1px borders. Their cropped images use a 1.6 aspect ratio and 13px upper corners inside the outer border. Popular cards remain compact rectangles with softened corners and square thumbnails. Navigation has its own radius; search, tags, and pagination use the smaller control radius. Only the author portrait is circular.
+Archive cards have rounded containers and 1px borders. Their image containers keep a 1.6 aspect ratio and use `archive-image` corners inside the outer border. The sharp foreground image fits fully inside the container without cropping. Popular cards remain compact rectangles with softened corners and square image containers; their foreground images also retain their full proportions. Navigation has its own radius; search, tags, and pagination use the smaller control radius. Only the author portrait is circular.
 
-Reader feature images use 12px corners and `object-fit: contain`, with a 440px maximum height. Body images keep their proportions and use 6px corners. Code uses the existing popular-card radius. Callouts have a single blue left border rather than a card outline.
+Reader feature images use 12px corners and `object-fit: contain`. The desktop reader removes the 440px feature-image maximum height so diagrams keep their full proportions. Below 1200px, the existing feature-image height limit remains. Body images keep their proportions and use 6px corners. Code uses the existing popular-card radius. Callouts have a single blue left border rather than a card outline.
 
 ## Components
 
@@ -308,6 +365,10 @@ Popular cards use a filled rectangle with a thumbnail, compact title, and corner
 
 Archive cards place up to two non-interactive topic labels above the title and a date opposite Read more below it. Suppress the redundant Artificial Intelligence label when AI is also present. Content has 22px desktop padding, 20px mobile padding, and 30px above metadata. The full card is a local article link with the title as its accessible name; Read more is not a nested link. Hover changes the border and underlines the blue Read more cue.
 
+`CardImage` supplies the same treatment to homepage popular and archive cards and to tag and author archive cards. Both layers use the existing image URL. The foreground uses `object-fit: contain`; the decorative backdrop uses `object-fit: cover`, a 16px blur, scale 1.12, and opacity 0.3. The container clips the backdrop. The backdrop image has `aria-hidden="true"`, empty alternative text, and no pointer events. Card links retain their text labels.
+
+Popular image dimensions use `popular-image`, switching to the tablet variant between 701px and 1000px and the phone variant at 700px and below. Archive aspect ratios, card radii, padding, and grid dimensions do not change. Both layers share the caller's loading policy, which defaults to lazy loading. No image assets are generated or edited for this treatment. Reader images and their zoom behavior stay separate.
+
 ### Search and progressive loading
 
 The bordered search field has an accessible label, search icon, and an inline clear button when text is present. Fuzzy search covers the complete collection, including posts not yet shown. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query.
@@ -318,13 +379,23 @@ Load more uses a 46px minimum height and reveals another batch of articles. It d
 
 The header contains an All articles link, title, author link, original publication date, and linked tags. If the updated calendar date differs, show Updated beside the author and publication date rather than repeating it below the article. Tag archives reuse the index card treatment. The optional feature image starts the centered article body and retains its original caption.
 
-The compact rail groups native series disclosures with On this page. Series disclosures start collapsed at every width and remain user-controlled. Show On this page when the document has more than one heading at its shallowest available depth of two or greater. JavaScript opens contents at 1200px and above and closes it below that threshold, resetting the default when the breakpoint changes. Without JavaScript, all disclosures remain usable and initially collapsed. On narrow screens summaries have at least 44px height and links at least 38px height.
+The compact rail groups native series disclosures with On this page. Series disclosures start collapsed at every width and remain user-controlled. Contents includes the shallowest eligible heading depth of two or greater and its immediate subheading depth, in article order. Show On this page when that combined list has more than one entry. Primary links use a 14px left inset; immediate subheadings use 24px. JavaScript opens contents at 1200px and above and closes it below that threshold, resetting the default when the breakpoint changes. Without JavaScript, all disclosures remain usable and initially collapsed. On narrow screens summaries have at least 44px height and links at least 38px height.
 
 Contents links track the section crossing a 112px reading line below the viewport top. The active link receives `aria-current="location"`, darker semibold text, and the moving blue marker. Scroll, resize, hash changes, disclosure changes, body resizing, and font readiness schedule updates. On desktop, tracking keeps the selected rail entry visible without scrolling the article. Heading anchors combine 24px scroll margins with global 80px scroll padding, placing targets 104px below the top.
 
 Series membership and ordered post lists come from content metadata, not title matching. An article can appear in several series; the current article uses `aria-current="page"` in each list. Only explicit theme-navigation callouts move into this navigation. Warnings and other author notes remain in the article.
 
 Below blog prose, one compact continuation link points to the next member of the primary series when available, otherwise to the older article. The label names the series or says Older article. The primary series is the first matching group in the series data file. Do not add repeated author blocks, updated dates, or another archive-return link at the bottom. Community pages do not enter the blog sequence. The shared reader footer contains copyright, Community activities, and RSS in a compact row that can wrap.
+
+### Article images and zoom
+
+The centered reader is the only layout. Its rules live in `src/styles/article.css` and apply without JavaScript. Reader query parameters, variant attributes, comparison controls, and interactive demos have been removed.
+
+Standalone image paragraphs become semantic figures at build time. An adjacent imported caption joins the figure without editing MDX or changing its text. Linked images retain their authored destinations. `ReaderFigure` defaults to wide media and preserves its children's interactions; `width="text"` keeps a figure in the prose column.
+
+JavaScript wraps unlinked article images outside authored `ReaderFigure` blocks in buttons with accessible names. The image itself is the control, with a zoom-in cursor and visible keyboard focus. Do not add a visible Zoom label, icon, or other image overlay cue. Without JavaScript, images and captions remain readable without inactive controls.
+
+The native image dialog shows the enlarged image, its caption when present, Open original, and Close. Open original links to the same full local asset in a new tab. Close, Escape, and a backdrop click dismiss the dialog, restore focus without scrolling, and release the document scroll lock. Toolbar targets are at least 44px high. Caption content and links are retained, with copied IDs removed. Dialog behavior has desktop and phone spot checks, not a full-site keyboard or real Safari audit.
 
 ### Code, tables, and callouts
 
@@ -342,11 +413,12 @@ Tables scroll inside the article, use 16px text, quiet cell borders, and filled 
 - Keep keyboard focus visible and preserve usable article links without JavaScript.
 - Use Geist Sans for headings and the wordmark, Source Sans 3 for body copy, Geist Mono for navigation, tags, and dates, and SauceCodePro Nerd Font Mono for code.
 - Keep the contents list before prose in document order and allow code and tables to scroll within the reader.
+- Give article images the approved wider measure while keeping prose and captions centered. Preserve authored image links and usable images without JavaScript.
 
 ### Don't
 
 - Don't present provisional popular selections as measured rankings.
 - Don't replace the light header with a flat pastel navigation band.
 - Don't introduce a serif publication masthead or invented promotional copy.
-- Don't apply archive-image cropping to article diagrams or feature images.
+- Don't crop the sharp foreground image in cards, article diagrams, or feature images. Only decorative card backdrops use cover cropping.
 - Don't treat browser spot checks as a full keyboard or screen-reader audit.
