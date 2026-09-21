@@ -7,6 +7,12 @@ export function mountComments(window: Window & typeof globalThis) {
   const button = section.querySelector<HTMLButtonElement>('[data-load-comments]')!;
   const status = section.querySelector<HTMLElement>('[data-comments-status]')!;
   const container = section.querySelector<HTMLElement>('.giscus')!;
+  const theme = () => document.documentElement.dataset.theme === 'dark' ? 'catppuccin_macchiato' : 'light';
+  window.addEventListener('themechange', () => {
+    container.querySelector<HTMLIFrameElement>('iframe.giscus-frame')?.contentWindow?.postMessage(
+      {giscus: {setConfig: {theme: theme()}}}, 'https://giscus.app',
+    );
+  });
   if (!isPublicSite(window.location)) {
     status.textContent = 'Comments are available on the published site.';
     return;
@@ -54,7 +60,7 @@ export function mountComments(window: Window & typeof globalThis) {
       'data-reactions-enabled': '1',
       'data-emit-metadata': '1',
       'data-input-position': 'top',
-      'data-theme': 'light',
+      'data-theme': theme(),
       'data-lang': 'en',
     };
     for (const [name, value] of Object.entries(attributes)) script.setAttribute(name, value);

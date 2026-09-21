@@ -22,7 +22,7 @@ OWN-WORLD: White header, small blue geometric H, uppercase Geist Mono navigation
 
 STORY: Readers recognize Pasi, choose a suggested article, or search titles and topics across all 55 imported posts. Article cards, community activities, and RSS open local routes. About is hidden from navigation until its content is ready; the author archive is preserved. Presentations links to the owner's GitHub presentations repository. Finland Azure User Group and IglooConf follow it in desktop and mobile navigation. The popular group uses the top three articles from the owner-supplied analytics screenshot, in ranking order, with the front page excluded. The selection is fixed rather than a live analytics feed.
 
-FIRST VIEWPORT: A compact header with LinkedIn, GitHub, Sessionize, and RSS links. A small portrait introduction shares the top row with a 420px search field. Name and description sit on one line when they fit. At 1000px and below search moves below the introduction at full width, keeping document and focus order unchanged. Three popular cards follow in three columns above 700px and one on phones, then the dated archive with its heading and live count on one wrapping line. Desktop archive cards use three columns; phone cards stack. At 1100px and below the header stays on one row with only the brand and hamburger button for the full-screen navigation menu. Sessionize and GitHub remain available in that menu.
+FIRST VIEWPORT: A compact header with LinkedIn, GitHub, Sessionize, and RSS links. A small portrait introduction shares the top row with a 420px search field. Name and description sit on one line when they fit. At 1000px and below search moves below the introduction at full width, keeping document and focus order unchanged. Three popular cards follow in three columns above 700px and one on phones, then the dated archive with its heading and live count on one wrapping line. Desktop archive cards use three columns; phone cards stack. At 1240px and below the header stays on one row with only the brand and hamburger button for the full-screen navigation menu. Sessionize and GitHub remain available in that menu.
 
 FORM: The approved image-led homepage remains the composition reference. Use the real portrait and published post images, with local WebP archive thumbnails. Keep the introduction and search row padding at 24px and the archive separation at 28px on desktop and 24px on phones. Preserve padding inside archive cards. Card images fit fully within the existing containers, with a blurred, muted copy of the same image behind them to fill unused space.
 
@@ -58,3 +58,9 @@ The dev-server Fuse import fix preserves these behaviors; it does not change
 pagination to infinite scrolling. On September 21, 2026, the owner requested hiding
 About and adding Sessionize to the top right. These navigation changes are now
 implemented without changing the shared visual tokens.
+
+## Appearance
+
+Use the shared animated sun/moon toggle and device-theme reset. Dark mode uses Catppuccin
+Macchiato without changing content, image colors, or reading order. The mobile
+top bar remains brand and hamburger only; theme selection stays in its menu.

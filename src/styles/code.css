@@ -76,3 +76,9 @@ pre code {
   overflow-wrap: normal;
   white-space: pre;
 }
+
+/* Shiki emits both palettes as token variables, not fixed inline colors. */
+.astro-code, .astro-code span {
+  color: light-dark(var(--shiki-light), var(--shiki-dark));
+  background-color: light-dark(var(--shiki-light-bg, transparent), var(--shiki-dark-bg, transparent));
+}

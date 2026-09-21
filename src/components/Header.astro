@@ -1,5 +1,6 @@
 ---
 import Icon from './Icon.astro';
+import ThemeToggle from './ThemeToggle.astro';
 import '@fontsource-variable/geist-mono';
 ---
 <header class="site-header">
@@ -21,6 +22,7 @@ import '@fontsource-variable/geist-mono';
       <a href="https://github.com/DrBushyTop" aria-label="Pasi on GitHub"><Icon name="github" /></a>
       <a href="https://sessionize.com/pasi-huuhka/" aria-label="Pasi on Sessionize" title="Sessionize"><Icon name="sessionize" /></a>
       <a href="/rss/" aria-label="Subscribe via RSS"><Icon name="rss" size={18} /></a>
+      <ThemeToggle />
     </nav>
     <div class="mobile-header-actions">
       <button class="menu-toggle icon-button" type="button" aria-label="Open navigation menu" aria-controls="mobile-navigation" aria-expanded="false" hidden>
@@ -47,6 +49,7 @@ import '@fontsource-variable/geist-mono';
       <a href="https://www.meetup.com/finland-azure-user-group/"><span>Finland Azure User Group</span><Icon name="external" /></a>
       <a href="https://www.iglooconf.fi/"><span>IglooConf</span><Icon name="external" /></a>
     </nav>
+    <div class="mobile-theme"><ThemeToggle /></div>
     <nav class="mobile-social-links" aria-label="Social links">
       <a href="https://www.linkedin.com/in/pasihuuhka/"><Icon name="linkedin" /><span>LinkedIn</span><Icon name="external" size={17} /></a>
       <a href="https://github.com/DrBushyTop"><Icon name="github" /><span>GitHub</span><Icon name="external" size={17} /></a>
@@ -61,7 +64,7 @@ import '@fontsource-variable/geist-mono';
   const toggle = header.querySelector<HTMLButtonElement>('.menu-toggle')!;
   const dialog = document.querySelector<HTMLDialogElement>('#mobile-navigation')!;
   const close = dialog.querySelector<HTMLButtonElement>('.menu-close')!;
-  const desktop = window.matchMedia('(min-width: 1101px)');
+  const desktop = window.matchMedia('(min-width: 1241px)');
 
   // Without scripting the ordinary navigation stays visible on mobile.
   header.classList.add('has-mobile-menu');

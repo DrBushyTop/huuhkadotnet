@@ -72,10 +72,10 @@ figcaption a { color: var(--link); text-decoration: underline; }
 .next-article:hover .next-title { color: var(--link); text-decoration: underline; }
 body.reading-view .reading-footer { width: min(720px, calc(100% - 48px)); margin-top: 36px; padding-block: 18px 24px; gap: 12px 24px; font-size: 12px; }
 
-/* Media crosses the text measure without taking the left rail's space. */
+/* Media and top-level code cross the text measure without taking rail space. */
 @media (min-width: 1200px) {
   .reading-page { --reader-media: 800px; }
-  .reading-page :is(.reader-figure[data-width="wide"], .feature-image, .article-prose > .prose-image) { width: var(--reader-media); margin-inline: calc((100% - var(--reader-media)) / 2); }
+  .reading-page :is(.reader-figure[data-width="wide"], .feature-image, .article-prose > .prose-image, .article-prose > pre) { width: var(--reader-media); max-width: none; margin-inline: calc((100% - var(--reader-media)) / 2); }
   .feature-image img { max-height: none; height: auto; }
 }
 @media (min-width: 1440px) {

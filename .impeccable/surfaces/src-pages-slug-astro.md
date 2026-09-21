@@ -24,7 +24,7 @@ rules; there are no reader query parameters, variant attributes, comparison
 controls, or interactive demos. At 1200px the left rail is 128px and media is 800px
 wide. At 1440px they become 160px and 960px. Text stays centered at 720px; captions
 are capped at 720px. Feature images, standalone inline-image figures, and wide
-`ReaderFigure` blocks share the media width. Phone images stay at text width with
+`ReaderFigure` blocks and top-level code blocks share the media width. Nested code remains within its parent. Phone images stay at text width with
 20px gutters.
 
 The build groups standalone image paragraphs and adjacent captions into semantic
@@ -96,3 +96,13 @@ No whole-site keyboard, screen-reader, or real Safari audit is claimed.
 
 Not canonized: removed comparison layouts, sample palettes, demo interactions,
 and visible Zoom cues. Local only, no deployment.
+
+## Appearance
+
+Use the shared animated sun/moon toggle and device-theme reset. Dark mode uses Catppuccin
+Macchiato without changing content, image colors, or reading order. The mobile
+top bar remains brand and hamburger only; theme selection stays in its menu.
+
+Code uses the existing SauceCodePro Nerd Font Mono at 14px, with contrast-adjusted
+Catppuccin Latte or Catppuccin Macchiato highlighting. Long lines scroll within the
+block on every device rather than widening the page or wrapping code.

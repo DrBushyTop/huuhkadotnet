@@ -16,7 +16,7 @@ Developers finding and reading Pasi Huuhka's hands-on Azure, DevOps, and AI engi
 
 ## Product purpose
 
-A personal technical publication. Readers should be able to find a relevant post and read explanations, code, and architecture diagrams. The author profile stays secondary to the writing.
+A personal technical publication. Readers should be able to find a relevant post and read explanations, code, and architecture diagrams. The author profile stays secondary to the writing. The site supports its original light appearance and Catppuccin Macchiato dark mode, following the device by default with a saved reader override.
 
 ## Capabilities and constraints
 

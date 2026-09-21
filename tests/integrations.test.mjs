@@ -157,3 +157,20 @@ test('comments appear on posts but not the homepage or community page', () => {
   const community = readFileSync(new URL('../dist/community-activities/index.html', import.meta.url), 'utf8');
   assert.equal(parseHTML(community).document.querySelector('[data-comments]'), null);
 });
+
+test('giscus uses Macchiato on dark pages and receives theme updates without reloading', () => {
+  const b = browser(article);
+  b.document.documentElement.dataset.theme = 'dark';
+  mountComments(b.window);
+  b.click('[data-load-comments]');
+  assert.equal(b.document.querySelector('.giscus script').getAttribute('data-theme'), 'catppuccin_macchiato');
+  const frame = b.document.createElement('iframe');
+  frame.className = 'giscus-frame';
+  const messages = [];
+  Object.defineProperty(frame, 'contentWindow', {value: {postMessage: (...args) => messages.push(args)}});
+  b.document.querySelector('.giscus').append(frame);
+  b.document.documentElement.dataset.theme = 'light';
+  b.events.get('themechange')();
+  assert.deepEqual(messages, [[{giscus: {setConfig: {theme: 'light'}}}, 'https://giscus.app']]);
+  assert.equal(b.document.querySelectorAll('.giscus script').length, 1);
+});

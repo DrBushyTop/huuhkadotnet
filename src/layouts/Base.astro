@@ -5,6 +5,7 @@ import '../styles/global.css';
 import '../styles/code.css';
 import Header from '../components/Header.astro';
 import Analytics from '../components/Analytics.astro';
+import themeScript from '../lib/theme-init.js?raw';
 interface Props {
   title: string; description?:string; canonicalUrl?:string; image?:string;
   ogTitle?:string; ogDescription?:string; twitterTitle?:string; twitterDescription?:string; twitterImage?:string;
@@ -22,6 +23,7 @@ const absolute = (path:string) => new URL(path,Astro.site).href;
     <meta name="description" content={description} />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#ffffff" />
+    <script is:inline set:html={themeScript} />
     <link rel="canonical" href={canonical} />
     <meta property="og:site_name" content="Huuhka.net" />
     <meta property="og:type" content={publishedAt ? 'article':'website'} />

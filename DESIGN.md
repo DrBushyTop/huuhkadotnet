@@ -10,7 +10,7 @@ colors:
   line: "#dce3e8"
   popular-ground: "#f1f5f7"
   popular-hover: "#e8f0f5"
-  control-border: "#b9c5ce"
+  control-border: "#7b8995"
   popular-hover-border: "#aabfcc"
   nav-highlight: "#eef1f3"
   article-ground: "#f7f9fa"
@@ -317,7 +317,7 @@ The palette uses cool neutrals with a small blue accent. Frontmatter holds the n
 
 Geist Sans is the approved heading and wordmark family, exposed as Geist Variable in CSS. Source Sans 3 Variable is the body font. Geist Mono Variable handles navigation, tags, and dates. Do not make body copy monospaced.
 
-The existing index roles remain intact. Author and section headings are semibold; archive and popular titles use medium weight. At content widths of 700px and below, author and section headings become 24px. Archive and popular titles keep their desktop sizes. At the separate 1100px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Phone introduction copy is 15px with 1.4 line height and a 29ch limit.
+The existing index roles remain intact. Author and section headings are semibold; archive and popular titles use medium weight. At content widths of 700px and below, author and section headings become 24px. Archive and popular titles keep their desktop sizes. At the separate 1240px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Phone introduction copy is 15px with 1.4 line height and a 29ch limit.
 
 The reader uses the `reading-title`, `reading-body`, `reading-heading`, and `reading-subheading` roles. At 600px and below, prose becomes 18px, second-level headings 25px, and third-level headings 21px. The prose column is capped at 720px. Publication and updated dates use `reading-date`, uppercase letters, and tabular numerals. Archive dates retain their separate `date` role and tracking. Reader bylines and captions use 14px Source Sans 3. The enlarged-image toolbar uses `image-toolbar`. Existing article and index typography stays unchanged. Rail links use `reading-rail`; their compact navigation labels use `reading-rail-label`. Series names use 13px medium Geist Sans. The continuation title uses `reading-next-title`, becoming 16px on phones. Its mono navigation label uses 10px type with .04em tracking.
 
@@ -331,11 +331,11 @@ The index keeps compact section spacing and padded cards. Desktop archive grids 
 
 The reader has a separate container of `min(1480px, calc(100% - 64px))`. At 1200px and above, its grid has a central 720px column, two equal flexible outside columns, and 36px gaps. Header, prose, and continuation link occupy the center column. The approved reader places the rail in the left column without shifting the prose away from the viewport center. Rail and media widths use the `reading-rail-desktop` and `reading-media-desktop` tokens, switching to their `large` variants at 1440px. The rail sticks at 96px and scrolls within a maximum height of `calc(100dvh - 120px)` with contained overscroll.
 
-Feature images, standalone inline-image figures, and wide authored figures extend symmetrically beyond the prose. Captions remain centered and capped at `reading-caption` width. Media returns to text width below 1200px. Code and tables stay within the prose column. The image viewer uses `image-viewer` width with a 1600px maximum and `calc(100dvh - 48px)` maximum height. At 600px and below, it uses the mobile width and panel padding tokens, with a `calc(100dvh - 24px)` maximum height. Its image is contained within `calc(100dvh - 220px)`; captions stay below it.
+Feature images, standalone inline-image figures, and wide authored figures extend symmetrically beyond the prose. Captions remain centered and capped at `reading-caption` width. Media returns to text width below 1200px. Top-level code blocks share the wider image widths. Nested code and tables stay within the prose column. The image viewer uses `image-viewer` width with a 1600px maximum and `calc(100dvh - 48px)` maximum height. At 600px and below, it uses the mobile width and panel padding tokens, with a `calc(100dvh - 24px)` maximum height. Its image is contained within `calc(100dvh - 220px)`; captions stay below it.
 
 At 1199px and below, the reader becomes a single column of `min(720px, calc(100% - 48px))`. Series and contents disclosures precede the article body, have no sticky positioning or internal height limit, and leave 24px below the rail. At 600px and below, the reader uses 20px side gutters. The reader footer shares the 720px center alignment, uses compact 12px text and 18px/24px vertical padding, and wraps its links on phones rather than creating a large stacked block.
 
-The header switches at 1100px independently of the content grid. With JavaScript it stays in one row with only the brand and menu button. Sessionize and GitHub remain in the menu. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
+The header switches at 1240px independently of the content grid. With JavaScript it stays in one row with only the brand and menu button. Sessionize and GitHub remain in the menu. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
 
 ## Elevation & Depth
 
@@ -408,7 +408,7 @@ Desktop navigation and the mobile page menu include Presentations at
 `https://www.meetup.com/finland-azure-user-group/`, and IglooConf at
 `https://www.iglooconf.fi/`. They use the existing navigation styles and open
 in the same tab. Mobile rows have decorative external-link icons. The header
-switches to its menu at 1100px to leave room for the full link labels. Articles remains the only local page link in this group; About stays hidden.
+switches to its menu at 1240px to leave room for the full link labels. Articles remains the only local page link in this group; About stays hidden.
 
 ### Privacy and comments
 
@@ -419,13 +419,13 @@ third-party embeds. Keep these details out of the article reading flow.
 Blog posts add a Comments section after the continuation link, within the prose
 width. A quiet top border separates it from the article. Explain public GitHub
 comments before the Show comments button; retain a GitHub link as the no-script
-and error fallback. The embed loads only on request, uses the light giscus theme,
+and error fallback. The embed loads only on request, uses the matching light or Catppuccin Macchiato giscus theme,
 and stays off on preview hosts. Loading comments does not change analytics behavior.
 The shared visual tokens are unchanged.
 
 ### Code, tables, and callouts
 
-Code blocks retain the existing light fallback fill, quiet border, padding, radius, and vertical margins. Syntax-highlighted blocks may supply their own theme colors. Preserve whitespace, two-space tabs, and horizontal scrolling within the available width. Nested code does not add another fill or padding. Inline code can wrap long tokens.
+Code blocks retain the existing light fallback fill, quiet border, padding, radius, and vertical margins. Top-level code blocks share the wider image measure: 800px from 1200px and 960px from 1440px. Nested blocks stay within their parent. Shiki emits contrast-adjusted Catppuccin Latte and Catppuccin Macchiato palettes; CSS selects the current theme without replacing code or loading a highlighter at runtime. Preserve whitespace, two-space tabs, and horizontal scrolling within the available width. Nested code does not add another fill or padding. Inline code can wrap long tokens.
 
 Tables scroll inside the article, use 16px text, quiet cell borders, and filled header cells. Callouts use the `reading-callout` treatment with a blue left border. Embedded video keeps a 16:9 ratio; playback still depends on the external host.
 
@@ -448,3 +448,30 @@ Tables scroll inside the article, use 16px text, quiet cell borders, and filled 
 - Don't introduce a serif publication masthead or invented promotional copy.
 - Don't crop the sharp foreground image in cards, article diagrams, or feature images. Only decorative card backdrops use cover cropping.
 - Don't treat browser spot checks as a full keyboard or screen-reader audit.
+
+
+## Appearance modes
+
+Keep the existing light identity. Dark mode uses Catppuccin Macchiato from
+`https://github.com/catppuccin/palette`, with Base for the page, Mantle for cards,
+Surface0 for hover and navigation fills, Text for primary text, Subtext0 for muted
+copy, Blue for focus and branding, and Sapphire for links. Surface1 separates
+sections; Overlay1 outlines controls. Do not invert or recolor authored images.
+`docs/appearance.md` records values and contrast checks.
+
+The sun/moon switch toggles light and dark with a 220ms sliding thumb and icon
+rotation. A separate monitor button restores the device theme. Both have 44px
+touch targets and native button keyboard behavior. Reduced motion removes the
+transition. The mobile Theme label uses the same Geist Mono as menu links.
+On desktop the controls follow the social links; at 1240px and below it lives inside the mobile menu, never beside
+the hamburger button. The default follows the device. An explicit choice persists
+in `huuhka-theme` local storage; The device button removes that key. The head script applies
+the preference before paint, tolerates blocked storage, and follows system and
+cross-tab changes. Without JavaScript, CSS follows the device and hides inactive
+controls. Theme changes also update an already-loaded giscus iframe.
+
+Shared colors use `light-dark()` with `color-scheme`. Text, placeholders, selection,
+links, focus, controls, scrollbars, tables, callouts, and image dialogs follow the
+same mode. Syntax text and shared text pairs must pass 4.5:1; control outlines and
+focus indicators must pass 3:1. These checks do not certify image contents or
+external embeds.
