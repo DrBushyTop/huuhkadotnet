@@ -68,7 +68,7 @@ export function prepare({source = 'dist', target = '.deployment', mediaBaseUrl, 
       ...(!indexable ? {'X-Robots-Tag': 'noindex, nofollow'} : {}),
     },
     mimeTypes: {'.xml': 'application/xml', '.webp': 'image/webp'},
-    trailingSlash: 'always',
+    trailingSlash: 'auto',
   };
   const configJson = JSON.stringify(config);
   if (Buffer.byteLength(configJson) > 20 * 1024) throw new Error('Static Web Apps configuration exceeds 20 KB.');

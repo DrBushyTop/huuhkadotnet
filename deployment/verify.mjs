@@ -36,9 +36,18 @@ for (const rule of config.routes.filter(rule => rule.redirect).flatMap(rule => [
   assert.equal(new URL(response.headers.get('location'), origin).pathname, rule.redirect, rule.route);
 }
 for (const path of ['/rss/', '/sitemap.xml']) {
-  const response = await request(new URL(path, origin));
+  const response = await request(new URL(path, origin), {redirect: 'manual'});
   assert.equal(response.status, 200, path);
   assert.match(response.headers.get('content-type'), /xml/, path);
+}
+const robots = await request(new URL('/robots.txt', origin), {redirect: 'manual'});
+assert.equal(robots.status, 200, 'robots.txt must load without a redirect');
+assert.equal(await robots.text(), readFileSync(`${site}/robots.txt`, 'utf8'));
+const home = parseHTML(readFileSync(`${site}/index.html`, 'utf8')).document;
+for (const node of home.querySelectorAll('link[rel=stylesheet], script[src]')) {
+  const path = node.getAttribute('href') || node.getAttribute('src');
+  const response = await request(new URL(path, origin), {method: 'HEAD', redirect: 'manual'});
+  assert.equal(response.status, 200, `Asset must load without a redirect: ${path}`);
 }
 assert.equal((await request(new URL('/this-page-does-not-exist/', origin))).status, 404);
 console.log(`Verified ${pages.length + 1} pages, ${images.size} image URLs, redirects, XML feeds and 404 at ${origin}.`);
