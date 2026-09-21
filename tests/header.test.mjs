@@ -34,3 +34,18 @@ test('Presentations links to the repository in desktop and mobile navigation', (
     assert.equal(link.hasAttribute('aria-current'), false);
   }
 });
+
+for (const [label, href] of [
+  ['Finland Azure User Group', 'https://www.meetup.com/finland-azure-user-group/'],
+  ['IglooConf', 'https://www.iglooconf.fi/'],
+]) {
+  test(`${label} is linked in desktop and mobile navigation`, () => {
+    for (const selector of ['.main-nav', '.mobile-page-links']) {
+      const link = document.querySelector(`${selector} a[href="${href}"]`);
+      assert.ok(link, selector);
+      assert.equal(link.textContent.trim(), label);
+      assert.equal(link.hasAttribute('aria-current'), false);
+      assert.equal(link.hasAttribute('target'), false);
+    }
+  });
+}

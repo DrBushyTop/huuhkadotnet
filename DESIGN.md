@@ -167,7 +167,7 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.control}"
     padding: "0 12px"
-    width: "340px"
+    width: "420px"
   popular-card:
     backgroundColor: "{colors.popular-ground}"
     textColor: "{colors.ink}"
@@ -317,7 +317,7 @@ The palette uses cool neutrals with a small blue accent. Frontmatter holds the n
 
 Geist Sans is the approved heading and wordmark family, exposed as Geist Variable in CSS. Source Sans 3 Variable is the body font. Geist Mono Variable handles navigation, tags, and dates. Do not make body copy monospaced.
 
-The existing index roles remain intact. Author and section headings are semibold; archive and popular titles use medium weight. At content widths of 700px and below, author and section headings become 24px. Archive and popular titles keep their desktop sizes. At the separate 760px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Phone introduction copy is 15px with 1.4 line height and a 29ch limit.
+The existing index roles remain intact. Author and section headings are semibold; archive and popular titles use medium weight. At content widths of 700px and below, author and section headings become 24px. Archive and popular titles keep their desktop sizes. At the separate 1100px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Phone introduction copy is 15px with 1.4 line height and a 29ch limit.
 
 The reader uses the `reading-title`, `reading-body`, `reading-heading`, and `reading-subheading` roles. At 600px and below, prose becomes 18px, second-level headings 25px, and third-level headings 21px. The prose column is capped at 720px. Publication and updated dates use `reading-date`, uppercase letters, and tabular numerals. Archive dates retain their separate `date` role and tracking. Reader bylines and captions use 14px Source Sans 3. The enlarged-image toolbar uses `image-toolbar`. Existing article and index typography stays unchanged. Rail links use `reading-rail`; their compact navigation labels use `reading-rail-label`. Series names use 13px medium Geist Sans. The continuation title uses `reading-next-title`, becoming 16px on phones. Its mono navigation label uses 10px type with .04em tracking.
 
@@ -335,7 +335,7 @@ Feature images, standalone inline-image figures, and wide authored figures exten
 
 At 1199px and below, the reader becomes a single column of `min(720px, calc(100% - 48px))`. Series and contents disclosures precede the article body, have no sticky positioning or internal height limit, and leave 24px below the rail. At 600px and below, the reader uses 20px side gutters. The reader footer shares the 720px center alignment, uses compact 12px text and 18px/24px vertical padding, and wraps its links on phones rather than creating a large stacked block.
 
-The header switches at 760px independently of the content grid. With JavaScript it stays in one row with the brand, Sessionize link, and menu button. GitHub remains in the menu. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
+The header switches at 1100px independently of the content grid. With JavaScript it stays in one row with the brand, Sessionize link, and menu button. GitHub remains in the menu. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
 
 ## Elevation & Depth
 
@@ -371,7 +371,7 @@ Popular image dimensions use `popular-image`, switching to the tablet variant be
 
 ### Search and progressive loading
 
-The bordered search field has an accessible label, search icon, and an inline clear button when text is present. Fuzzy search covers the complete collection, including posts not yet shown. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query.
+The search field sits beside the author introduction above popular articles. It is 420px wide and at least 52px high, becoming full width below the introduction at 1000px and below. Author name and description share a baseline when space allows and wrap otherwise. The archive heading and live count share a baseline with wrapping for longer counts. The bordered search field has an accessible label, search icon, and an inline clear button when text is present. Fuzzy search covers the complete collection, including posts not yet shown. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query.
 
 Load more uses a 46px minimum height and reveals another batch of articles. It disappears when no results remain. Focus moves to the first newly revealed article without forced scrolling. Without JavaScript all articles remain visible and search and loading controls stay hidden. The homepage brief owns the batch size, not the shared tokens.
 
@@ -397,12 +397,14 @@ JavaScript wraps unlinked article images outside authored `ReaderFigure` blocks 
 
 The native image dialog shows the enlarged image, its caption when present, Open original, and Close. Open original links to the same full local asset in a new tab. Close, Escape, and a backdrop click dismiss the dialog, restore focus without scrolling, and release the document scroll lock. Toolbar targets are at least 44px high. Caption content and links are retained, with copied IDs removed. Dialog behavior has desktop and phone spot checks, not a full-site keyboard or real Safari audit.
 
-### Presentations navigation
+### External navigation
 
-Desktop navigation and the mobile page menu include Presentations, linking to
-`https://github.com/DrBushyTop/presentations`. It uses the existing navigation
-styles and opens in the same tab. The mobile row has a decorative external-link
-icon. Articles remains the only local page link in this group; About stays hidden.
+Desktop navigation and the mobile page menu include Presentations at
+`https://github.com/DrBushyTop/presentations`, Finland Azure User Group at
+`https://www.meetup.com/finland-azure-user-group/`, and IglooConf at
+`https://www.iglooconf.fi/`. They use the existing navigation styles and open
+in the same tab. Mobile rows have decorative external-link icons. The header
+switches to its menu at 1100px to leave room for the full link labels. Articles remains the only local page link in this group; About stays hidden.
 
 ### Privacy and comments
 

@@ -329,11 +329,11 @@
       },
       {
         "name": "mobile-header-max",
-        "value": "760px"
+        "value": "1100px"
       },
       {
         "name": "desktop-header-min",
-        "value": "761px"
+        "value": "1101px"
       },
       {
         "name": "reader-phone-max",
@@ -461,7 +461,7 @@
       "refersTo": "search",
       "description": "Fuzzy title and topic search with a visible container focus state.",
       "html": "<label class=\"ds-search\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4.5 4.5\"/></svg><input type=\"search\" aria-label=\"Search articles by title or topic\" placeholder=\"Search articles...\"></label>",
-      "css": ".ds-search{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:flex;align-items:center;gap:10px;width:340px;max-width:100%;min-height:45px;padding:0 12px;border:1px solid #b9c5ce;border-radius:6px;color:var(--muted,#596574);background:var(--paper,#fff)}.ds-search:focus-within{outline:2px solid var(--blue,#087caf);outline-offset:2px;border-color:var(--blue,#087caf)}.ds-search>svg{flex:0 0 20px}.ds-search input{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);padding:10px 0;width:100%;min-width:0;outline:none;border:0;color:var(--ink,#202b3a);background:transparent;font-size:16px;caret-color:var(--blue,#087caf)}.ds-search input::placeholder{color:var(--muted,#596574);opacity:1}"
+      "css": ".ds-search{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:flex;align-items:center;gap:10px;width:420px;max-width:100%;min-height:52px;padding:0 12px;border:1px solid #b9c5ce;border-radius:6px;color:var(--muted,#596574);background:var(--paper,#fff)}.ds-search:focus-within{outline:2px solid var(--blue,#087caf);outline-offset:2px;border-color:var(--blue,#087caf)}.ds-search>svg{flex:0 0 20px}.ds-search input{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);padding:10px 0;width:100%;min-width:0;outline:none;border:0;color:var(--ink,#202b3a);background:transparent;font-size:16px;caret-color:var(--blue,#087caf)}.ds-search input::placeholder{color:var(--muted,#596574);opacity:1}"
     },
     {
       "name": "Main navigation",

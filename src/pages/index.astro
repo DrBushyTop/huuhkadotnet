@@ -21,13 +21,21 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
 ---
 <Base title="Huuhka.net | Pasi Huuhka">
   <main id="main" class="page-width">
-    <section class="introduction" aria-labelledby="author-name">
-      <img class="portrait" src="/images/pasi.webp" alt="Pasi Huuhka" width="56" height="56" fetchpriority="high" />
-      <div>
-        <h1 id="author-name">Pasi Huuhka</h1>
-        <p>DevOps, Azure, and building software with AI.</p>
-      </div>
-    </section>
+    <div class="homepage-toolbar">
+      <section class="introduction" aria-labelledby="author-name">
+        <img class="portrait" src="/images/pasi.webp" alt="Pasi Huuhka" width="56" height="56" fetchpriority="high" />
+        <div class="introduction-copy">
+          <h1 id="author-name">Pasi Huuhka</h1>
+          <p>DevOps, Azure, and building software with AI.</p>
+        </div>
+      </section>
+      <form class="search-form" role="search" hidden>
+        <label for="article-search" class="sr-only">Search articles by title or topic</label>
+        <Icon name="search" />
+        <input id="article-search" type="search" name="q" placeholder="Search articles..." autocomplete="off" spellcheck="false" aria-controls="article-grid" />
+        <button class="clear-search" type="button" aria-label="Clear search" hidden><Icon name="close" size={18} /></button>
+      </form>
+    </div>
 
     <section class="popular-section" aria-labelledby="popular-heading">
       <div class="section-heading">
@@ -47,14 +55,8 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
     <section class="archive" aria-labelledby="archive-heading">
       <div class="archive-heading">
         <h2 id="archive-heading">All articles</h2>
-        <form class="search-form" role="search" hidden>
-          <label for="article-search" class="sr-only">Search articles by title or topic</label>
-          <Icon name="search" />
-          <input id="article-search" type="search" name="q" placeholder="Search articles..." autocomplete="off" spellcheck="false" aria-controls="article-grid" />
-          <button class="clear-search" type="button" aria-label="Clear search" hidden><Icon name="close" size={18} /></button>
-        </form>
+        <p id="result-count" class="result-count" role="status" aria-live="polite" aria-atomic="true">{posts.length} articles</p>
       </div>
-      <p id="result-count" class="result-count" role="status" aria-live="polite" aria-atomic="true">{posts.length} articles</p>
       <div class="article-grid" id="article-grid">
         {posts.map((post, index) => (
           <article class="article-card" data-slug={post.slug}>

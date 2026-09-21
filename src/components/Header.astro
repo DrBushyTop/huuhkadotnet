@@ -13,6 +13,8 @@ import '@fontsource-variable/geist-mono';
     <nav class="main-nav" aria-label="Main navigation">
       <a href="/" aria-current={Astro.url.pathname === "/" ? "page" : undefined}>Articles</a>
       <a href="https://github.com/DrBushyTop/presentations">Presentations</a>
+      <a href="https://www.meetup.com/finland-azure-user-group/">Finland Azure User Group</a>
+      <a href="https://www.iglooconf.fi/">IglooConf</a>
     </nav>
     <nav class="social-nav" aria-label="Social links">
       <a href="https://www.linkedin.com/in/pasihuuhka/" aria-label="Pasi on LinkedIn"><Icon name="linkedin" /></a>
@@ -43,6 +45,8 @@ import '@fontsource-variable/geist-mono';
     <nav class="mobile-page-links" aria-label="Pages">
       <a href="/" aria-current={Astro.url.pathname === "/" ? "page" : undefined}><span>Articles</span><Icon name="arrow" /></a>
       <a href="https://github.com/DrBushyTop/presentations"><span>Presentations</span><Icon name="external" /></a>
+      <a href="https://www.meetup.com/finland-azure-user-group/"><span>Finland Azure User Group</span><Icon name="external" /></a>
+      <a href="https://www.iglooconf.fi/"><span>IglooConf</span><Icon name="external" /></a>
     </nav>
     <nav class="mobile-social-links" aria-label="Social links">
       <a href="https://www.linkedin.com/in/pasihuuhka/"><Icon name="linkedin" /><span>LinkedIn</span><Icon name="external" size={17} /></a>
@@ -58,7 +62,7 @@ import '@fontsource-variable/geist-mono';
   const toggle = header.querySelector<HTMLButtonElement>('.menu-toggle')!;
   const dialog = document.querySelector<HTMLDialogElement>('#mobile-navigation')!;
   const close = dialog.querySelector<HTMLButtonElement>('.menu-close')!;
-  const desktop = window.matchMedia('(min-width: 761px)');
+  const desktop = window.matchMedia('(min-width: 1101px)');
 
   // Without scripting the ordinary navigation stays visible on mobile.
   header.classList.add('has-mobile-menu');
