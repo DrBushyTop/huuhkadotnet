@@ -1,0 +1,481 @@
+---
+title: "Azure DevOps Agents in Azure Container Apps"
+slug: "azure-devops-agents-in-azure-container-apps"
+publishedAt: "2024-03-19T21:31:49.000+02:00"
+updatedAt: "2024-03-19T21:33:55.000+02:00"
+description: "This post will go through the infrastructure implementations for
+  two different use cases: scale-to-zero agents that die after every run, and
+  static agents that persist until killed. "
+tags:
+  - "Azure DevOps"
+  - "Azure Pipelines"
+  - "DevOps"
+  - "GitHub"
+  - "YAML"
+tagSlugs:
+  - "azure-devops"
+  - "azure-pipelines"
+  - "devops"
+  - "github"
+  - "yaml"
+image: "/images/ghost/7ab78ec2c4161d89097f.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+I've recently been running self hosted Azure DevOps agents in Container Apps and I think it's a pretty decent middle point between the complexities of self hosting Kubernetes and VM Image management of the VM Scale Set agents.
+
+This post will go through the infrastructure implementations for two different use cases: scale-to-zero agents that die after every run, and static agents that persist until killed. The container image is excluded, [but you can find instructions for that here.](https://learn.microsoft.com/azure/devops/pipelines/agents/docker?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+My requirements were initially just to get the agents hosted on a scale-to-zero scaling, but later I also ended up adding a statically scaled agents to remove some of the initial startup process. The containers used are very heavy at the moment, so that was causing multiple minute startup waits in whenever the agents scaled to zero. In addition, we also wanted to get rid of the PAT tokens currently required by the scale-to-zero model.
+
+There's still a "bug" in my implementation where the agents might crash eventually due to their ephemeral storage sizes being overrun, but that can most likely be fixed by just adding Azure Storage backed volumes to the containers. We've chosen to live with the occasional crash for now.
+
+<a id="basics-for-both-agent-types" />
+
+## Basics for both agent types
+
+Before we do anything, we have to have a container registry set up for our containers. If you have this already, you can just give the user assigned identity the AcrPull permissions.
+
+```bicep
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-02-01-preview' = {
+  name: containerRegistryName
+  location: location
+  sku: {
+    name: sku
+  }
+  properties: {
+    adminUserEnabled: false // Admin user should not be needed with managed identity: https://learn.microsoft.com/en-us/azure/container-apps/containers#managed-identity-with-azure-container-registry
+  }
+}
+
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: pullerIdentityName
+  location: location
+}
+
+// Assign AcrPull permission
+module roleAssignment 'registrypermissions.bicep' = {
+  name: 'container-registry-acrpull-role'
+  params: {
+    roleId: '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull
+    principalId: identity.properties.principalId
+    registryName: containerRegistry.name
+  }
+}
+```
+
+[Full code here](https://github.com/DrBushyTop/blogExamples/blob/master/azureDevOpsAgentsWithManagedIdentity/modules/registry.bicep?ref=huuhka.net)
+
+I often use separate modules for giving the permissions:
+
+```bicep
+param registryName string
+param roleId string
+param principalId string
+@allowed(
+  [
+    'ServicePrincipal'
+    'Group'
+    'ForeignGroup'
+    'User'
+  ]
+)
+param principalType string = 'ServicePrincipal'
+
+// Get a reference to the existing registry
+resource registry 'Microsoft.ContainerRegistry/registries@2021-06-01-preview' existing = {
+  name: registryName
+}
+
+// Create role assignment
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(registry.id, roleId, principalId)
+  scope: registry
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
+    principalId: principalId
+    principalType: principalType
+  }
+}
+```
+
+Then, a container app always needs an environment. In my case I want this to be confined inside a VNET, and my templates to control the whole VNET from subnets to NSGs and route tables. The configurations for these are somewhat out of scope for this post, but you can find more information [here](https://learn.microsoft.com/azure/container-apps/networking?tabs=workload-profiles-env%2Cazure-cli&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#subnet) and [here](https://learn.microsoft.com/azure/devops/organizations/security/allow-list-ip-url?view=azure-devops&tabs=IP-V4&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). You can also [check the repo](https://github.com/DrBushyTop/blogExamples/blob/master/azureDevOpsAgentsWithManagedIdentity/modules/environment.bicep?ref=huuhka.net) for my example configs.
+
+A couple of notes on the VNET configs though:
+
+-   Outbound HTTP (80) is required for Container App functionality and the DevOps agent executable.
+-   At least one Subnet is required, and it needs to have the following delegation
+
+```bicep
+delegations: [
+  {
+    // Important to remember
+    name: 'Microsoft.App.environments'
+    properties: {
+      serviceName: 'Microsoft.App/environments'
+    }
+  }
+]
+```
+
+Now on to the environment resource. Our agents only need to have outbound connectivity, so we set the **env.properties.vnetConfiguration.internal** property to **true** to avoid getting a public IP address.
+
+```bicep
+resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
+  name: containerAppEnvName
+  location: location
+  properties: {
+    vnetConfiguration: {
+      infrastructureSubnetId: vnet.properties.subnets[0].id
+      internal: true
+    }
+...
+```
+
+We also configure some logging to a Log Analytics Workspace using the customerId and shared keys.
+
+```bicep
+...
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalytics.properties.customerId
+        sharedKey: logAnalytics.listKeys().primarySharedKey
+      }
+    }
+...
+```
+
+And lastly we need to configure the **workloadProfiles**. These should be thought as pools of virtual machines of a certain size. I'm setting up two pools of D4 machines, and then the default Consumption profile. [You can get more info on the pool sizes here.](https://learn.microsoft.com/azure/container-apps/workload-profiles-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#profile-types) I noticed that trying to use the Consumption profile, my agents often needed to pull the container image again even if there was no scale down events. This is probably due to the scaling being "per replica" instead of "per node", so there's a chance the next agent won't be placed on the same node.
+
+```bicep
+...
+    workloadProfiles: [
+      {
+        name: 'Consumption'
+        workloadProfileType: 'Consumption'
+      }
+      {
+        name: 'Scaled'
+        workloadProfileType: 'D4'
+        maximumCount: 1
+        minimumCount: 0
+      }
+      {
+        name: 'Static'
+        workloadProfileType: 'D4'
+        maximumCount: 1
+        minimumCount: 0
+      }
+...
+```
+
+[You can view the full resource here.](https://github.com/DrBushyTop/blogExamples/blob/cef3f856a13786892d139b225748296ce3214dae/azureDevOpsAgentsWithManagedIdentity/modules/environment.bicep?ref=huuhka.net#L189C1-L224C2) Also do note that I always output relevant information from my modules.
+
+<a id="scale-to-zero-agent" />
+
+## Scale-to-Zero Agent
+
+All right, let's get some agents up. As we need to scale to zero, the perfect thing for this is a Container Job that can run once and then finish. Container Apps uses KEDA for it's scaling rules, and for Azure Pipelines, KEDA has support for [a trigger for Agent Pool Queues](https://keda.sh/docs/2.13/scalers/azure-pipelines/?ref=huuhka.net). With this trigger, we are able to start [KEDA Scaled Jobs](https://keda.sh/docs/2.13/concepts/scaling-jobs/?ref=huuhka.net).
+
+Before we get to that though, let's take a look at the basics first. Container Jobs cannot have two dashes (--) together, and last I checked the name also needs to be lowercase. We also want to use the User Assigned Identity we created earlier to provide the agent the capability to pull the container images from our registry.
+
+```bicep
+resource agentJob 'Microsoft.App/jobs@2023-05-01' = {
+  name: replace(toLower(appName), '--', '-')
+  location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentity.id}': {}
+    }
+  }
+  ....
+```
+
+Then we set configuration for the environment, registries as well as some container job level secrets used by our agent later:
+
+```bicep
+...
+  properties: {
+    workloadProfileName: workloadProfileName
+    environmentId: environmentId
+    configuration: {
+      secrets: [
+        {
+          name: 'azure-devops-pat'
+          value: azureDevOpsPAT
+        }
+        {
+          name: 'azure-devops-org-url'
+          value: azureDevOpsOrgUrl
+        }
+        {
+          name: 'azure-devops-agent-pool-name'
+          value: azureDevOpsAgentPoolName
+        }
+      ]
+      registries: [
+        {
+          server: registryLoginServer
+          identity: userAssignedIdentity.id
+        }
+      ]
+...
+```
+
+And for getting the trigger to work, we need to set the **properties.configuration.eventTriggerConfig.scale.rules** to match the rules in the [KEDA config](https://keda.sh/docs/2.13/scalers/azure-pipelines/?ref=huuhka.net). This was somewhat difficult to know what was needed.
+
+```bicep
+      eventTriggerConfig: {
+        parallelism: parallelism
+        replicaCompletionCount: 1
+        scale: {
+          pollingInterval: 10
+          rules: [
+            {
+              name: 'azure-pipelines'
+              type: 'azure-pipelines'
+              metadata: {
+                poolName: azureDevOpsAgentPoolName
+                targetPipelinesQueueLength: '1' //  If one pod can handle 10 jobs, set the queue length target to 10. If the actual number of jobs in the queue is 30, the scaler scales to 3 pods.
+                activationTargetPipelinesQueueLength: '0' // Target value for activating the scaler. Learn more about activation https://keda.sh/docs/2.12/concepts/scaling-deployments/#activating-and-scaling-thresholds .(Default: 0, Optional)
+              }
+              auth: [
+                {
+                  secretRef: 'azure-devops-pat'
+                  triggerParameter: 'personalAccessToken'
+                }
+                {
+                  secretRef: 'azure-devops-org-url'
+                  triggerParameter: 'organizationURL'
+                }
+              ]
+            }
+          ]
+        }
+      }
+```
+
+Note that we need to use a personal access token here to poll the queue. The token needs to be for a user that has admin permissions to the Agent Pool on the **Organization level**, and the token needs the **"Agent Pools (Read & Manage)"** permission to be set.
+
+Our logic also says that our pod can handle a single job and that we want to create as many jobs as it takes to get the queue length to 0. We poll every 10 seconds.
+
+Lastly for the container configuration, we need to pass in the PAT token, Url of the Azure DevOps organization and the name of the pool. We've already set these as secrets for our app, so we can use the secretRefs.
+
+```bicep
+// properties
+...
+    template: {
+      containers: [
+        {
+          name: 'devopsagent'
+          image: agentContainerImage
+          args: [// Shut down agent after each job. Your start.sh needs to accommodate taking the parameter in.
+            '--once'
+          ]
+          env: [
+            {
+              name: 'AZP_TOKEN'
+              secretRef: 'azure-devops-pat'
+            }
+            {
+              name: 'AZP_URL'
+              secretRef: 'azure-devops-org-url'
+            }
+            {
+              name: 'AZP_POOL'
+              secretRef: 'azure-devops-agent-pool-name'
+            }
+          ]
+          resources: {
+            cpu: any('1.25') // Need more than 1 core to enable 8GB of ephemeral storage
+            memory: '5.3Gi'
+          }
+        }
+      ]
+    }
+...
+```
+
+My D4 machine can take 3 agents running. I'm also getting the maximum of 8GB ephemeral storage by having more than 1 core. If you set up the volumes with Azure Disks / Azure Storage, you can fit 4 agents. However, note that stuff like GitHub Advanced Security for Azure DevOps do require quite a lot of horsepower for your agents too.
+
+[Check out the full resource here.](https://github.com/DrBushyTop/blogExamples/blob/cef3f856a13786892d139b225748296ce3214dae/azureDevOpsAgentsWithManagedIdentity/modules/scaleToZeroAgent.bicep?ref=huuhka.net#L32C1-L127C2)
+
+**One more thing before we move on**: Azure Agent Pools have a strange feature where they require at least a single agent instance in the pool before the KEDA poller starts working. For this reason [my bicep outputs a set of commands you are able to run](https://github.com/DrBushyTop/blogExamples/blob/cef3f856a13786892d139b225748296ce3214dae/azureDevOpsAgentsWithManagedIdentity/modules/scaleToZeroAgent.bicep?ref=huuhka.net#L129C1-L159C54) to set up a placeholder agent that connects to the pool, shuts itself down without removing the agent entry and then you can delete the job. The script is ugly, but gets the job done.
+
+The script expects that your registry already has this container image it can download though. [Check out this post for instructions for doing that](https://learn.microsoft.com/azure/container-apps/tutorial-ci-cd-runners-jobs?tabs=bash&pivots=container-apps-jobs-self-hosted-ci-cd-azure-pipelines&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#create-a-placeholder-self-hosted-agent).
+
+And that's it! You'll need to create your own main.bicep to call the modules I've provided, but I'm sure you'll manage. After deploying we should be able to schedule pipelines for our Azure DevOps Agent Pool and the container jobs should kick off.
+
+<a id="static-agents" />
+
+## Static Agents
+
+Now, let's talk about the static implementation. The benefit here is that the agents keep on living after successful builds, making the subsequent runs faster and avoiding having to pull the container images again. [We can also utilize a managed identity for authenticating to Azure DevOps as discussed in my previous post.](/azure-devops-agents-using-managed-identitites/)
+
+This implementation is based on the previously discussed Scale-to-Zero model, and in my case is used together with it. They are also very similar in terms of the [Bicep implementation](https://github.com/DrBushyTop/blogExamples/blob/master/azureDevOpsAgentsWithManagedIdentity/modules/staticAgent.bicep?ref=huuhka.net):
+
+```bicep
+// All this variable setup is really only needed if you want to support both PAT and Managed Identity. See the full file for more details. 
+var defaultSecrets = [
+  {
+    name: 'azure-devops-org-url'
+    value: azureDevOpsOrgUrl
+  }
+  {
+    name: 'azure-devops-agent-pool-name'
+    value: azureDevOpsAgentPoolName
+  }
+]
+
+var patSecret = {
+  name: 'azure-devops-pat'
+  value: azureDevOpsPat
+}
+
+var defaultEnvVar = [
+  {
+    name: 'AZP_URL'
+    secretRef: 'azure-devops-org-url'
+  }
+  {
+    name: 'AZP_POOL'
+    secretRef: 'azure-devops-agent-pool-name'
+  }
+]
+
+var patEnvVar = {
+  name: 'AZP_TOKEN'
+  secretRef: 'azure-devops-pat'
+}
+
+var managedIdentityEnvVar = {
+  // Adding this makes the agent use Managed identity tokens instead of PAT tokens if you follow the implementation described here: https://www.huuhka.net/azure-devops-agents-using-managed-identitites/
+  name: 'MANAGED_IDENTITY_OBJECT_ID'
+  value: userAssignedIdentity.properties.principalId
+}
+
+
+resource staticAgent 'Microsoft.App/containerApps@2023-05-02-preview' = { // containerApps instead of Jobs
+  name: '${replace(toLower(appName), '--', '-')}-static'
+  location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentity.id}': {}
+    }
+  }
+  properties: {
+    environmentId: environmentId
+    workloadProfileName: workloadProfileName
+    configuration: {
+      secrets: azureDevOpsPat != '' ? union(defaultSecrets, array(patSecret)) : defaultSecrets
+      registries: [
+        {
+          server: registryLoginServer
+          identity: userAssignedIdentity.id
+        }
+      ]
+      activeRevisionsMode: 'Single'
+    }
+    template: {
+      scale: { // When compared to Scale-to-Zero, we just statically set the values here.
+        minReplicas: numberOfAgents
+        maxReplicas: numberOfAgents
+      }
+      containers: [
+        {
+          name: 'devopsagent'
+          image: agentContainerImage
+          env: azureDevOpsPat != '' ? union(defaultEnvVar, array(patEnvVar)) : union(defaultEnvVar, array(managedIdentityEnvVar))
+          resources: {
+            cpu: any('1.25') // Need more than 1 core to enable 8GB of ephemeral storage
+            memory: '5.3Gi'
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+The harder part in my situation was to figure out how can I easiest handle a case where we want to have the static agents on during working hours, but still allow the normal Scale-to-Zero implementation work if the static agents are not up.
+
+I ended up making two pipelines in Azure DevOps, one for scaling up and another to scale down. These pipelines run on specific schedules configured using [the schedule trigger](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/scheduled-triggers?view=azure-devops&tabs=yaml&ref=huuhka.net).
+
+Most of the variables I need I fetch from the outputs of my Bicep template deployment of the environment, and then I have the following logic to scale things up to 3 static agents:
+
+```yaml
+## scaleup.yaml
+...
+# Fetch variables from bicep / var groups / wherever before these steps
+
+- task: AzureCLI@2
+  displayName: "Scale up static agents"
+  inputs:
+    azureSubscription: ${{variables.azureServiceConnectionName}}
+    scriptType: pscore
+    scriptLocation: "inlineScript"
+    inlineScript: |-
+      az deployment group create --name "staticagent" -g $(agentResourceGroupName) --template-file $(Build.SourcesDirectory)/staticAgent.bicep `
+      --parameters location=$(location) appName=$(appName) environmentId=$(environmentId) azureDevOpsOrgUrl=$(azureDevOpsOrgUrl) `
+      azureDevOpsAgentPoolName=$(azureDevOpsAgentPoolName) agentContainerImage=$(agentContainerImage) registryLoginServer=$(registryLoginServer) `
+      registryPullerIdentityResourceId=$(registryPullerIdentityResourceId) workloadProfileName=$(staticWorkloadProfileName) numberOfAgents=3
+
+- task: AzureCLI@2
+  displayName: "Update scaled agents activationTargetPipelinesQueueLength"
+  inputs:
+    azureSubscription: ${{variables.azureServiceConnectionName}}
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      az containerapp job update -g $(agentResourceGroupName) -n $(scaledAgentName) `
+      --scale-rule-metadata poolName=$(azureDevOpsAgentPoolName) targetPipelinesQueueLength=1 activationTargetPipelinesQueueLength=4 `
+      --scale-rule-auth personalAccessToken=azure-devops-pat organizationURL=azure-devops-org-url `
+      --scale-rule-name "azure-pipelines" --scale-rule-type "azure-pipelines"
+
+...
+```
+
+While the static agent setup is self explanatory, it turns out that if you want to edit any of the scale rule metadata fields in the Scale-to-Zero part, you will need to pass in all the values specified.
+
+In my case, I set the activationTargetPipelinesQueueLength to 4, so in theory there should be Scale-to-Zero agents started only if all my static agents are working on jobs and there are 4 more jobs waiting. The targetPipelinesQueueLength stays the same as before, meaning a single pod can handle a single job.
+
+The scale down part is simple, we just force delete the static agents and set the KEDA trigger values back. You could argue these would be good to fetch from the Bicep outputs as well but I'm just hardcoding them here.
+
+```yaml
+## scaledown.yaml
+...
+# Fetch variables from bicep / var groups / wherever before these steps
+
+- task: AzureCLI@2
+  displayName: "Scale down static agents"
+  inputs:
+    azureSubscription: ${{variables.azureServiceConnectionName}}
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      az containerapp delete -g $(agentResourceGroupName) -n $(appName)-static --yes
+
+- task: AzureCLI@2
+  displayName: "Update scaled agents target queue length"
+  condition: succeededOrFailed() ## Run this even if the static agent deletion fails (mostly due to them not existing in the first place)
+  inputs:
+    azureSubscription: ${{variables.azureServiceConnectionName}}
+    scriptType: "pscore"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      az containerapp job update -g $(agentResourceGroupName) -n $(scaledAgentName) `
+      --scale-rule-metadata poolName=$(azureDevOpsAgentPoolName) targetQueueLength=1 activationTargetPipelinesQueueLength=0 `
+      --scale-rule-auth personalAccessToken=azure-devops-pat organizationURL=azure-devops-org-url `
+      --scale-rule-name "azure-pipelines" --scale-rule-type "azure-pipelines"
+...
+```
+
+This implementation currently has a bug where the static agents do not clean themselves up when being deleted. I'm not sure if I would need to change my cleanup script or somehow adding a longer graceful shutdown period to the Container Apps for the deletion process, but for now we've been able to live with it.
+
+But that's it for both of the agents! Hope this was somewhat helpful.

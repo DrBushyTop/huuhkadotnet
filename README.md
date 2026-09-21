@@ -1,63 +1,68 @@
 # Huuhka.net
 
-Preliminary Astro homepage based on the approved popular-first composition.
+Static Astro blog with published Ghost content migrated to MDX. No CMS, database,
+or production connection is needed to run the site.
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-`npm run build` checks types and creates the static site in `dist/`.
-`npm test` tests the search and preview data. Node 22.12 or newer is required.
-
-## Preview scope
-
-- Popular picks above a three-column dated archive, with compact rectangular cards.
-- Twelve articles initially, then a button to reveal the remaining posts.
-- Fuzzy search across all included article titles and tags, including unloaded rows.
-- Original images stored locally, with below-the-fold article images lazy-loaded.
-- All article, author, and RSS links still open the existing huuhka.net.
-- Without JavaScript, all included articles remain visible.
-
-`src/data/posts.json` is a snapshot of the public RSS feed taken September 21,
-2026. It is preview data, not the completed Ghost migration. Popular picks are
-sample selections, not analytics rankings. Image origins are recorded in
-`public/images/provenance.json`.
-
-Headings and the wordmark use Geist Sans. Navigation, tags, and dates use Geist
-Mono. Body copy uses Source Sans 3. These fonts are self-hosted through
-Fontsource packages. Code uses SauceCodePro Nerd Font Mono, with WOFF2 files,
-license, and provenance in `public/fonts/sauce-code-pro/`. Code defaults are in
-`src/styles/code.css`; other styles are in `src/styles/global.css`.
-
-## Design context
-
-- `PRODUCT.md`: audience, product constraints, and approved direction.
-- `DESIGN.md`: current fonts, colors, spacing, and component rules.
-- `.impeccable/design.json`: machine-readable design metadata and specimens.
-- `.impeccable/surfaces/src-pages-index-astro.md`: homepage decisions.
-- `.impeccable/config.json`: comp-led preference for new design explorations.
-- `AGENTS.md`: repository instructions for future coding sessions.
-
-The Impeccable skill lives in `.agents/skills/impeccable/`. Run its launcher
-from this repository, for example:
+Open `http://127.0.0.1:4321`. Node 22.12 or newer is required.
 
 ```sh
-.agents/skills/impeccable/scripts/impeccable doctor --json
+npm run build
+npm test
+npm run validate:migration
+npm run validate:local # requires the dev server
 ```
 
-The preview includes `noindex, nofollow` and a blocking `robots.txt`. Remove
-those only when the migrated site is ready for production. No analytics,
-content migration, redirects, or deployment are included in this pass.
+The homepage shows 12 articles at a time and searches the full collection. Article,
+tag, author, community, and RSS links resolve locally. JavaScript is optional for
+reading; without it, the archive shows every article.
 
-## Remote preview
+## Write an article
 
-The dev server accepts the existing M1 Tailscale hostname. Keep it on loopback
-and expose it through Tailscale Serve, not a public listener:
+Add `src/content/blog/your-slug.mdx` using an existing post as a template. Keep
+`publishedAt` and `updatedAt` as quoted ISO timestamps. The filename and frontmatter
+slug should match. `draft: true` excludes a post from public routes and feeds.
+
+Use `tags` for display names and matching `tagSlugs` for archive URLs. Define any
+new tags in `src/data/tags.json`. Store new images under `public/images/` and use
+root-relative paths. Author information lives in `src/data/author.json`.
+
+For a series, add its ID to the post's `series` array and add the post slug to the
+ordered definition in `src/data/series.json`. Keep both in sync. Series links
+appear in the reader's collapsible navigation, not in an opening callout.
+
+Plain Markdown works inside MDX. Use fenced code with a language identifier.
+Migrated files include explicit anchors to preserve old links; new headings get
+IDs automatically. Bespoke MDX components can be imported when needed.
+
+`migration/` contains source-comparison records, not a second content store.
+Intentional edits to migrated content may need corresponding validation changes;
+do not blindly update the baseline to hide missing content.
+
+## Design and migration
+
+- `DESIGN.md` and `PRODUCT.md` describe the approved design and product constraints.
+- `.impeccable/surfaces/` records page-specific decisions.
+- `.agents/skills/impeccable/` contains the local design skill.
+- `docs/migration.md` covers import tooling, source attribution, verification,
+  known limits, and work deferred until deployment.
+
+Headings use Geist Sans, navigation and metadata use Geist Mono, body text uses
+Source Sans 3, and code uses SauceCodePro Nerd Font Mono. All fonts are self-hosted.
+Font licenses and code-font provenance are under `public/fonts/`.
+
+No deployment is configured. Indexing remains blocked and analytics are disabled.
+
+## Shared local preview
+
+The server binds to loopback. The existing private Tailscale preview can point at it:
 
 ```sh
 tailscale serve --bg --https=8445 http://127.0.0.1:4321
 ```
 
-Stop this preview with
-`tailscale serve --https=8445 off`.
+Stop that preview with `tailscale serve --https=8445 off`.

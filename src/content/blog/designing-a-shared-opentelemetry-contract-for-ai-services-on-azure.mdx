@@ -1,0 +1,153 @@
+---
+title: "Designing a shared OpenTelemetry contract for AI services on Azure"
+slug: "designing-a-shared-opentelemetry-contract-for-ai-services-on-azure"
+publishedAt: "2026-02-22T20:13:00.000+02:00"
+updatedAt: "2026-04-19T16:26:51.000+03:00"
+description: "In this post I'll walk through how I went about  making multiple
+  services behave like they belong to the same platform from an OpenTelemetry
+  perspective."
+tags:
+  - "AI"
+  - "Developer Tools"
+  - "Azure"
+  - "Telemetry"
+tagSlugs:
+  - "ai"
+  - "developer-tools"
+  - "azure"
+  - "telemetry"
+image: "/images/ghost/0204e444393bcafbe973.jpg"
+imageAlt: ""
+draft: false
+featured: false
+series:
+  - "ai-dev-platform"
+  - "secure-enterprise-ai-tooling-on-azure"
+---
+
+Once you have more than one AI-facing service behind the same Azure API Management layer, telemetry starts drifting almost immediately.
+
+One service calls the tool identifier one thing. Another uses a different header name. A third one emits a metric dimension that looked harmless until somebody tried to chart it and discovered the cardinality was terrible. At that point you can still say you have observability, but the useful part of it starts slipping away.
+
+In this post I'll walk through how I went about solving this issue. Not how to turn on OpenTelemetry, but instead how to make multiple services behave like they belong to the same platform.
+
+<a id="the-problem-i-cared-about" />
+
+### The problem I cared about
+
+What I wanted was fairly simple. If traffic entered through one platform edge, I wanted the downstream services to agree on what a request was, how it should be attributed, and which parts of that attribution were safe to put on metrics.
+
+That sounds boring, but for AI workloads it matters quite a lot. I usually want to answer questions like which tool was actually used, which client path generated the traffic, whether a specific agent integration is noisy, and where the cost is going. If every backend answers those in a slightly different way, the dashboards stop being trustworthy surprisingly fast.
+
+The other awkward part was that the services weren't all in the same stack. Some were .NET, some were TypeScript, and I really didn't want both ecosystems inventing their own baggage parsing and metric filtering conventions. So I ended up treating telemetry as a platform contract instead of a helper library.
+
+<a id="a-contract-not-just-shared-code" />
+
+### A contract, not just shared code
+
+The main design decision was to move the shared behavior into one contract file and then have both the .NET and TypeScript libraries implement that contract.
+
+This split meant the important decisions lived in one place: which `myprefix.*` baggage keys exist, what the resolution order is, which metric instruments are expected, and which attributes are explicitly forbidden from metrics.
+
+The common layer itself was just a YAML file. In simplified form, it looked like this:
+
+```yaml
+version: 1
+
+aiplat:
+  baggage:
+    keys:
+      - myprefix.request_id
+      - myprefix.tool_id
+      - myprefix.user_id_hash
+      - myprefix.opencode_agent_name
+    headerFallbacks: {}
+    resolutionOrder:
+      useOtelBaggage: true
+      useRawBaggageHeader: true
+      useHeaderFallbacks: false
+
+  metrics:
+    meterName: AIPlatform.AiPlat
+    instruments:
+      - name: myprefix_requests_total
+        type: counter
+        unit: "1"
+        attributes:
+          - myprefix.tool_id
+          - myprefix.opencode_agent_name
+          - http.method
+          - http.status_code
+          - http.route
+    forbiddenMetricAttributes:
+      - myprefix.user_id_hash
+```
+
+I like this shape because you can understand most of the platform opinion just by looking at the file. The user hash exists as a shared attribute, but it's explicitly forbidden from metrics. Header fallbacks exist as a mechanism, but the normal path keeps them turned off.
+
+That last part was one of the main reasons I wanted a contract at all. Telemetry on AI systems has a bad habit of turning into a junk drawer. Somebody adds a user hash to spans, somebody else thinks it'd be nice on a metric, and three weeks later you're cleaning up a cardinality mess you could've avoided by just being stricter in the first place. I hit this early on, and it was clear I needed to be more intentional about what goes on metrics and what doesn't.
+
+With a contract file, the rules become pretty boring — in a good way. If a field is in the shared config and marked metric-safe, both languages treat it as metric-safe. If header fallbacks are disabled there, they're disabled everywhere. If a key is forbidden from metrics, that's not a code review opinion anymore. It's just the rule.
+
+<a id="let-the-edge-do-the-normalization" />
+
+### Let the edge do the normalization
+
+The other thing I felt strongly about was ownership. I didn't want every backend to understand every client-specific header shape forever. That's exactly the kind of decision that feels harmless at the beginning and then quietly turns into coupling. So the rule became that API Management owns the edge normalization. Client-specific headers come in, APIM turns them into the platform-owned shape, appends the values into W3C baggage, and the services only need to understand the normalized platform contract.
+
+It sounds obvious written out like that, but I think it's easy to get wrong. If both APIM and the services can independently decide how a platform attribute is sourced, the whole thing gets muddy very quickly. Some values come from baggage, some from raw headers, some from fallbacks, and eventually nobody's fully sure which layer is authoritative.
+
+That's why I kept header fallbacks disabled by default. The shared libraries support them, but I think the healthier default is to force the edge to do the propagation properly.
+
+In practice, I wanted this and not five different half-overlapping variants of it:
+
+![](/images/ghost/1a18d9e1820f35fc1f62.png)
+
+<a id="metric-cardinality" />
+
+### Metric cardinality
+
+The useful part of the design wasn't the config file by itself. It was what the config file made harder to mess up.
+
+On spans I'm fairly relaxed. If a piece of context is useful for debugging and it's handled safely, I don't mind carrying a decent amount of it. On metrics I'm much more conservative.
+
+The shared allowlist and forbidden-attribute model helped a lot here. Tool identifiers, route templates, method, status code, and a bounded operation name are all reasonable candidates. A user hash isn't. Request IDs aren't. Session IDs aren't. Those are good diagnostic attributes and terrible metric dimensions.
+
+This split was especially important because some of the AI-specific context only exists inside the app. If the service parses MCP-style JSON-RPC payloads, for example, it can often derive a stable operation name or tool name that's genuinely useful on request metrics. That enrichment belongs in the app because the app actually understands the payload. Client lineage and normalized request identity, on the other hand, are edge concerns and belong in APIM.
+
+<a id="cross-language" />
+
+### Cross-language
+
+I think this would've been much less useful if it only solved the .NET side nicely.  
+The .NET version is naturally a little heavier. It plugs into dependency injection, middleware, and the normal OpenTelemetry setup in ASP.NET Core. The TypeScript side is lighter and more wrapper-shaped. That's fine — they don't need to look the same internally.
+
+I wanted them to share the exact same config source, though. This allowed me to change a single location and have it flow to all of the services in the platform, regardless of language. I just had to make sure that no matter which language we were using, the config files were pulled in with the builds accordingly.
+
+The shared library is code, but the contract it implements is still data. I didn't want the values duplicated into two language implementations at build time in some opaque way. I wanted both runtimes to load the same file and validate it normally.
+
+They needed to behave the same way regardless of language. If APIM wrote a platform baggage key, both stacks needed to resolve it in the same order. If a metric attribute was safe in one service, it needed to be safe in the other. If a forbidden attribute was dropped from metrics in TypeScript but leaked through in .NET, the whole shared contract idea would've been kind of pointless.
+
+I think shared contract tests matter more than shared implementation details in setups like this. The point isn't that both libraries use the same code shape. The point is that they produce the same platform behavior.
+
+<a id="the-azure-perspective" />
+
+### The Azure perspective
+
+The implementation itself lived mostly in shared code and config, but we of course need some extra Azure parts to make this all run.
+
+There was a central telemetry setup around Log Analytics, Application Insights, and a shared collector story when needed. API Management handled the practical edge work: trace continuation, normalized headers, baggage propagation, and gateway-side dimensions for the traffic that needed to be observable already at that layer.
+
+If you already have a platform edge, that's where this kind of cross-cutting normalization belongs.
+
+It also meant the services stayed smaller. They didn't need to know how a specific client integration decided to represent a parent session or a tooling version header. They just needed to consume the platform contract consistently.
+
+<a id="closing-thoughts" />
+
+### Closing thoughts
+
+Looking back, this was a simple-ish contract design task.
+
+The edge normalizes and propagates. The shared config owns the rules. The language libraries implement those rules. Metrics stay intentionally boring. Richer context lives on spans unless there's a very good reason to promote it.
+
+If I were doing this again, I'd keep the same basics. The declarative contract file was the biggest win. Edge-owned normalization was the right split. And being strict on metric safety saved me from the kind of telemetry mess that's easy to create and annoying to clean up. However, I'd likely implement this right from the start instead of waiting for the mess to happen first. The refactor was pretty easy, but it's still better to avoid the mess in the first place.

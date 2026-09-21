@@ -1,0 +1,18 @@
+---
+import Base from '../../layouts/Base.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import {getPosts} from '../../lib/posts';
+import tags from '../../data/tags.json';
+export function getStaticPaths() {return tags.map(tag=>({params:{slug:tag.slug},props:{tag}}));}
+const {tag}=Astro.props;
+const posts=(await getPosts()).filter(p=>p.data.tagSlugs.includes(tag.slug));
+---
+<Base title={tag.metaTitle || `${tag.name} | Huuhka.net`} description={tag.metaDescription || tag.description || `Articles about ${tag.name} by Pasi Huuhka.`} image={tag.image || undefined}>
+  <main id="main" class="page-width collection-page">
+    <a class="back-link" href="/">All articles</a>
+    <h1>{tag.name}</h1>
+    {tag.description && <p>{tag.description}</p>}
+    <p class="collection-count">{posts.length} articles</p>
+    <div class="article-grid">{posts.map(post=><ArticleCard post={post} />)}</div>
+  </main>
+</Base>

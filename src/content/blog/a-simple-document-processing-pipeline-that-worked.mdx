@@ -1,0 +1,215 @@
+---
+title: "A simple document processing pipeline that worked"
+slug: "a-simple-document-processing-pipeline-that-worked"
+publishedAt: "2025-07-13T21:59:00.000+03:00"
+updatedAt: "2026-04-11T22:00:48.000+03:00"
+description: "I've been involved in a fair number of document processing
+  projects on Azure. This post describes one of them at the pattern level."
+tags:
+  - "AI"
+  - "Artificial Intelligence"
+  - "Data"
+  - "Azure"
+tagSlugs:
+  - "ai"
+  - "artificial-intelligence"
+  - "data"
+  - "azure"
+image: "/images/ghost/d54e818c565aca8bf30e.png"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+I've been involved in a fair number of document processing projects on Azure. This post describes one of them at the pattern level.
+
+The use case was RAG: getting documents processed and indexed so an AI could actually find and use the content. It was a proof of concept, so we could accept imperfections — the goal was to get useful data flowing rather than to build a perfect platform from day one. I think there's value in writing down the kind of pipeline that actually gets built in that situation. So that's what this is.
+
+At a high level, the flow was straightforward. Files landed in a raw layer, went through different processing paths depending on the file type, ended up as processed output in a silver layer, and were then indexed into Azure AI Search.
+
+<a id="the-short-version" />
+
+### The short version
+
+-   The storage model was deliberately simple: raw first, silver after processing.- Azure Functions handled the orchestration and Azure Service Bus queues sat between the stages.
+-   PDFs went through OCR with [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/layout?view=doc-intel-4.0.0&ref=huuhka.net), while non-PDF files took a simpler extraction path.- The silver layer became the contract for indexing.
+-   The indexing step generated embeddings and pushed chunks into Azure AI Search.
+
+<a id="why-this-shape-made-sense" />
+
+### Why this shape made sense
+
+The thing I still like about this design is that it was easy to reason about. There was no giant ingestion platform. No especially clever orchestration engine. No attempt to make every document type fit one universal processing path.
+
+Instead, the pipeline treated storage as the backbone. Raw meant we had the original file and its metadata. Silver meant we had a processed representation that downstream systems could rely on. That gave us a clean enough contract between ingestion, OCR, transformation and indexing.
+
+If a file existed only in raw, it hadn't been processed yet. If it existed in silver, it was ready for indexing or further use.
+
+It helped that the intake side was fairly controlled too; This wasn't a live enterprise integration. The data came in through controlled means, which let us keep the rest of the pipeline straightforward.
+
+That's not exactly a profound idea, but it's the kind of boring clarity that helps a lot in document pipelines.
+
+![](/images/ghost/d54e818c565aca8bf30e.png)
+
+<figcaption>
+
+Flow of the docs through the system
+
+</figcaption>
+
+<a id="azure-functions-plus-service-bus-was-enough" />
+
+### Azure Functions plus Service Bus was enough
+
+The processing side was built around Azure Functions and Service Bus queues.  
+That gave us a few nice properties. Each stage was small and isolated, retries and failure handling came from the platform instead of custom code, processing could happen asynchronously, and the stages were loosely coupled enough that you could rerun parts of the flow.
+
+The interesting thing is that this wasn't especially "event-native" in the modern sense. Some of the queueing functions were simply HTTP-triggered walkers over storage folders. They scanned a prefix, decided what to queue, and pushed messages into Service Bus. That's a very practical pilot-phase design.
+
+It's not the kind of architecture diagram people love to post, but it's often the kind of thing that gets a working system into place quickly. I've seen this same pattern in other projects too, and it tends to hold up surprisingly well as long as volumes stay reasonable.
+
+<a id="the-first-important-split-was-by-file-type" />
+
+### The first important split was by file type
+
+One of the key design decisions was not trying to process everything in exactly the same way.
+
+Instead, the pipeline split early. PDFs were queued for OCR, while non-PDF files went to a different transform path. That sounds obvious, but a lot of pain in document systems comes from pretending that all files are basically the same.  
+Some files are scans. Some are digital PDFs. Some are HTML exports. Some are effectively just attachments that should be moved forward with metadata and not overthought.
+
+The pipeline worked better once it admitted that.
+
+<a id="the-pdf-path-ocr-into-markdown-in-silver" />
+
+### The PDF path: OCR into markdown in silver
+
+For PDFs, the pipeline used [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/layout?view=doc-intel-4.0.0&ref=huuhka.net), specifically the layout-style path that produced markdown output.
+
+That part is important, because the useful output wasn't just plain OCR text. The pipeline wanted a reasonably structured representation that could survive the later indexing stages.
+
+So the rough PDF flow was to queue a raw PDF for OCR, call Document Intelligence, get markdown output back, split the content by page, and then save both the full processed file and the page-level files into silver.
+
+That gave us two useful representations at the same time: one parent document in silver and multiple child page chunks in silver. That made the later indexing step much easier, because the indexing stage could focus on page-level chunks instead of trying to invent chunking from a giant raw file every time.
+
+<a id="the-pipeline-also-handled-figures-separately" />
+
+### The pipeline also handled figures separately
+
+One detail I did like in this implementation was that figures weren't just ignored.  
+The OCR stage also pulled out figures, stored them in silver, and rewrote the markdown so that the content could refer to those extracted assets. On top of that, there was a small extra filtering step to avoid polluting the output with useless generic symbols and logos.
+
+That's the sort of detail that starts sounding like overengineering until you actually index the documents and realize how much noise repeated logos, warning icons and generic visual elements can create.
+
+So even though the pipeline was simple overall, it still had a little bit of practical cleanup logic where it mattered.
+
+<a id="logo-dedup-was-a-small-problem-with-a-neat-solution" />
+
+### Logo dedup was a small problem with a neat solution
+
+One of the filtering details worth zooming in on was logo deduplication.  
+The POC used an LLM check to decide whether an extracted image was a logo. It worked, but it burned tokens on every single image — not great when most documents reuse the same handful of logos on every page.
+
+My first instinct was byte-level comparison: if you've seen these exact bytes before, skip. But that doesn't work. OCR outputs of the "same" logo almost never produce identical bytes. Compression artifacts, slight cropping differences, re-encoding — there's always something.
+
+The better approach is \*\***perceptual hashing**\*\*. The idea is simple: convert the image to grayscale, resize it down to something tiny (like 8×8 pixels), and compute a short fingerprint from the result. You get a 64-bit hash that's nearly immune to minor re-encodes and compression differences.
+
+There are a few variants — aHash (average hash), dHash (difference hash), and pHash (perceptual hash using DCT). For most logo dedup, a simple 8×8 average hash is >99.9% accurate. You'd only need pHash or something heavier like ORB-based keypoint comparison if you're dealing with rotated or recolored versions, which wasn't the case here.
+
+In C# this is very fast. You can either roll your own average hash in about 30 lines, or use a library like \[CoenM.ImageHash\](https://github.com/coenm/ImageHash) which gives you a clean one-liner:
+
+```csharp
+var hash = new PerceptualHash().Hash(bitmap); // returns ulong
+```
+
+Store hashes in a \`Dictionary&lt;ulong, string>\`, and on a cache hit you skip the duplicate. That's it — no ML model, no token cost, sub-millisecond per image.  
+I didn't end up implementing this in the POC (the LLM check was "good enough" for the scope), but it's the approach I'd use in production. It's one of those cases where the boring, well-understood technique beats the fancy (but arguably dumb) one.
+
+<a id="the-non-pdf-path-stayed-much-simpler" />
+
+### The non-PDF path stayed much simpler
+
+The non-PDF path is actually a good example of the larger philosophy here.  
+It didn't try to be fancy.
+
+Non-PDF files were queued separately and then either transformed lightly or moved forward more or less as-is into silver. There was some logic around HTML-to-Markdown style handling in the codebase too, but the active path was clearly much more pragmatic than the PDF OCR branch.
+
+I think that was the right instinct. Not every file deserves the most expensive or elaborate processing path.
+
+<a id="silver-was-really-the-contract" />
+
+### Silver was really the contract
+
+If I had to point to one architectural idea that held this together, it would be this: silver was the contract.
+
+The indexing step didn't need to know how the document got there. It only needed to know that silver contained something indexable, with enough metadata to map it into search fields.
+
+That's a very useful boundary, as it means your OCR stage can change later. Your file transformation logic can change later. You can even swap the upstream extraction service later. As long as silver still contains the same general contract, the indexing side can stay stable.
+
+That kind of boundary is especially helpful when the OCR and extraction technology is one of the things you're still uncertain about. (And let's be honest, in most projects it is.)
+
+<a id="metadata-carried-a-lot-of-the-weight" />
+
+### Metadata carried a lot of the weight
+
+Another thing I think helped this pipeline more than it first appears was metadata.  
+Files were written into raw storage with metadata attached — source link, filename, file type, dates, and other contextual values. That metadata then followed the files through the later stages and got mapped into index fields.  
+If you can carry metadata with the file through the pipeline instead of rebuilding it at every stage, the whole thing gets simpler.
+
+So the search indexing stage didn't have to rediscover everything from content. It could combine the processed text chunk, the page-level structure, the file metadata, and the parent-child relationship between files and pages. Text extraction alone is usually not enough. The surrounding metadata often matters just as much for making retrieval actually useful.
+
+<a id="indexing-was-just-another-function-stage" />
+
+### Indexing was just another function stage
+
+Once files reached silver, another function scanned for markdown files, filtered out parent documents, and queued the child page files for indexing. That meant the search layer mostly worked on page-level units instead of giant documents.  
+Then the indexer read the page content from storage, loaded metadata from the blob, mapped that metadata into a typed chunk model, generated embeddings, and uploaded the chunk into Azure AI Search. Again, none of this was especially exotic.  
+That's part of why I like it. It was just a normal, explicit indexing step built on top of a clean-enough processed layer.
+
+<a id="what-id-do-differently" />
+
+### What I'd do differently
+
+This pipeline had real limitations. Storage scanning over HTTP triggers isn't the cleanest orchestration model, the processing paths weren't fully unified, and some of the routing logic was clearly pilot-grade.
+
+But the biggest issue was that the expensive OCR branch was used too broadly.  
+Document Intelligence has two relevant models here: the [read model](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/read?view=doc-intel-4.0.0&ref=huuhka.net), which is cheap but just gives you text, and the [layout model](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/layout?view=doc-intel-4.0.0&ref=huuhka.net), which actually understands structure like tables, sections and reading order. We used layout for everything because we knew the corpus had tables and complex formatting. The output quality was genuinely good. But the layout model was also genuinely expensive, and we ran it on every single document.
+
+That's fine for a POC where you know the dataset has structured content. But as the amount of data grows, this becomes a question that requires an actual answer — or deep pockets.
+
+The tricky part is: **how do you know beforehand whether a document needs the layout model instead of just the read model?** We knew our docs had tables, so layout was the right call. But for a generic corpus, you don't have that luxury. There's no clean deterministic answer here, but there are practical approaches:
+
+-   **Route by source.** If you know that "documents from system X are always engineering specs with tables," just route by origin. This works when you have the metadata, which you often don't.
+-   **Cheap first-pass with escalation.** Run basic OCR first, then look for signals that you missed structure: regular column alignment, lots of short fragments at similar positions, low confidence scores. If those trigger, re-process through the expensive path. You pay double for some pages, but not for the whole corpus.
+-   **PDF structure as a free triage step.** PDF files contain drawing commands like lines or grids even before you OCR them. Libraries like [pdfplumber](https://github.com/jsvine/pdfplumber?ref=huuhka.net) can detect table regions purely from vector graphics. That's essentially free.
+
+None of these are perfect, but some combination of them would let you keep the layout model for where it actually matters and use the read model for everything else. That's why alternatives like [Docling](https://github.com/docling-project/docling?ref=huuhka.net) are also worth serious evaluation — it's become a real option for document parsing as a cheaper default path, with managed OCR as an escalation for the hard cases. [Azure Content Understanding](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/overview?ref=huuhka.net) is worth watching too, though the cost story still needs scrutiny.
+
+The other thing I'd approach differently is image understanding. The pipeline extracted figures, but it didn't really **_understand_** them. For logos and decorative images that's fine — you just want to filter them out. But technical charts, schematics, and process diagrams carry real information that plain OCR will never capture.
+
+Multimodal LLMs and specialized vision-language models (VLMs) can actually interpret those images now. Feed a wiring diagram or a flow chart to GPT-4o or Claude with vision, and you get a useful textual description that's indexable. That would've made the extracted figures genuinely useful for RAG instead of just referenced.
+
+The catch is cost and routing again. You don't want to send every extracted image through a VLM. You need to figure out which images are worth spending tokens on. A two-stage approach works: use something cheap (even the perceptual hashing from the logo dedup step: logos and icons cluster tightly, technical diagrams don't) to separate "worth understanding" from "skip," then send only the interesting ones through the expensive model. But that's more pipeline complexity, more cost tuning, more decisions. It's the right thing to do, but it's not free.
+
+If I were revisiting this today, I'd think harder about:
+
+-   deterministic routing between cheap and expensive extraction- whether a cheaper open-source OCR path should be the default, with managed OCR as an escalation
+-   using VLMs to actually understand technical images, with smart routing to control cost
+-   whether the silver contract should be more explicit and normalized
+-   whether indexing should be triggered from storage events instead of storage scans
+
+I'd still keep the broad shape though. Raw storage first, processed silver output second, queues between stages, indexing only from processed outputs. That general shape stays sensible even if the OCR component changes.
+
+One more thing: there was also a separate enrichment step running in Fabric on top of this flow. In hindsight, I think that should have been part of the main pipeline instead of a separate process. Having the enrichment live outside the core flow made the overall system harder to reason about — which is ironic for a pipeline whose main strength was supposed to be simplicity. In that case though, it wasn't worth the effort to refactor the enrichment back into the main flow due to some bureaucracy around the Fabric environment, but if I were doing this again I'd just make it part of the same pipeline from the start.
+
+<a id="wrap-up" />
+
+### Wrap up
+
+The most important property this pipeline had was that it was understandable. Files landed in raw, different processing paths handled them, the result was stored in silver, and Azure Functions indexed the silver output into search. That mental model held up even when the implementation had rough edges.
+
+That said, I ended up writing quite a bit more code than I expected. From the outside, the logic looks simple — read files, process them, index the output. But the actual implementation involved more plumbing than you'd think: handling different file types, propagating metadata, managing OCR output formats, chunking by page, filtering out noise, and wiring up index fields. Simple doesn't always mean small.
+
+The thing I'd be less willing to do the same way again is the blanket use of expensive OCR. That's where deterministic routing and cheaper extraction paths start becoming much more interesting.
+
+But as a simple raw -> OCR/transform -> silver -> index flow that got useful data moving, it worked.

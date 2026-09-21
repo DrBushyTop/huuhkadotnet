@@ -11,13 +11,13 @@ import '@fontsource-variable/geist-mono';
       <span>Huuhka.net</span>
     </a>
     <nav class="main-nav" aria-label="Main navigation">
-      <a href="/" aria-current="page">Articles</a>
-      <a href="https://www.huuhka.net/author/pasi/">About</a>
+      <a href="/" aria-current={Astro.url.pathname === "/" ? "page" : undefined}>Articles</a>
+      <a href="/author/pasi/" aria-current={Astro.url.pathname === "/author/pasi/" ? "page" : undefined}>About</a>
     </nav>
     <nav class="social-nav" aria-label="Social links">
       <a href="https://www.linkedin.com/in/pasihuuhka/" aria-label="Pasi on LinkedIn"><Icon name="linkedin" /></a>
       <a href="https://github.com/DrBushyTop" aria-label="Pasi on GitHub"><Icon name="github" /></a>
-      <a href="https://www.huuhka.net/rss/" aria-label="Subscribe via RSS"><Icon name="rss" size={18} /></a>
+      <a href="/rss/" aria-label="Subscribe via RSS"><Icon name="rss" size={18} /></a>
     </nav>
     <div class="mobile-header-actions">
       <a class="mobile-github icon-button" href="https://github.com/DrBushyTop" aria-label="Pasi on GitHub"><Icon name="github" /></a>
@@ -40,13 +40,13 @@ import '@fontsource-variable/geist-mono';
       <button class="menu-close icon-button" type="button" aria-label="Close navigation menu" autofocus><Icon name="close" size={22} /></button>
     </div>
     <nav class="mobile-page-links" aria-label="Pages">
-      <a href="/" aria-current="page"><span>Articles</span><Icon name="arrow" /></a>
-      <a href="https://www.huuhka.net/author/pasi/"><span>About</span><Icon name="external" /></a>
+      <a href="/" aria-current={Astro.url.pathname === "/" ? "page" : undefined}><span>Articles</span><Icon name="arrow" /></a>
+      <a href="/author/pasi/" aria-current={Astro.url.pathname === "/author/pasi/" ? "page" : undefined}><span>About</span><Icon name="external" /></a>
     </nav>
     <nav class="mobile-social-links" aria-label="Social links">
       <a href="https://www.linkedin.com/in/pasihuuhka/"><Icon name="linkedin" /><span>LinkedIn</span><Icon name="external" size={17} /></a>
       <a href="https://github.com/DrBushyTop"><Icon name="github" /><span>GitHub</span><Icon name="external" size={17} /></a>
-      <a href="https://www.huuhka.net/rss/"><Icon name="rss" size={18} /><span>RSS feed</span><Icon name="external" size={17} /></a>
+      <a href="/rss/"><Icon name="rss" size={18} /><span>RSS feed</span><Icon name="external" size={17} /></a>
     </nav>
   </div>
 </dialog>

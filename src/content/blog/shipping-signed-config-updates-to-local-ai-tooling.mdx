@@ -1,0 +1,119 @@
+---
+title: "Shipping signed config updates to local AI tooling"
+slug: "shipping-signed-config-updates-to-local-ai-tooling"
+publishedAt: "2026-01-28T20:39:00.000+02:00"
+updatedAt: "2026-04-19T16:36:22.000+03:00"
+description: "Adventures in tool distribution"
+tags:
+  - "AI"
+  - "Developer Tools"
+  - "DevOps"
+  - "Security"
+tagSlugs:
+  - "ai"
+  - "developer-tools"
+  - "devops"
+  - "security"
+image: "/images/ghost/a6fb5dcc3faf08641ac6.jpg"
+imageAlt: ""
+draft: false
+featured: false
+series:
+  - "secure-enterprise-ai-tooling-on-azure"
+---
+
+I've been building local AI tooling setups where the interesting part is not only the binary. A big part of the product is the surrounding config: agents, plugins, MCP wiring, commands, auth glue, and the small bits of structure that make the local tool actually useful inside one organization.
+
+At some point you usually want a way to update that remotely. Especially when the number of users grows, manual updates become unfeasible. You want to be able to ship new commands, tweak agent behavior, add new plugins, and so on without having to ask everybody to download a new version of the tool. The users might also just be non-technical, and we want to make things as seamless for them as possible.
+
+If a remote service can tell a local coding tool to replace parts of its config, then that update channel is part of the workstation trust boundary. That can be extremely useful. It can also become a very self-inflicted security issue if the model is sloppy.
+
+<a id="the-risk-here" />
+
+### The risk here
+
+If the update can change plugin code, command files, MCP settings, auth behavior, or the set of managed local files, then the update plane is effectively allowed to change how the tool behaves. That's close enough to code distribution that I don't think it should be treated casually. Add to this the fact that the tool is running locally and has access to the user's files, and you have a recipe for a potential disaster if the update path is compromised.
+
+I also didn't want the local tool to become fragile. If the update API is down, if auth has expired, or if verification fails, developers should still be able to open the tool and work.
+
+That gave me two requirements that sound contradictory until you spell them out. The update path should fail closed. Startup should fail open. You can reject an update aggressively without rejecting the whole application startup.
+
+<a id="so-why-isnt-a-hash-enough" />
+
+### So why isn't a hash enough?
+
+The first instinct here is usually to hash the ZIP and call it done. That helps, but only partly. If the same actor can tamper with both the bundle and the metadata that tells the client which bundle to download, plain integrity checking doesn't really solve the trust problem. The attacker just changes the ZIP and the hash together.
+
+That's why I ended up with two different checks doing two different jobs. The manifest signature answers whether the update description came from a trusted publisher. The ZIP hash answers whether the downloaded bytes match the signed manifest. That split felt right: Trust the publisher first, then trust the bytes.
+
+I also found it useful to sign a small canonical payload instead of every cosmetic field in the manifest. The important fields were the channel, version, ZIP path, timestamp and SHA-256. That kept the signed surface focused on the security-relevant identity of the release rather than whatever extra metadata I might want to add later.
+
+<a id="the-azure-implementation" />
+
+### The Azure implementation
+
+The service side was quite simple. There was one endpoint that returned the latest manifest for a channel and another that returned the ZIP bytes for a specific version. The manifests and bundles lived in blob storage. The signing key stayed server-side. The client carried only a small trusted map of public keys keyed by `keyId`.
+
+That gave the update cycle a fairly clean shape: The client asks for the latest manifest. It verifies the manifest signature. If the version is newer, it asks for the exact ZIP for that version. Then it hashes the ZIP, compares it to the signed manifest, stages the update locally, and only after that applies it.
+
+The publisher side was similarly straightforward. Build the config bundle, hash it, construct the canonical payload, sign it with Ed25519, write out the version-specific manifest, and then update the channel-level latest manifest.
+
+<a id="key-rotation" />
+
+### Key rotation
+
+I didn't want signing key rotation to become a mini-incident. So the client trusts a very small set of public keys and the manifest includes the \`keyId\` it was signed with.
+
+That gives a practical rotation story. Ship client support for the new public key first. Then switch the publisher to sign with the new private key. Keep the old key around for a transition period. Remove it later. I think this is one of those areas where simpler is better. You don't need a giant PKI story for this kind of internal updater. You need one trustworthy signing path, a clean verification path, and a rotation model that people will actually be willing to execute during normal delivery work.
+
+The validation side should be strict though. Unknown key ID should fail. Invalid signature should fail. ZIP hash mismatch should fail. I wouldn't add any kind of "probably fine" behavior there.
+
+For a tiny self-contained version of the flow, this is the heart of it:
+
+```js
+const trustedPublicKeys = {
+  k1: publicKey1,
+  k2: publicKey2,
+};
+
+verifyManifestSignature(manifest, trustedPublicKeys);
+verifyDownloadedBundle(manifest, zipBytes);
+```
+
+Again, the important thing is the order.
+
+<a id="the-local-apply-flow" />
+
+### The local apply flow
+
+It's very easy to overfocus on signatures and underfocus on what happens on disk.
+
+For me, the updater needed to be simple locally too. It should create a backup first, extract into a staging directory, validate the extracted paths, apply the managed updates, write the new version marker, and clean up afterwards. If something goes wrong in the middle, it should restore from the backup instead of leaving the user in some half-updated state.
+
+The other thing that mattered was acknowledging that not every file should be handled the same way. Some paths are fully managed. Some need merge behavior. Some user-defined content should survive an update. If you ignore that, people eventually stop trusting the updater and start working around it. We also clearly mark the managed paths in the file system and in the config structure so that it's obvious what's up for grabs and what's not. Users want to customize their tooling, and we should not get in the way of that.
+
+<a id="update-failures-vs-startup" />
+
+### Update failures vs startup
+
+This was probably the most important product decision in the whole thing. The updater runs during startup, but it shouldn't own startup. If the update API is unavailable, auth has expired, blob storage has a bad day, or verification fails, the safe behavior is to log it, skip the update, and keep starting the tool.
+
+I'd much rather have somebody on yesterday's known-good config than locked out of the tool entirely because the update plane is having a rough morning. That's why the split needs to be very explicit. Update failures are hard failures for the update path. They're not hard failures for local startup. Thankfully a simple design leads to simple error handling.
+
+From the user's side, we get one background check, one token refresh if it's warranted, and then move on. This shouldn't turn into a startup spinner that makes people wonder whether the tool has hung.
+
+<a id="what-worked-well" />
+
+### What worked well
+
+The main thing I liked was that it stayed small:
+
+There's a metadata endpoint. There's a bundle endpoint. The signed part of the manifest is intentionally minimal. The client verifies signature first and hash second. The updater stages locally and backs up before apply. And none of the failure modes are allowed to take the whole tool down. That's a fairly modest amount of machinery for something that's operating on a sensitive boundary.
+
+If I kept pushing on simplification, it would mostly be in the apply model. It's easy to accidentally build a tiny package manager here, and I don't think that's the right goal. The updater should be strict and trustworthy, not ambitious.
+
+<a id="wrap-up" />
+
+### Wrap up
+
+The main lesson for me was that shipping remote config to local AI tooling is close enough to shipping code that I think it deserves the same seriousness. That doesn't mean the implementation needs to be huge. In my case it was actually fairly small: signed manifests, versioned bundles, a couple of endpoints, staged local apply, and clear failure boundaries.

@@ -1,0 +1,211 @@
+---
+title: "Intro to Managed DevOps Pools"
+slug: "intro-to-managed-devops-pools"
+publishedAt: "2025-02-26T21:28:00.000+02:00"
+updatedAt: "2025-03-15T21:30:12.000+02:00"
+description: "The Managed DevOps Pools (MDP) resource in Azure has been
+  Generally Available since Ignite 2024. Let's see how to set one up, and
+  discuss why I think this solves a common problem in my projects: requiring
+  deployments into VNETs."
+tags:
+  - "Azure DevOps"
+  - "Bicep"
+  - "Azure"
+  - "DevOps"
+  - "SRE"
+tagSlugs:
+  - "azure-devops"
+  - "bicep"
+  - "azure"
+  - "devops"
+  - "sre"
+image: "/images/ghost/3055cfe8252b07f7b7ca.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+The Managed DevOps Pools (MDP) resource in Azure has been Generally Available since Ignite 2024. Let's see how to set one up, and discuss why I think this solves a common problem in my projects: requiring deployments into VNETs.
+
+<a id="what-is-a-managed-devops-pool" />
+
+### What is a Managed DevOps Pool?
+
+As the name already implies, they are Agent Pools for Azure DevOps that are fully Managed by Microsoft. "Fully" meaning the infrastructure. However, when compared to the regular "Microsoft Hosted Agent", MDPs allow you to specify the VM SKU, the VM image used and can be easily attached to your own Virtual Networks.
+
+Whereas the Hosted Agent system only provides a single pool available for any project in the Azure DevOps organization, you can have multiple MDPs in a single org, so each team can scale to as many agents as they need. Multiple orgs can also share MDPs.
+
+MDP shows up as a single resource in your subscription, regardless of how many VMs the pool contains. The VMs themselves seem to run in some Microsoft subscription behind the scenes, and the user cannot tamper with them. Configuration is only done on the MDP resource.
+
+Pricing is also very reasonable, as long as your Azure DevOps organization has room for [self hosted parallel jobs](https://learn.microsoft.com/azure/devops/managed-devops-pools/pricing?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#azure-devops-services-parallel-job-pricing), you only pay for the MDP VMs based on their SKU. The pricing for those is identical to Azure VM pricing, but you also need to consider network traffic. [This page has more information.](https://learn.microsoft.com/azure/devops/managed-devops-pools/pricing?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#estimating-cost)
+
+<a id="why-am-i-excited-about-them" />
+
+### Why am I excited about them?
+
+Customers are increasingly demanding that applications only live inside VNETs behind Private Endpoints. However, they never seem to have considered that this means we still need to deploy code to the services somehow. Previously the options were to open some firewalls during the deployments from Hosted Agents, or [Self Host your own agents](/azure-devops-agents-in-azure-container-apps/). One is simple but insecure, the other is complicated and expensive (managing and updating your images and tooling in them is a pain).
+
+MDPs provide a easy solution this with [the ability to inject them into your own Virtual Networks](https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-networking?view=azure-devops&tabs=azure-portal&ref=huuhka.net) AND allowing you to use the Microsoft created VM image that is found on the previous Hosted Images if you choose to do so.
+
+These together remove so much work from development teams that I always recommend setting one up if VNETs are in the picture.
+
+<a id="how-to-use-them" />
+
+### How to use them?
+
+Using them is simply defining the pool name in your pipelines. Sometimes.
+
+Somewhat unfortunately, there can be a hidden cost to using MDPs: Under certain conditions you need to use the demands property of the pool configuration in your pipelines. This is easy, but makes your pipelines incompatible with other pool types.
+
+**Some examples of this are:**
+
+-   [Selecting the image to use](https://learn.microsoft.com/azure/devops/managed-devops-pools/configure-images?view=azure-devops&tabs=azure-portal&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#use-demands-to-specify-an-image) (if the pool has multiple)
+-   [Using storage accounts for working directories](https://learn.microsoft.com/en-us/azure/devops/managed-devops-pools/configure-storage?view=azure-devops&tabs=azure-portal%2Clinux&ref=huuhka.net#use-the-data-disk-for-your-agent-working-directory) (this is also a feature, differs for linux / windows)
+-   [Defining run priority](https://learn.microsoft.com/azure/devops/managed-devops-pools/demands?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#priority) (only available in MDP)
+
+Storage usage has been a bit of an issue in some of my projects if I haven't used the storage account addition. Also, the startup times of the agents (especially on windows VMs) can be a bit long, but manageable with the correct settings (examples in the next section).
+
+<a id="lets-set-one-up" />
+
+### Let's set one up!
+
+So, let's see how easy these are to set up with Bicep. [Full code can be found here](https://github.com/DrBushyTop/blogExamples/tree/master/passwordlessInfra/managedDevopsPool?ref=huuhka.net).
+
+First of all, we need to create some base resources that MDP will tie in with. These are not used for anything else.
+
+```bicep
+param devCenterName string = 'devopspoolcenter'
+param projectName string = 'manageddevopspools'
+param location string = 'swedencentral'
+
+resource devcenter 'Microsoft.DevCenter/devcenters@2024-10-01-preview' = {
+  name: devCenterName
+  location: location
+  properties: {}
+}
+
+resource project 'Microsoft.DevCenter/projects@2024-10-01-preview' = {
+  name: projectName
+  location: location
+  properties: {
+    devCenterId: devcenter.id
+    description: 'Managed DevOps Pools'
+  }
+}
+
+output devCenterId string = devcenter.id
+output projectId string = project.id
+```
+
+Then let's create our VNET. This is not necessarily required, but is here just to show how easy it is to integrate with. Here we need to delegate a subnet to the MDP, and [provide some permissions for the DevOpsInfrastructure principal](https://learn.microsoft.com/azure/devops/managed-devops-pools/configure-networking?view=azure-devops&tabs=azure-portal&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#to-check-the-devopsinfrastructure-principal-access).
+
+```bicep
+param vnetName string
+param vnetAddressSpace string
+param location string = 'swedencentral'
+
+resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
+  name: vnetName
+  location: location
+  properties: {
+    addressSpace: {
+      addressPrefixes: [
+        vnetAddressSpace
+      ]
+    }
+    subnets: [
+      {
+        name: 'managedPool'
+        properties: {
+          addressPrefix: vnetAddressSpace
+          delegations: [
+            {
+              name: 'Microsoft.DevOpsInfrastructure.Pools'
+              properties: {
+                serviceName: 'Microsoft.DevOpsInfrastructure/pools'
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+// These are required permissions for the "DevOpsInfrastructure" app registration objectid 3172bc25-fa41-45bd-9605-dac44334ef33
+var devOpsInfrastructureObjectId = '3172bc25-fa41-45bd-9605-dac44334ef33'
+
+resource vnetReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid('vnetReader-${vnetName}-${devOpsInfrastructureObjectId}')
+  scope: vnet
+  properties: {
+    principalId: devOpsInfrastructureObjectId
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+    ) // Reader
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource networkContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid('vnetContributor-${vnetName}-${devOpsInfrastructureObjectId}')
+  scope: vnet
+  properties: {
+    principalId: devOpsInfrastructureObjectId
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '4d97b98b-1d4f-4787-a291-c67834d212e7'
+    ) // Network Contributor
+    principalType: 'ServicePrincipal'
+  }
+}
+```
+
+Next, we can set up the MDP itself. Note the settings for uptimes. This way, the agents will stay up, but still scale to 0 when they are not in use.
+
+```bicep
+
+resource pool 'Microsoft.DevOpsInfrastructure/pools@2024-10-19' = {
+  name: poolName
+  location: location
+  tags: {}
+  properties: {
+    organizationProfile: {
+      organizations: [
+        {
+          url: adoOrgUrl
+          parallelism: 2
+        }
+      ]
+      permissionProfile: {
+        kind: 'CreatorOnly'
+      }
+      kind: 'AzureDevOps'
+    }
+    devCenterProjectResourceId: devCenterProjectResourceId
+    maximumConcurrency: poolSize
+    agentProfile: {
+      gracePeriodTimeSpan: '03:00:00' // Stays awake 3 hours after run completion
+      maxAgentLifetime: '7.00:00:00' // Will be recycled if still alive after 7 days
+      kind: 'Stateful' // Agents will be kept alive between runs
+    }
+    fabricProfile: {
+      networkProfile: { subnetId: subnetResourceId! }
+      sku: {
+        name: vmSku
+      }
+      images: [
+        {
+          wellKnownImageName: imageName
+          buffer: '*'
+        }
+      ]
+      kind: 'Vmss'
+    }
+  }
+}
+```
+
+Simple as that! Our pool is in the VNET and running. Try these out and you won't be disappointed!

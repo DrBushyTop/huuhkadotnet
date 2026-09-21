@@ -1,0 +1,351 @@
+---
+title: "Semantic Kernel to Microsoft Agent Framework: Practical reflections"
+slug: "semantic-kernel-to-microsoft-agent-framework-practical-reflections"
+publishedAt: "2026-02-20T20:08:00.000+02:00"
+updatedAt: "2026-03-04T20:11:17.000+02:00"
+description: "Now that MAF is nearing a GA release, I took my existing demo and
+  translated it to see how the new framework feels in real code.
+
+  In this post I'll recap my thoughts on the new framework."
+tags:
+  - "AI"
+  - "Azure"
+tagSlugs:
+  - "ai"
+  - "azure"
+image: "/images/ghost/2dc3c2ec8fc792e7b6d7.png"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+At [AgentCon 2025 Helsinki](https://globalai.community/chapters/helsinki/events/agentcon-2025-helsinki/?ref=huuhka.net), I presented my multi-agent demo using Semantic Kernel orchestration.
+
+On the same day, Microsoft announced Microsoft Agent Framework (MAF), so if I wanted to ever have the same presentation again I had to translate it to MAF instead. Now that it's nearing a GA release, I took my existing demo and translated it to see how the new framework feels in real code.
+
+In this post I'll recap my thoughts on the new framework after taking it out for a spin.
+
+The results can be found in these branches of the repo. I used version `1.0.0-rc1`.
+
+-   [Demo repo (MAF branch)](https://github.com/DrBushyTop/MultiAgentSemanticKernel/tree/feat/agentFramework?ref=huuhka.net)
+-   [Demo repo (SK branch)](https://github.com/DrBushyTop/MultiAgentSemanticKernel/tree/semantickernel?ref=huuhka.net)
+
+Let's get going!
+
+<a id="agent-creation-less-plumbing-more-intent" />
+
+### Agent creation: less plumbing, more intent
+
+In SK, my agent setup centers around `Kernel` composition and per-agent kernel wiring. In MAF, it is mostly chat client + instructions + tools.
+
+**Before (SK):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/semanticKernel/Runtime/AgentUtils.cs#L26-L70
+var builder = Kernel.CreateBuilder();
+builder.Services.AddSingleton<IChatCompletionService>(chatService);
+builder.Services.AddSingleton<IFunctionInvocationFilter, ConsoleFunctionInvocationFilter>();
+
+var agentKernel = builder.Build();
+
+return new ChatCompletionAgent
+{
+    Name = name,
+    Instructions = instructions,
+    Kernel = agentKernel,
+    Arguments = args,
+};
+```
+
+**After (MAF):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/feat/agentFramework/Runtime/AgentFactory.cs#L15-L24
+return new ChatClientAgent(chatClient, new ChatClientAgentOptions
+{
+    Name = name,
+    ChatOptions = new ChatOptions
+    {
+        Instructions = instructions,
+        Temperature = temperature,
+        Tools = tools ?? []
+    }
+});
+```
+
+This was the first thing I noticed: less ceremony, easier to read, easier to explain. I did like the previous kernel composition model, even though it was a bit more difficult to understand at first, but I'm sure this new model will grow on me as I get used to it.
+
+Microsoft has these relevant **docs** in case you want to do the same migration:
+
+-   [MAF overview](https://learn.microsoft.com/agent-framework/overview/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [SK -> MAF migration guide](https://learn.microsoft.com/agent-framework/migration-guide/from-semantic-kernel/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+<a id="tool-registration-plugin-modelplain-function-tools" />
+
+### Tool registration: plugin model -> plain function tools
+
+In SK, you had to use plugin classes + `[KernelFunction]` and plugin import. Now in MAF, it's possible to just pass methods directly with `AIFunctionFactory.Create(...)`.
+
+**Before (SK):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/semanticKernel/Plugins/DevWorkflowPlugin.cs#L9-L30
+public sealed class DevWorkflowPlugin
+{
+    [KernelFunction, Description("Generate OpenAPI from story and AC")]
+    public string Oas_Generate(string story, string acceptance) => ...;
+}
+
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/semanticKernel/Runners/SequentialRunner.cs#L22-L36
+kernel.ImportPluginFromType<DevWorkflowPlugin>();
+```
+
+**After (MAF):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/feat/agentFramework/Runners/SequentialRunner.cs#L21-L28
+var tools = new List<AITool>
+{
+    AIFunctionFactory.Create(DevWorkflowTools.OasGenerate),
+    AIFunctionFactory.Create(DevWorkflowTools.RepoCreateBranch),
+    AIFunctionFactory.Create(DevWorkflowTools.CreateScaffold),
+};
+```
+
+This feels much more natural to me in C#: any function can become a tool without extra plugin lifecycle overhead.
+
+**Docs:**
+
+-   [MAF tools](https://learn.microsoft.com/agent-framework/agents/tools/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [`AiFunctionFactory` API](https://learn.microsoft.com/dotnet/api/microsoft.extensions.ai.aifunctionfactory.create?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+<a id="workflow-runtime-model-orchestration-runtimeevent-stream" />
+
+### Workflow runtime model: orchestration runtime -> event stream
+
+While SK gives the `InvokeAsync(...)` + `GetValueAsync(...)` style orchestration, MAF opts for a workflow event stream instead. With SK the result was always a bit different depending on the orchestration pattern, but with MAF I ended up with a more consistent pattern: we always return the list of assistant messages as the final output, and stream intermediate events during execution. I think this makes it easier to understand what is going on during execution, and gives more flexibility on how to handle intermediate events (e.g. tool calls) if needed.
+
+**Before (SK):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/semanticKernel/Runners/ConcurrentRunner.cs#L89-L99
+var orchestration = new ConcurrentOrchestration(diffAnalyst, testImpactor, secLint, compliance)
+{
+    ResponseCallback = AgentResponseCallbacks.Create(cli),
+};
+
+var runtime = new InProcessRuntime();
+await runtime.StartAsync();
+
+var result = await orchestration.InvokeAsync(prompt, runtime);
+var output = await result.GetValueAsync(TimeSpan.FromSeconds(120));
+await runtime.RunUntilIdleAsync();
+```
+
+**After (MAF):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/feat/agentFramework/Runtime/WorkflowRunner.cs#L35-L43
+StreamingRun run = await InProcessExecution.RunStreamingAsync(workflow, messages, cancellationToken: cancellationToken);
+await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
+
+await foreach (WorkflowEvent evt in run.WatchStreamAsync(cancellationToken))
+{
+    switch (evt)
+    {
+        case AgentResponseUpdateEvent e:
+            // stream token and tool activity
+            break;
+        case WorkflowOutputEvent output:
+            return output.As<List<ChatMessage>>() ?? [];
+    }
+}
+```
+
+One note here was that the `AgentResponseUpdateEvent` returns on each streamed token individually, so you might have to do some concatenation there.
+
+**Docs:**
+
+-   [MAF workflows](https://learn.microsoft.com/agent-framework/workflows/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [SK orchestration patterns](https://learn.microsoft.com/semantic-kernel/frameworks/agent/agent-orchestration/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+<a id="filters-vs-middleware" />
+
+### Filters vs middleware
+
+SK uses filter interfaces. In my current MAF demo, I have not yet wired dedicated middleware in the main app - I currently intercept behavior in the workflow event loop. So basically the need for middleware for my use case here (plainly logging when tools are being called) was gone.
+
+**SK filter registration + filter implementation:**
+
+```csharp
+// Registration:
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/semanticKernel/Program.cs#L59-L61
+kernelBuilder.Services.AddSingleton<IFunctionInvocationFilter, ConsoleFunctionInvocationFilter>();
+
+// Filter:
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/semanticKernel/Runtime/ConsoleFunctionInvocationFilter.cs#L8-L31
+public sealed class ConsoleFunctionInvocationFilter : IFunctionInvocationFilter
+{
+    public async Task OnFunctionInvocationAsync(FunctionInvocationContext context, Func<FunctionInvocationContext, Task> next)
+    {
+        var functionName = context.Function.Name;
+        var pluginName = context.Function.PluginName;
+        var caller = _id?.Name ?? "Agent";
+
+        _cli.ToolStart(caller, pluginName ?? "", functionName);
+        _log?.LogInformation("🔧 {Plugin}.{Func} by {Agent}", pluginName, functionName, caller);
+
+        await next(context);
+    }
+}
+```
+
+**MAF equivalent in this app: event-based interception in the workflow runner:**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/feat/agentFramework/Runtime/WorkflowRunner.cs#L38-L63
+await foreach (WorkflowEvent evt in run.WatchStreamAsync(cancellationToken))
+{
+    switch (evt)
+    {
+        case AgentResponseUpdateEvent e:
+            if (e.Update.Contents.OfType<FunctionCallContent>().FirstOrDefault() is { } call)
+            {
+                cli.ToolStart(
+                    e.ExecutorId,
+                    call.Name,
+                    call.Arguments?.ToDictionary(x => x.Key, x => x.Value?.ToString() ?? "")
+                    ?? new Dictionary<string, string>());
+            }
+            break;
+    }
+}
+```
+
+SK has explicit invocation filters in use, while MAF currently uses workflow event interception. MAF middleware APIs are available, and I will likely move this interception logic into middleware in a future iteration.
+
+As an extra reference, here is a clean middleware example from [Rasmus Wulff Jensen's](https://github.com/rwjdk?ref=huuhka.net) [samples repo](https://github.com/rwjdk/MicrosoftAgentFrameworkSamples/blob/main/src/UsingRAGInAgentFramework/Program.cs?ref=huuhka.net#L132-L157):
+
+```csharp
+AIAgent agentWithTools = client
+    .GetChatClient("gpt-4.1")
+    .AsAIAgent(
+        instructions: "You are an expert a set of made up movies given to you (aka don't consider movies from your world-knowledge)",
+        tools: [AIFunctionFactory.Create(searchTool.SearchVectorStore)]
+    ).AsBuilder()
+    .Use(FunctionCallMiddleware)
+    .Build();
+
+async ValueTask<object?> FunctionCallMiddleware(
+    AIAgent callingAgent,
+    FunctionInvocationContext context,
+    Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> next,
+    CancellationToken cancellationToken)
+{
+    StringBuilder functionCallDetails = new();
+    functionCallDetails.Append($"- Tool Call: '{context.Function.Name}'");
+    if (context.Arguments.Count > 0)
+    {
+        functionCallDetails.Append($" (Args: {string.Join(",", context.Arguments.Select(x => $"[{x.Key} = {x.Value}]"))}");
+    }
+
+    Utils.Gray(functionCallDetails.ToString());
+
+    return await next(context, cancellationToken);
+```
+
+**Docs:**
+
+-   [MAF middleware](https://learn.microsoft.com/agent-framework/agents/middleware/defining-middleware/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [SK filters](https://learn.microsoft.com/semantic-kernel/concepts/enterprise-readiness/filters/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+<a id="still-a-few-rough-edges-in-the-prebuilt-workflows" />
+
+### Still a few rough edges in the prebuilt workflows
+
+This was my biggest practical friction point in the rewrite. `Handoff` did not really work as expected with Human In The Loop (HITL) interactions in 1.0.0-rc1, and I had to implement a custom loop around the handoff workflow to get user input and feed it back into the workflow. Also, `Magentic` support was completely missing from the C# version of the package.
+
+My SK handoff flow uses `InteractiveCallback` directly on orchestration. In my MAF demo (`Microsoft.Agents.AI.Workflows` `1.0.0-rc1`), built-in handoff did not emit the `RequestInfoEvent` pattern I expected for a canonical HITL loop. Thus the callback never triggers like it does in the SK version, and I had to implement a custom loop around the workflow execution to feed user input back into the workflow. It's a bit rough and I probably would not use it in a production scenario, but it works for demo purposes.
+
+**Before (SK):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/semanticKernel/Runners/HandoffRunner.cs#L50-L68
+var orchestration = new HandoffOrchestration(...)
+{
+    InteractiveCallback = () =>
+    {
+        var input = responses.Count > 0 ? responses.Dequeue() : "No, bye";
+        return ValueTask.FromResult(new ChatMessageContent(AuthorRole.User, input));
+    }
+};
+```
+
+**After (MAF):**
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/feat/agentFramework/Runners/HandoffRunner.cs#L48-L66
+while (true)
+{
+    var workflow = CreateHandoffWorkflow(); // recreated each turn
+    var turnResults = await WorkflowRunner.ExecuteAsync(workflow, messages, cli);
+
+    foreach (var msg in turnResults.Where(m => m.Role == ChatRole.Assistant))
+    {
+        messages.Add(new ChatMessage(ChatRole.Assistant, msg.Text!) { AuthorName = msg.AuthorName });
+    }
+
+    if (!_simulatedResponses.TryDequeue(out var userResponse))
+        break;
+
+    messages.Add(new ChatMessage(ChatRole.User, userResponse));
+}
+```
+
+Why this likely happens (at least in this RC shape):
+
+-   `AgentWorkflowBuilder.CreateHandoffBuilderWith(...)` is built around tool-based handoff between agents.
+-   `RequestInfoEvent` is tied to external request/response ports (`RequestPort`) and request flow handling.
+-   The built-in handoff builder path does not automatically model that external request boundary in the same way, so no natural user-input request event showed up for my scenario.
+
+In other words, HITL is absolutely possible in MAF workflows, but with handoff I would need a custom workflow that explicitly introduces request/response points where human input is required. That was out of scope for this demo app translation.
+
+**Docs:**
+
+-   [SK handoff orchestration](https://learn.microsoft.com/semantic-kernel/frameworks/agent/agent-orchestration/handoff/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [MAF workflows overview](https://learn.microsoft.com/agent-framework/workflows/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [`HandoffsWorkflowBuilder` API](https://learn.microsoft.com/dotnet/api/microsoft.agents.ai.workflows.handoffsworkflowbuilder?view=agent-framework-dotnet-latest&ref=huuhka.net)
+-   [`RequestInfoEvent` API](https://learn.microsoft.com/dotnet/api/microsoft.agents.ai.workflows.requestinfoevent?view=agent-framework-dotnet-latest&ref=huuhka.net)
+-   [`RequestPort` API](https://learn.microsoft.com/dotnet/api/microsoft.agents.ai.workflows.requestport?view=agent-framework-dotnet-latest&ref=huuhka.net)
+-   [Rasmus Wulff Jensen's sample (handoff)](https://github.com/rwjdk/MicrosoftAgentFrameworkSamples/blob/main/src/Workflow.Handoff/Program.cs?ref=huuhka.net#L24-L34)
+-   [Rasmus Wulff Jensen's sample (HITL via request port)](https://github.com/rwjdk/MicrosoftAgentFrameworkSamples/blob/main/src/Workflow.HumanInTheLoop/Program.cs?ref=huuhka.net#L35-L49)
+
+<a id="quick-note-on-custom-graph-workflows" />
+
+### Quick note on custom graph workflows
+
+These feel powerful, and likely where many production use cases will end up.
+
+I only did a first pass here, but even that looked promising:
+
+```csharp
+// https://github.com/DrBushyTop/MultiAgentSemanticKernel/blob/feat/agentFramework/Runners/GraphRunner.cs#L251-L264
+var builder = new WorkflowBuilder(startExecutor);
+builder.AddFanOutEdge(startExecutor, [qualityReviewer, securityReviewer]);
+builder.AddFanInBarrierEdge([qualityReviewer, securityReviewer], combinerExecutor);
+builder.AddEdge(combinerExecutor, reportGenerator);
+builder.WithOutputFrom(reportGenerator);
+```
+
+I will do a separate deep-dive post on graph workflows later as I gain more experience with using them in production applications. All in all, I still feel like the current LLM models are so powerful that it might not make much sense to make your code more complex with custom graph workflows unless you have a very specific need for it, but it's good to have the option there when you do.
+
+I tend to think you'll get very far with building your Primary / Subagent flows like many coding agents do: Subagents exist to protect the context window of the Primary agent. [More on that in my previous post here](/primary-vs-subagents-in-llm-harnesses/).
+
+<a id="final-take" />
+
+### Final take
+
+All in all, MAF left a positive impression on me. The API is arguably more straightforward and easier to use than SK was (I had no experience with AutoGen), and I think it will be more approachable for new users.
+
+I do still think Microsoft needs to make a somewhat clear value proposition on when to use MAF vs other competitors in the space like LangGraph, but I can see MAF being a strong choice for teams that are already invested in the Microsoft ecosystem and want a first-party solution with good integration with Azure AI services and C#.

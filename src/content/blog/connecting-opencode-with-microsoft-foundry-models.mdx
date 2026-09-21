@@ -1,0 +1,234 @@
+---
+title: "Connecting OpenCode with Microsoft Foundry Models"
+slug: "connecting-opencode-with-microsoft-foundry-models"
+publishedAt: "2025-12-21T18:41:00.000+02:00"
+updatedAt: "2026-04-19T16:27:11.000+03:00"
+description: "In this post I'll show you how I've configured the providers to my
+  own Foundry, which hosts both the recently announced Anthropic models as well
+  as models by OpenAI and others."
+tags:
+  - "AI"
+  - "Artificial Intelligence"
+  - "Azure"
+  - "Microsoft Foundry"
+tagSlugs:
+  - "ai"
+  - "artificial-intelligence"
+  - "azure"
+  - "microsoft-foundry"
+image: "/images/ghost/e9035191212e72d8aed0.png"
+imageAlt: ""
+draft: false
+featured: false
+series:
+  - "ai-dev-platform"
+---
+
+I've been using [OpenCode](https://opencode.ai/docs/?ref=huuhka.net) as my coding agent of choice for a quite while now. It's great that I can use both GitHub Copilot subscription and my own Foundry models with it, and swap between them with a single keybinding.
+
+In this post I'll show you how I've configured the providers to my own Foundry, which hosts both the recently announced Anthropic models as well as models by OpenAI and others. This does not directly conform to the official way of configuring them described [here](https://opencode.ai/docs/providers/?ref=huuhka.net#azure-openai) and [here](https://opencode.ai/docs/providers/?ref=huuhka.net#azure-cognitive-services) in the docs, but it does work and is arguably simpler.
+
+I expect that you already have deployments of the models running in foundry, but if not, you can cobble them up with something like this (note that Anthropic only works on pay as you go subs):
+
+```bicep
+// params.bicep
+param anthropicDeployments = [
+  {
+    deploymentName: 'claude-sonnet-4-5'
+    modelName: 'claude-sonnet-4-5'
+    version: '20250929'
+    sku: {
+      name: 'GlobalStandard'
+      capacity: 450
+    }
+    format: 'Anthropic'
+    thinking: true
+  }
+  {
+    deploymentName: 'claude-opus-4-5'
+    modelName: 'claude-opus-4-5'
+    version: '20251101'
+    sku: {
+      name: 'GlobalStandard'
+      capacity: 450
+    }
+    format: 'Anthropic'
+    thinking: true
+  }
+  {
+    deploymentName: 'claude-haiku-4-5'
+    modelName: 'claude-haiku-4-5'
+    version: '20251001'
+    sku: {
+      name: 'GlobalStandard'
+      capacity: 450
+    }
+    format: 'Anthropic'
+    thinking: false
+  }
+]
+
+param openAiDeployments = [
+  {
+    deploymentName: 'gpt-5.2'
+    modelName: 'gpt-5.2'
+    version: '2025-12-11'
+    sku: {
+      name: 'GlobalStandard'
+      capacity: 50
+    }
+    format: 'OpenAI'
+    thinking: true
+  }
+  {
+    deploymentName: 'gpt-5.1-codex-max'
+    modelName: 'gpt-5.1-codex-max'
+    version: '2025-12-04'
+    sku: {
+      name: 'GlobalStandard'
+      capacity: 200
+    }
+    format: 'OpenAI'
+    thinking: true
+  }
+]
+```
+
+```bicep
+var deployments = concat(anthropicDeployments, openAiDeployments)
+
+@batchSize(1) // Runs into conflict if run in parallel
+resource model_deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-10-01-preview' = [
+  for deployment in (deployModels ? deployments : []): {
+    parent: foundry
+    name: deployment.deploymentName
+    sku: deployment.sku
+    properties: {
+      model: {
+        name: deployment.modelName
+        version: deployment.version
+        format: deployment.format
+      }
+      #disable-next-line BCP037
+      modelProviderdata: deployment.format == 'Anthropic'
+        ? {
+            countryCode: tenant().countryCode
+            industry: 'consulting'
+            organizationName: tenant().displayName
+          }
+        : null
+      #disable-next-line BCP073 // The api version thinks this is a read only value
+      dynamicThrottlingEnabled: deployment.sku.name == 'GlobalStandard' ? false : true
+      versionUpgradeOption: 'OnceCurrentVersionExpired'
+    }
+  }
+]
+```
+
+You'll also need the api key to the Foundry, as OpenCode does not yet support oauth to Foundry directly (though you can write a plugin).
+
+**The OpenCode config**
+
+You could also generate this config directly from the bicep outputs if you'd want. I'll leave that up to you. Here are examples of how I have it set up.
+
+```json
+// ~/.local/share/opencode/auth.json
+{
+  "azure-anthropic": {
+    "type": "api",
+    "key": "KEYVALUE"
+  },
+  "azure-openai": {
+    "type": "api",
+    "key": "KEYVALUE"
+  },
+  "github-copilot": {
+    ....
+  }
+}
+```
+
+```
+// ~/.config/opencode/opencode.json(c)
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "azure-anthropic": {
+      "name": "Foundry (Anthropic)",
+      "npm": "@ai-sdk/anthropic",
+      "api": "https://somefoundry.services.ai.azure.com/anthropic/v1",
+      "models": {
+        "claude-sonnet-4-5": {
+          "id": "claude-sonnet-4-5",
+          "name": "claude-sonnet-4-5",
+          "tool_call": true,
+          "attachment": true,
+          "reasoning": true,
+          "temperature": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        },
+        "claude-opus-4-5": {
+          "id": "claude-opus-4-5",
+          "name": "claude-opus-4-5",
+          "tool_call": true,
+          "attachment": true,
+          "reasoning": true,
+          "temperature": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        },
+        "claude-haiku-4-5": {
+          "id": "claude-haiku-4-5",
+          "name": "claude-haiku-4-5",
+          "tool_call": true,
+          "attachment": true,
+          "reasoning": false,
+          "temperature": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        }
+      }
+    },
+    "azure-openai": {
+      "name": "Foundry (OpenAI)",
+      "npm": "@ai-sdk/openai",
+      "api": "https://somefoundry.services.ai.azure.com/openai/v1",
+      "models": {
+        "gpt-5.1-codex-max": {
+          "id": "gpt-5.1-codex-max",
+          "name": "gpt-5.1-codex-max",
+          "tool_call": true,
+          "attachment": true,
+          "reasoning": true,
+          "temperature": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        },
+        "gpt-5.2": {
+          "id": "gpt-5.2",
+          "name": "gpt-5.2",
+          "tool_call": true,
+          "attachment": true,
+          "reasoning": true,
+          "temperature": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Aaand it should just work. Enjoy!

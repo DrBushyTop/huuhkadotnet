@@ -1,0 +1,109 @@
+---
+title: "How does workload identity federation actually work?"
+slug: "how-does-identity-federation-actually-work"
+publishedAt: "2025-02-17T11:55:00.000+02:00"
+updatedAt: "2025-03-09T11:56:57.000+02:00"
+description: "In this post, I'll try to explain the internal workings of
+  workload identity federation."
+tags:
+  - "DevOps"
+  - "Security"
+  - "Azure"
+tagSlugs:
+  - "devops"
+  - "security"
+  - "azure"
+image: "/images/ghost/7abe3782c78f96e7fe13.jpg"
+imageAlt: ""
+imageCaption: "<span style=\"white-space: pre-wrap;\">Photo by </span><a
+  href=\"https://unsplash.com/@contradirony?utm_content=creditCopyText&amp;utm_\
+  medium=referral&amp;utm_source=unsplash\"><span style=\"white-space:
+  pre-wrap;\">Samantha Lam</span></a><span style=\"white-space: pre-wrap;\"> on
+  </span><a
+  href=\"https://unsplash.com/photos/silver-and-gold-round-coins-zFy6fOPZEu0?ut\
+  m_content=creditCopyText&amp;utm_medium=referral&amp;utm_source=unsplash\"><s\
+  pan style=\"white-space: pre-wrap;\">Unsplash</span></a>"
+draft: false
+featured: true
+series: []
+---
+
+I was recently preparing a talk on removing all secrets from your application using managed identities and workload identity federation. Whenever authentication and authorization is involved, I need to refresh my memory on how exactly it all works, and this time was no different. In this post, I'll try to explain the internal workings of workload identity federation.
+
+<a id="what-is-workload-identity-federation" />
+
+### What is workload identity federation?
+
+Imagine we have a situation where our application needs to authenticate to a service managed by Entra Id with certain restrictions:
+
+-   No passwords are allowed for the application level
+-   We need to be able to run anywhere
+
+Often with Azure, managed identities handle auth requirements between services, but they are not supported for non-Azure based callers. This is where workload identity federation comes in, allowing us to define a trust relationship between Entra ID and an external identity provider.
+
+[Microsoft has listed a bunch of different use cases](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#supported-scenarios) where workload identity federation can be used. But mostly it boils down to service-to-service connectivity, like Github -> Azure, or AWS -> Azure and so on. Other identity service providers also support auth via workload identity federation, but this post focuses on Entra ID.
+
+<a id="pieces-of-the-puzzle" />
+
+## Pieces of the puzzle
+
+Looking from a bird's eye view, we have the following requirements in making this work.
+
+-   Our **workload**, a custom application requiring access to Entra ID protected resources or services
+-   **An external identity provider**, generating tokens for our workload. This could be anything from Kubernetes service tokens to GitHub tokens for example.
+-   _Publicly_ hosted **OpenID Connect (OIDC) Discovery Documents**, and a **JSON Web Keyset (JWKS)** document. These describe the keys and key types to be used to validate the external identity provider tokens.
+-   **Entra ID app registration or user assigned managed identity**, protecting the service we want to connect to. This is the application id our tokens will be created for. It also specifies the permissions we have, and contains the trust relationship (federated identity credential) setup.
+-   **Target Service**, something we want to connect to. For example, an Azure Key Vault.
+
+<a id="trust-relationship" />
+
+### Trust Relationship
+
+For the trust relationship, we need to specify the following pieces in the federated identity credential:
+
+-   **_Issuer_**, this is the URL of the external identity provider. It is used to locate the OpenID Connect Discovery Document, and must match the external IdP token `issuer` claim exactly.
+-   **_Subject Identifier_**, in the format specified by the external IdP. Can be anything, but Kubernetes tokens for example have the format `system:serviceaccount:namespacename:serviceaccountname` whereas Azure DevOps has a format of `sc://organization/project/serviceconnection`. Must match the `subject` claim of the external IdP token.
+-   **_Audiences_**, describing what Entra should accept in the `aud` claim of the external IdP token. They recommend using the default `api://AzureADTokenExchange` value, but you should be able to specify anything (and multiple audiences too) as long as they match the value in the external IdP token.
+
+Note that these are not really secrets, they merely specify that your app registration can provide Entra ID tokens "in exchange" to external identity provider tokens that contain those values. The values are **case sensitive**.
+
+<a id="openid-connect-discovery-jwks" />
+
+### OpenID Connect Discovery & JWKS
+
+Hopefully you won't need to handle these yourself, but if that's the case you can use the [Azure AD Workload Identity CLI (azwi)](https://azure.github.io/azure-workload-identity/docs/installation/azwi.html?ref=huuhka.net) to help setting these up.
+
+The OpenID Connect Discovery [standard can be found here](https://openid.net/specs/openid-connect-discovery-1_0.html?ref=huuhka.net). It's a bit confusing to read though. Below is a simple example I generated for my demos.
+
+![](/images/ghost/fee0a102a28049df4b8a.png)
+
+<figcaption>
+
+Example OpenID Connect Discovery document
+
+</figcaption>
+
+Now that we have a discovery document, you can use the `azwi jwks` command [documented here](https://azure.github.io/azure-workload-identity/docs/topics/azwi/jwks.html?ref=huuhka.net) to generate the JWKS. The function of this file was to tell Entra ID the public keys it can use to validate the external IdP token.
+
+![](/images/ghost/9f080c798a3eb1c3558c.png)
+
+<figcaption>
+
+Example JWKS
+
+</figcaption>
+
+<a id="putting-it-all-together" />
+
+### Putting it all together
+
+Microsoft has this clear chart for the flow our authentication goes through
+
+[![Diagram showing an external token exchanged for an access token and accessing Azure](/images/ghost/fad3053c7dd4370e40a5.svg)](https://learn.microsoft.com/entra/workload-id/media/workload-identity-federation/workflow.svg?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+1.  Our workload requests a token from the external IdP
+2.  We get the token back. In the kubernetes context this is a service account token projected onto our pod
+3.  Our workload sends the token to Entra ID while requesting an Entra ID token
+4.  If the token claims (`issuer`, `subject`, `aud`) match what's specified in the Entra ID app registration, Entra uses the OpenID Discovery and JWKS documents to validate the token
+5.  All is well, our workload gets the Entra ID token with the permissions granted to the app registration
+6.  Our workload uses the Entra ID token to access Entra ID protected resources

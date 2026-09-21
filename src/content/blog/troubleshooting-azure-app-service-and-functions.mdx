@@ -1,0 +1,149 @@
+---
+title: "Troubleshooting Azure App Service and Functions"
+slug: "troubleshooting-azure-app-service-and-functions"
+publishedAt: "2025-01-20T20:53:00.000+02:00"
+updatedAt: "2025-02-20T20:56:45.000+02:00"
+description: "My troubleshooting workflow for common problems I've faced when
+  working with Azure App Service and Azure Functions"
+tags:
+  - "App Service"
+  - "DevOps"
+  - "Security"
+  - "Bicep"
+tagSlugs:
+  - "app-service"
+  - "devops"
+  - "security"
+  - "bicep"
+image: "/images/ghost/583d6a7e1a6fa9f8bd1a.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+I've been working on multiple projects with VNET integrated App Services and Functions in the last year. In this post I'll go through some of the troubleshooting steps and solutions to "common" problems I've had to figure out. As always, the main culprit is DNS.
+
+First things first, if you are working with App Services, for the best troubleshooting capabilities you would want to have at least **Contributor** level permissions on the App Service / Function. I'm sure you can get by with some specialized roles too, but that's often what I'm working with. These roles allow you to add extra troubleshooting functionality, and access the service via SSH / Kudu directly, which does help a ton. The downside is, that if you can access via SSH you basically control both the service and the identities tied to it (as you can manually request tokens for it).
+
+In addition, you should definitely have at least **Reader** permissions on the VNET / Subnets you are integrating to. I can't imagine how many man hours have been wasted on having to guess and create tickets on what could be wrong if you cannot see the VNET configs. In addition, not having reader actually prevents you from seeing / editing some configuration of the App Service itself.
+
+![](/images/ghost/a38fb929197653ef6f9e.png)
+
+<a id="symptoms" />
+
+## Symptoms
+
+<a id="failing-swap-operations" />
+
+### Failing swap operations
+
+We always try to use Deployment Slots to allow for no-downtime deployments. This feature kind of sucks from a troubleshooting perspective. It tries for 30 minutes before timing out, locking out both slots (and your bicep deployments) for the period and then gives no reasonable output as to what went wrong.
+
+This is often a symptom of your Function or App Service not being able to boot up, so start checking the staging slot. Functions often show a runtime version of "error" in the portal for these.
+
+<a id="functions-not-visible-in-the-portal" />
+
+### Functions not visible in the portal
+
+Functions are sometimes a bit of a pain to work with. Everything might seem right otherwise, but the functions are just not showing up in the portal. There are no great error messages shown, and the first error message the portal shows is only after you hit the refresh button. This has also been related to DNS before...
+
+<a id="functions-not-triggering" />
+
+### Functions not triggering
+
+Function triggers can be strange as well. I've run into situations where whenever I go to the portal to look at the Function app overview, my Service Bus triggers work fine but then just stop working in 15 minutes or so. Only to start working again as soon as I visit the portal.
+
+I believe this is related somehow to the [trigger sync event of Azure functions](https://learn.microsoft.com/azure/azure-functions/functions-deployment-technologies?tabs=windows&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#trigger-syncing), and the solution is often with configuring your app settings.
+
+<a id="troubleshooting-flow" />
+
+## Troubleshooting flow
+
+I'd recommend troubleshooting in this order...
+
+<a id="try-to-log-in-to-the-service-via-ssh" />
+
+### Try to log in to the service via SSH
+
+As mentioned, more often than not the error is just with DNS (or related), so maybe you can throw the task to someone responsible for that service. You can log in to the service via Kudu or SSH from the Azure portal. You might need to add yourself to the SCM firewall first.
+
+The problem can be that if the service can't start, you get booted out of the SSH session quickly, so act fast.
+
+![](/images/ghost/96ab684f1d9d99feb935.png)
+
+Both Functions and App Service should have basic tooling like `curl` or `nslookup` available. Those should instantly tell you if DNS is working by using them on any address.
+
+You can also verify the dns config (on linux) by calling `cat /etc/resolv.conf`
+
+This is also a good spot to run `nslookup` against any of the Azure services you are planning on using that are behind Private Endpoints. Those also need DNS entries to work correctly.
+
+![](/images/ghost/16f6cf151357a855f3da.png)
+
+<figcaption>
+
+Top result is configured correctly, bottom has a private endpoint but is missing DNS config
+
+</figcaption>
+
+Note that there's nothing (except networking, DNS) preventing you from trying to install more troubleshooting tools at this point, but they will reset if the app tries to restart itself.
+
+<a id="validating-required-app-settings-exist" />
+
+### Validating required app settings exist
+
+This is especially for functions, but your code running anywhere might just require app settings that are missing. At least for processes running out-of-process, sometimes these don't seem to show up in logs.
+
+To enable more verbose logging, set the \`**SCALE\_CONTROLLER\_LOGGING\_ENABLED**\` setting to \`**AppInsights:Verbose**\`. [More on this setting here.](https://learn.microsoft.com/en-us/azure/azure-functions/configure-monitoring?tabs=v2&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#configure-scale-controller-logs)
+
+Dynamically scaled Functions also require the [`AzureWebJobsStorage`](https://learn.microsoft.com/en-us/azure/azure-functions/functions-app-settings?ref=huuhka.net#azurewebjobsstorage) and optionally the `WEBSITE_CONTENTSHARE` values to be populated. I often set both manually.
+
+If you use managed identities for these, make sure the [`AzureWebJobsStorage__credential` and other related options are populated too.](https://learn.microsoft.com/azure/azure-functions/functions-reference?tabs=blob&pivots=programming-language-csharp&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#connecting-to-host-storage-with-an-identity) This is especially important when using (only) User Assigned Managed Identities and setting these correctly often fixes the trigger issues.
+
+Correct in this case being something like...
+
+```bicep
+// Capitalization MIGHT matter here, so use this syntax to be sure
+var appSettings = {
+  ServiceBusConnection__fullyQualifiedNamespace: '${serviceBus.name}.servicebus.windows.net'
+  ServiceBusConnection__clientId: functionIdentity.properties.clientId
+  ServiceBusConnection__credential: 'managedIdentity'
+}
+```
+
+In addition, functions running with VNET integration have required the app setting **`WEBSITE_OVERRIDE_STICKY_DIAGNOSTICS_SETTINGS`** to be set to **`0`** on the **main** slot. [It's a bit unclear what it really does](https://learn.microsoft.com/azure/azure-functions/functions-app-settings?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#website_override_sticky_diagnostics_settings), but it has solved my problems before.
+
+Some VNET Integration related app settings are also relevant here, as you are able to control whether all traffic is routed through the VNET (vnetRouteAll), or just parts like the content storage traffic. It might be worth a shot relaxing these rules and seeing if you can pinpoint the problem better. These can be either set as env variables, or controlled from the VNET integration settings of the service.
+
+Also remember that if you're using [Key Vault References](https://learn.microsoft.com/azure/app-service/app-service-key-vault-references?tabs=azure-cli&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net), your app might not start if that connectivity is not working, or your app identity is missing permission. These errors can be viewed from the Env Variables tab. You can also set the identity used for those via the `app.properties.keyvaultRereferenceIdentity` Bicep property. The value needs to be the **resource id** of your managed identity.
+
+<a id="diagnose-and-solve-problems-tab" />
+
+### Diagnose and solve problems-tab
+
+This option found in the Azure portal provides a big list of tooling to get information out of the service. The top options which are most helpful are
+
+-   App Down Workflow
+-   Web App Down
+-   Application Logs
+-   App Create Operations
+-   (Networking Tab) VNET Integration
+-   (Networking Tab) Private Endpoints
+
+These often show you some logging information if the containers running in the services have not been able to start. At times they might even tell you the actual reason if you're lucky.
+
+By default those only show startup failure items, so you might also want to enable the Application Logging from the App Service logs tab as seen below.
+
+![](/images/ghost/afcab69a6e4a9647cbb0.png)
+
+<a id="viewing-the-logs-directly" />
+
+### Viewing the logs directly
+
+Okay, so nothing seems to show up yet. Let's go back to the SSH session from before.
+
+In `/home/LogFiles/` you should find a bunch of logs, which might provide some further information and history on the events on the service.
+
+![](/images/ghost/3abcbd293530634dfef7.png)
+
+You might also be able to download these logs [using the Azure CLI commands documented here](https://learn.microsoft.com/en-us/cli/azure/webapp/log?view=azure-cli-latest&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net), but I've not personally used them for troubleshooting before.

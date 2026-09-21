@@ -1,0 +1,134 @@
+---
+title: "Business benefits of robust telemetry practices"
+slug: "business-benefits-of-robust-telemetry-practices"
+publishedAt: "2020-12-08T16:35:57.000+02:00"
+updatedAt: "2020-12-08T16:38:31.000+02:00"
+description: "In this post, I’ll try to open up a few of the ways of how a
+  robust system of telemetry and feedback will allow your product to be more
+  agile, deploy more often, lead to faster time to market, and change the
+  development culture of your team for the better."
+tags:
+  - "DevOps"
+  - "Telemetry"
+  - "SRE"
+tagSlugs:
+  - "devops"
+  - "telemetry"
+  - "sre"
+image: "/images/ghost/c5d3e1558267545babef.jpg"
+imageAlt: ""
+draft: false
+featured: true
+seoTitle: "Business benefits of robust telemetry practices"
+seoDescription: "In this post, I’ll try to open up a few of the ways of how a
+  robust system of telemetry and feedback will allow your product to be more
+  agile, deploy more often, lead to faster time to market, and much more."
+series: []
+---
+
+> Want to read this in Finnish? [Check here.](https://zure.com/fi/blogi/kattavien-telemetriakaytantojen-liiketoiminnalliset-hyodyt/?ref=huuhka.net)
+
+Over the years of working with applications of different sizes and use cases, I’ve noticed that customers and developers alike have reservations about spending time to implement well thought out metrics and logging for their products. This is something that is often thought of as a last-ditch effort, when most of the budget has already been used, especially in project work where a specific scope has been set before even starting to work on a problem.
+
+I can understand this reasoning well, as like with a large number of techniques in the DevOps ethos utilizing telemetry and gaining value from it can take a relatively long period of time to bear fruit. I mean why would we spend time working on a dashboard or alerting? We can already see if there are any 503s coming in!
+
+It can also be argued that you should start optimizing where it hurts the most, which I agree with. When everything is going well, missing monitoring and telemetry don’t hurt. Until it does – a lot.
+
+In this post, I’ll try to open up a few of the ways of how a robust system of telemetry and feedback will allow your product to be more agile, deploy more often, lead to faster time to market, and change the development culture of your team for the better.
+
+<a id="data-keeps-your-application-running" />
+
+## Data keeps your application running
+
+Katarina Engblom, Director of Microsoft’s One Commercial Partner organization in Finland, aptly said [in a semi-recent Ikkunastudio episode](http://www.ikkunastud.io/84-katan-kristallipallo?ref=huuhka.net) that “_Ownership of Data is one of the responsibilities of the CEO_“. I think that this sentiment should be applied not only to business data but to the standardization of robust technical telemetry gathering practices as well. While encouraging and empowering teams to make their own choices in implementation details, the important thing is to bring everyone up to a certain baseline.
+
+Too often the reality is, however, that aspects of even organizations’ most important value streams do not produce any baseline data that is visible to the business. And when something goes unexpectedly goes wrong, the recovery times can be disastrous when you cannot easily locate the problem.
+
+As a rule of thumb, technical teams should focus on having a disciplined approach to identifying problems at their root, and not just restarting servers, containers, or whatever else. This goes against the thinking that in a cloud-native world, the first fix to an issue is rather to kill a worker unit and create a fresh one, than mending a broken instance of your code. A combination of gathering telemetry and separating failing nodes for troubleshooting is the only way to meet both these best practices.
+
+Simply put, if you do not have any data on something, you cannot know whether it meets its requirements and fulfills its purpose. This in turn leads to the realization that the earlier in your development process you are able to gather data, the better you are able to evaluate how a certain change affects either the performance or functionality of your solution.
+
+![](/images/ghost/f40fb670e71864e0f6dc.jpg)
+
+<figcaption>
+
+Problems are hard to solve without adequate telemetry
+
+</figcaption>
+
+At a baseline, just the simplest thing of turning on a telemetry service like [Application Insights](https://docs.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview?ref=huuhka.net), [StatsD](https://github.com/statsd/statsd?ref=huuhka.net), or [Prometheus](https://prometheus.io/?ref=huuhka.net) for your application provides you with a huge number of data points, and what’s left is to evaluate which part of that can be utilized for actionable insights. These tools can also be used to create custom timers and counters with just a single line of code.
+
+This should also be the case for all of your environments. It can be difficult to produce traffic to get large amounts of real data from your non-production environments, but even a smaller amount can lead to finding a potential bug before it causes harm. The lack of data could be somewhat alleviated by applying automated end-to-end testing for the functionality you are interested in.
+
+Tracking telemetry also keeps your applications running. In 2015, the State of DevOps report by [Puppet](https://puppet.com/resources/report/2015-state-devops-report/?ref=huuhka.net) found that the companies that have implemented robust telemetry tracking are **168 times faster** at resolving incidents than companies that don’t. By 2019, this gap has further increased, as per the [Accelerate State of DevOps report by DORA](https://services.google.com/fh/files/misc/state-of-devops-2019.pdf?ref=huuhka.net), citing that Elite performers’ mean time to recover (MTTR) is under one hour, while low performers take a week to a month to resolve issues.
+
+> Companies that have implemented robust telemetry tracking are **168 times faster** at resolving incidents than companies that don’t.
+
+Deployment frequency also tells a similar story, and while monitoring / integrating it with other tooling does not completely explain the differences here, they are enabling factors for building more advanced capabilities. These can be things like [chaos engineering](https://en.wikipedia.org/wiki/Chaos_engineering?ref=huuhka.net) and automatic healing, which in turn amplify the trust development teams have in the automated deployment process.
+
+<a id="who-are-you-developing-for" />
+
+## Who are you developing for?
+
+In many projects I’ve discussed with people, the definition of done of features usually gets left on a level of “_does this thing do the action we want it to?_“. This can especially be seen in the line of business-type software.
+
+While this kind of planning can definitely result in a working product, it completely misses two important factors: How reliable should this specific feature be, and consequently, how do we verify user happiness? Of course, customer happiness is hard to specify, but this is where **Service Level Objective** (SLO) thinking comes into play.
+
+Quoting from Google’s “[The Site Reliability Workbook](https://landing.google.com/sre/workbook/chapters/implementing-slos/?ref=huuhka.net)“:
+
+> An SLO sets a **target level of reliability** for the service’s **customers**. Above this threshold, almost all users should be happy with your service (assuming they are otherwise happy with the utility of the service). Below this threshold, users are likely to start complaining or to stop using the service. **Ultimately, user happiness is what matters** — happy users use the service, generate revenue for your organization, place low demands on your customer support teams, and recommend the service to their friends. We keep our services reliable to keep our customers happy.
+
+Once we’ve specified a target SLO, we need to figure out both the **indicators** (SLI) that can give us the data to understand whether we meet the objective or not, and **get stakeholder agreement** to abide by this target. Thus allowing us to agree on how to act when our SLOs are not being met.
+
+**SLIs** are just data points we decide are important to our customers’ experience. For example, you could think of the following:
+
+-   **Latency** – How quickly does our feature load?
+-   **Availability** – What percentage of calls produce non-400/500 responses?
+-   **Quality** – What percentage of site loads have correct images instead of placeholders?
+-   **Freshness** – What percentage of site loads has data fresher than 5 minutes?
+-   **Correctness** – What percentage of the data input to our data pipeline produces correct results?
+
+In addition to these things, you could also use other usage tracking tooling like [Microsoft’s Clarity](https://clarity.microsoft.com/?ref=huuhka.net) to further understand your users better. But as you’ve probably gathered by now, the only way you can utilize this kind of thinking is by actually tracking the data in the first place.
+
+All in all, your users are who matter in the long run. While one could try to claim that this only is true for customer-facing applications (as in internal tooling is often something the users can’t just stop using), the users’ productivity increases provided by meeting your SLO goals can be a significant source of revenue in internal scenarios as well. It might be a little harder to transform into numbers, though.
+
+<a id="cultural-benefits" />
+
+## Cultural benefits
+
+Two of the core tenets of DevOps (at least in my mind) are the **empowerment** of teams – allowing them to act independently and with as little bureaucracy as possible – and **open visibility** inside the organization. This does not just concern just the technical teams, but business and supporting functions as well.
+
+How do you provide visibility? You now have the telemetry from your application, so the next step is then to harness it for anyone to view. Clients, Visitors, Developers, Ops, Business? Everyone. A natural way to do this is by creating dashboards that combine business data and all levels of technical data. Additionally, you can overlay predictive information like expected performance anomalies after a deployment.
+
+Opening up these dashboards (and underlying data) to everyone has several benefits:
+
+-   Your message that you have **nothing to hide** from anyone while raising interest in your project and encourage more participation from everyone in the organization
+-   You increase the chance of **finding difficult-to-see bugs**: Perhaps a person from the business department notices something that the technical teams cannot see. “E.g. our most popular product site has no traffic.”
+-   You enable **faster feedback** for the product teams about what is working, and what is not. Thus allowing for faster iteration speed
+-   You emphasize a **blameless culture**, allowing decisions to be made based on data and scientific deduction
+-   You have another way of messaging maintenance periods and downtimes
+-   You can map your business Key Performance Indicators (KPIs), SLOs, and SLIs directly on the dashboards to **make better decisions on work priorities**
+
+A great position to be in is when you have your SLOs specified and tracked, as well as being able to verify meeting them in the short term while having trust that they can also be maintained in the long term. This opens up new ways of utilizing the time of your development team, for example focusing more on automating away manual or repetitive tasks ([reducing toil](https://landing.google.com/sre/workbook/chapters/eliminating-toil/?ref=huuhka.net)) or developing new features.
+
+In the long run, these improvements together can be a significant factor in reducing the risk of burnout for your employees and also attract more potential candidates that want to work for your organization.
+
+<a id="wrap-up" />
+
+## Wrap up
+
+This ended up being a bit more rambling than anticipated, but reiterating these thoughts into a nutshell:
+
+1.  Telemetry is essential, right from the start of a project.
+2.  While it’s difficult to calculate the exact monetary benefits of measuring the correct things, It’s almost guaranteed to push your organization’s software development practices towards the potential for higher performance.
+3.  Open data is integral to changing your organizational culture and defusing siloes.
+
+<a id="resources" />
+
+## **Resources**
+
+[The DevOps Handbook](https://www.goodreads.com/book/show/26083308-the-devops-handbook?ac=1&from_search=true&qid=LNnJKF5YMz&rank=1&ref=huuhka.net)
+
+[The Site Reliability Workbook](https://landing.google.com/sre/workbook/toc/?ref=huuhka.net)
+
+[The Unicorn Project](https://www.goodreads.com/book/show/44333183-the-unicorn-project?ac=1&from_search=true&qid=E5gmjGQQe0&rank=1&ref=huuhka.net)

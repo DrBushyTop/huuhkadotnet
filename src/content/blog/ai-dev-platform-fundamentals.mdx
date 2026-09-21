@@ -1,0 +1,102 @@
+---
+title: "Azure AI Dev Platform Fundamentals"
+slug: "ai-dev-platform-fundamentals"
+publishedAt: "2025-12-07T16:52:00.000+02:00"
+updatedAt: "2026-04-19T16:26:06.000+03:00"
+description: "In this post I'll describe some of the fundamental building blocks
+  of creating an AI Dev platform for organizations in Azure."
+tags:
+  - "Artificial Intelligence"
+  - "Azure"
+tagSlugs:
+  - "artificial-intelligence"
+  - "azure"
+image: "/images/ghost/a0e8956cdd5cebae0969.png"
+imageAlt: ""
+draft: false
+featured: true
+series:
+  - "ai-dev-platform"
+---
+
+In this post I'll describe some of the fundamental building blocks of creating an AI Dev platform for organizations in Azure. Implementation details are left to the reader to decide, but I'm somewhat opinionated in this.
+
+The goals of a platform in this case are:
+
+-   Unifying tooling for everyone
+-   Providing easy onboarding, easy automatic distribution of new features
+-   Central authentication, allowing the org a single place to integrate tools to
+-   General use MCP servers and services, like session sharing, code lookups, sandboxed runners
+-   Tracking of usage, troubleshooting
+
+All this while still allowing for customization for user's own needs.
+
+<a id="platform-core" />
+
+### Platform Core
+
+The core we need to figure out first is the entrypoint to the platform, e.g. routing, apis, model hosting and observability.
+
+The canonical stack in Azure to implement this is pretty much always some kind of a service providing an optional Web Application Firewall, custom domain support, and routing capabilities combined with an API management service. In my implementations I reach for [Azure Front Door](https://azure.microsoft.com/en-us/products/frontdoor?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) (FD) to handle routing needs, whereas [Azure API Management](https://azure.microsoft.com/en-us/products/api-management?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) (APIM) handles the rest.
+
+![](/images/ghost/8eb68bae0aadb56d601d.png)
+
+The Front Door routing is often very minimal, and mainly acts as a passthrough in this case, but you could of course host some services past the API. Some options being documentation libraries and other frontends.
+
+**Auth**
+
+API Management acts as the **central authentication layer** in the platform. The policies check user tokens and use the managed identity to make the actual calls to the service. This way we can use only a single app registration for the platform in Entra ID and manage all necessary user roles there. User tokens can be forward to backend services if needed.
+
+I often use them as the location to set common platform owned headers and enrich [OpenTelemetry](https://opentelemetry.io/?ref=huuhka.net) baggage too. Maybe you want to track how many user's you have, and how many tokens are they using etc.
+
+![](/images/ghost/284aab53aea66c65cf2e.png)
+
+**Models**
+
+Azure really has a single reasonable way of hosting LLM models, and that's [Microsoft Foundry](https://azure.microsoft.com/en-us/products/ai-foundry?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). You can get both OpenAI and Anthropic models hosted through there, as well as a large set of models from other providers too.
+
+Foundry ties well together with APIM, with some syntactic sugar being offered by [the (still-in-preview) AI Gateway feature](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/ai-gateway?view=foundry&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). The preview services are still somewhat confusing, and I've also added [a specific foundry endpoint](https://learn.microsoft.com/en-us/azure/api-management/azure-ai-foundry-api?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) to my solutions to enable token tracing at the APIM policy level.
+
+The main idea here is that if any of our internal services, or any of the users need access to LLM models, they can get them from a single shared foundry instance. How you split the capacity in the deployments is up to you. APIM can also be used to do this load balancing, so you could forward as much traffic to your [PTU based deployments](https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/provisioned-throughput?view=foundry-classic&tabs=global-ptum&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) as possible.
+
+**Observability**
+
+As hinted before, I use OTel for everything in my implementations. It makes it very easy to standardize telemetry for all the services in the platform. All of your services should have some kind of a shared OTel library to easily implement new platform-wide headers / span properties.
+
+Logs in Azure often go to a Log Analytics Workspace, which is what I also recommend. This should be owned by the platform core. You could also host a central OTel collector to do sampling before sending the data to the LAW so you can save a pretty penny not logging all the traces.
+
+You can also create some quite nifty dashboards on your telemetry with [Azure Workbooks](https://learn.microsoft.com/en-us/azure/azure-monitor/visualize/workbooks-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) or tools like [Azure Managed Grafana](https://azure.microsoft.com/en-gb/products/managed-grafana?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). You'll likely need to craft these yourself, but models are decent at creating the required KQL queries too.
+
+<a id="user-tooling" />
+
+## User Tooling
+
+Okay, so we have something to call from our tooling, but what exactly is the tooling? In my case, I lean heavily on [Opencode](https://opencode.ai/?ref=huuhka.net) as I've used it as my main coding assistant for a long time now. You can use whatever you want, but crucially Opencode provides the following features we need:
+
+-   User writable custom plugins to handle our authentication matters hidden from users, who may not be very technical
+-   Client-Server model, so we can decide where the server runs, and what the client looks like (e.g. use the ones provided, or write our own)
+-   Open-source. Easy for us and LLM models to write code against.
+-   Support for multiple model providers, simultaneously
+
+So, the core of our tooling focuses on writing custom agents, commands, skills and MCP configuration etc. while shipping this package automatically to our users. I'm not going to go into the implementation details here, but you'd at least want to handle all authentication concerns with plugins and think of your own requirements for headers, workflows etc. within this package.
+
+A thing to think about also here is whether it's simpler and cheaper to purchase subscriptions to LLM model providers or pay for API billing through foundry, but Opencode allows for both.
+
+Design your user tooling package so that if the users decide to, they can still install their own skills, providers etc.
+
+I'll leave the details of this auto update logic up to you. I'm sure your end user device management people will have some opinions and requirements for this.
+
+<a id="backend-services" />
+
+## Backend Services
+
+Now that we have the tooling set up, we should talk about the backend services to provide. This is of course very dependent on your use case, but here are some ideas.
+
+-   RAG search database on your context's data. Maybe through tools like [Foundry IQ](https://learn.microsoft.com/en-us/azure/foundry/agents/concepts/what-is-foundry-iq?view=foundry&tabs=portal&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   Remote codebase searches for better LLM context. In the spirit of [BetterContext](https://btca.dev/?ref=huuhka.net) (not endorsing this service, feel free to write your own)
+-   [Sharing service for opencode sessions](https://opencode.ai/docs/share/?ref=huuhka.net). Keep it internal, you'll figure it out.
+-   Background agents functionality, like [Ramp's Inspect](https://builders.ramp.com/post/why-we-built-our-background-agent?ref=huuhka.net)
+-   Various MCP servers, depending on your needs. You'll likely need to write some wrappers to support your auth requirements, OBO token flows etc.
+-   Possibly a sandbox environment for [CodeMode calls](https://github.com/cloudflare/agents/tree/main/packages/codemode?ref=huuhka.net).
+
+Make sure your backend services follow a similar pattern of integrating with the platform, mainly focusing on the authentication and authorization part. When you build up these building blocks, you'll be able to easily add more services over time, and depending on your auto update process, you'll likely be able to push out functionality to your users seamlessly.

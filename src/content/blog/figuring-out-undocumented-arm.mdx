@@ -1,0 +1,142 @@
+---
+title: "Figuring out undocumented ARM templates"
+slug: "figuring-out-undocumented-arm"
+publishedAt: "2020-02-03T15:47:57.000+02:00"
+updatedAt: "2020-11-09T13:48:04.000+02:00"
+description: "I've recently run into several situations where something that is
+  configurable from the Azure Portal is not anywhere in the ARM documentation.
+  This blog post will go through my process of figuring out how to implement
+  those in ARM anyway."
+tags:
+  - "ARM Templates"
+  - "Azure"
+tagSlugs:
+  - "arm-templates"
+  - "azure"
+image: "/images/ghost/97dbab921f6965f3d981.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoDescription: "I've recently run into several situations where something that
+  is configurable from the Azure Portal is not anywhere in the ARM
+  documentation. This blog post will go through my process of figuring out how
+  to implement those in ARM anyway."
+series: []
+---
+
+I've recently run into several situations where something that is configurable from the Azure Portal is not anywhere in the ARM documentation. This blog post will go through my process of figuring out how to implement those in ARM anyway.
+
+First of all, the documentation is often decent in giving you the very basic skeleton of an ARM template you require, but so far Microsoft has left the job of providing examples of implementations to the community. It's quite frustrating to see that the documentation amounts to saying "You need these parameters in these types with some obscure descriptions!" but not actually show at all how to use them. One example of this is the [Microsoft.Insights/alertrules](https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/2016-03-01/alertrules?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). Can you decipher from that reference alone what you should add to odata.type fields? Or what even are the options you could be using?
+
+![Reading ARM Documentation](/images/ghost/a1ebd810d85f438a2939.gif "Reading ARM Documentation")
+
+<a id="tackling-the-issue" />
+
+## Tackling the issue
+
+So how do we actually solve this issue then? Fortunately we know that most of the things that the portal does, are utilizing the Resource Manager APIs. We also know, that there are ways into dissecting what the Resource Manager has eaten and even bolting on some band-aids manually (though I'd advise against doing this in production environments). Let's take a look into these and some of my other workflows in solving these problems.
+
+<a id="workflow-1-portal-deployment-history-export-template" />
+
+### Workflow 1: Portal Deployment history & Export Template
+
+This is the first thing I try when I'm creating anything new. I just drop into the portal and start clicking around. I create my resources individually, and then take a look into the pre-generated ARM templates in the deployment history / during the creation process.
+
+These will help me understand how the parameters function which I just gave in, and often allows me to directly copy that template as a baseline to start customizing. See the screenshots below as to where to find these.
+
+![](/images/ghost/8a1f1d5cd766516bfdbb.jpg)
+
+<figcaption>
+
+Template download
+
+</figcaption>
+
+![](/images/ghost/de1bf30a06ab3f2cf513.jpg)
+
+<figcaption>
+
+Deployment History
+
+</figcaption>
+
+The other option is to check the Export Template-button in the resource group view. These are often quite robust and have way too many parameters, but they give insight into how the platform thinks things are connected. I would say that if you are not using DevOps best practices and utilizing automated deployments, the very least you can do is to regularly take these Exports so you have some kind of backups of your environment (though these might not be perfect copies of your current settings).
+
+![](/images/ghost/6543cf50f9fca2922013.jpg)
+
+<figcaption>
+
+Export Template
+
+</figcaption>
+
+<a id="workflow-2-using-resources-azure-com" />
+
+### Workflow 2: Using resources.azure.com
+
+This tool is probably one of the most useful things you can have when working with ARM templates in general. It lets you dig in to the current state of the environment and also provides an edit function. It really shows its strength when I need to reverse engineer an existing environment.
+
+Even if the documentation does not show a certain provider / component, if it is configured, chances are that you can see it using the resource explorer. A good example of this are the multiple different types of configuration subresources for Microsoft.Web/Sites (Web Apps) that are not easy to figure out from the documentation alone.
+
+![](/images/ghost/2a426a9e7f36d4a9c186.jpg)
+
+<figcaption>
+
+resources.azure.com
+
+</figcaption>
+
+While the tool does not show you the direct way of implementing the resources on your own, and there are definitely properties you cannot set in ARM (like etag-properties and status), it is still very useful to see which resource is a subresource to another. Or for example how the subresources should be named in your ARM templates.
+
+There is also a stripped version of this available in the portal in the resource group menus, but I would stay away from that one. For some reason not all resources are visible through that UI.
+
+<a id="workflow-3-utilizing-the-developer-console-in-your-browser" />
+
+### Workflow 3: Utilizing the Developer Console in your browser
+
+This is the last option you have into figuring out how something works. Whenever you send an update in the Azure Portal, your browser also sends an API call to the ARM APIs. This can be caught via the network tab of your browser developer console!
+
+For example, today I was tasked with figuring out how to raise the daily data ingestion cap for Application Insights. The default value of the cap is 100GB, and if you take a look at the [documentation](https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/allversions?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net), there is absolutely no mention of any of this in either the Application Insights [workspace](https://docs.microsoft.com/en-us/azure/templates/microsoft.insights/2015-05-01/components?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) or its subresources. Application Insights in general seems to be a problem child in ARM API documentation...
+
+I ended up going to my test subscription and finding out where to actually configure the values in the portal. Then before doing any changes, I opened my developer console (F12 in Chrome for example) and took a look into the events generated in the Network tab. As shown below, I was able to see the exact resource I'm updating, the API version and also the payload with the changes I made (In this case, updating the cap to 120GB).
+
+![](/images/ghost/432123f587e967b72181.jpg)
+
+<figcaption>
+
+Developer Console
+
+</figcaption>
+
+After some googling with "Microsoft.Insights/Components/pricingPlans", I ended up in the schema documentation for ARM found [here](https://github.com/Azure/azure-resource-manager-schemas/blob/master/schemas/2017-10-01/Microsoft.Insights.json?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). Clearly the information in the link for the parameters was different than what I had in my payload, so from here the only option for me was to try things out. The first option for me was obviously the payload I had already successfully updated the parameters through the portal.
+
+In this case, I was able to make the desired change pretty easily, though I had to go through some trial and error with the name fields. However, I did not find any examples of anyone else doing this in my quick searches. Here's a link to the [example ARM implementation](https://github.com/DrBushyTop/ARMTemplates/blob/master/General/appinsights.json?ref=huuhka.net) I ended up creating.
+
+```
+{
+  "apiVersion": "2017-10-01",
+  "name": "[concat(parameters('commonAIName'), '/', 'pricingPlans')]",
+  "type": "Microsoft.Insights/components/pricingPlans",
+  "properties": {
+    "PricingType": "Basic", // Basic seems to be the only option here
+    "DataVolumeCap": 130, // Cap in GB
+    "ResetHour": 13, // When does daily cap reset. Not sure of the timezone
+    "DisableNotificationWhenHitCap": false, 
+    "WarningThreshold": 90, // Percentage of cap filled
+    "DisableNotificationWhenHitThreshold": false, 
+    "MaxHistoryCap": 1000, // No idea what this is
+    "IsDreamSpark": false // No idea what this is
+  },
+  "dependsOn": [
+    "[parameters('commonAIName')]"
+  ]
+}
+```
+
+<a id="wrapping-up" />
+
+## Wrapping up
+
+While there are ways of overcoming the issue, sometimes there just is no way of deploying everything in ARM templates. As the best practice is to use complete mode when deploying your templates, this might be an issue for the integrity of your deployments. Thankfully I've yet to run to a situation that could not be resolved with trickery of one sort or another.
+
+The sad truth however is, that in it's current state, doing everything in ARM templates leads to a lot of trial and error experiments before getting things working. Hopefully these tips will help you when tackling issues with undocumented stuff. I'd also suggest that whenever you find an issue with the documentation, you should file an issue to Microsoft (or fix the documentation yourself and file a PR) to get things fixed for everyone else.

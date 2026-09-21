@@ -1,0 +1,218 @@
+---
+title: "App Service Imported SSL Certificate from Key Vault in another Subscription"
+slug: "app-service-imported-ssl-certificate-from-another-subscription-kv"
+publishedAt: "2020-05-04T00:01:00.000+03:00"
+updatedAt: "2021-01-14T14:58:39.000+02:00"
+description: "We recently ran into an issue with our requirement to pull an
+  imported SSL certificate from a key vault that was located in a separate
+  subscription from our function app consumption plan. Here's how we ended up
+  solving this issue."
+tags:
+  - "ARM Templates"
+  - "Azure"
+  - "Security"
+  - "App Service"
+tagSlugs:
+  - "arm-templates"
+  - "azure"
+  - "security"
+  - "app-service"
+image: "/images/ghost/1afa62769a685db8af6b.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoDescription: "Here's how we ended up solving a requirement to pull an
+  imported SSL certificate from a key vault that was located in a separate
+  subscription from our function app consumption plan. "
+series: []
+---
+
+We recently ran into an issue with our requirement to pull an imported SSL certificate from a key vault that was located in a separate subscription from our function app consumption plan. Here's how we ended up solving this issue with automation.
+
+In case you are feeling lazy, you can also skip to the summary-section for a couple of scripts that do all of this for you. Note that this might not work for Azure bought App Service Certificates from other subscriptions, as it has only been tested for self imported ones.
+
+<a id="setup-requirements" />
+
+## Setup & Requirements
+
+Our requirements were to automate the deployments, so of course ARM templates were the primary way of doing this. However, our service principals running the ARM templates never have more than contributor-permissions, so they cannot set up any role definition settings on their own. Thus this has to be done separately on the Key Vault part.
+
+The permissions required ended up being a bit obscure, though everything except the secondary subscription stuff was already known to me from [this in-depth blog post by the App Service team](https://azure.github.io/AppService/2016/05/24/Deploying-Azure-Web-App-Certificate-through-Key-Vault.html?ref=huuhka.net). If you do need to set this up manually through the portal, much of the work is done for you on the back end IF the vault and App Service are in the same sub.
+
+On the RBAC level before starting, you need to have **Owner** or **User Administrator** permissions to the Key Vault, and the Service Principal deploying the ARM templates needs to have **Contributor** permissions to the Web App
+
+<a id="key-vault-configurations" />
+
+## Key Vault Configurations
+
+Most of the stuff you need to worry about here concern the key vault.
+
+<a id="importing-the-ssl-certificate" />
+
+### Importing the SSL Certificate
+
+First off you of course need to get the certificate in your key vault. You should first [check out the requirements for the certificate here](https://docs.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#private-certificate-requirements). The import can be either done through the portal, or via the [Import-AzKeyVaultCertificate](https://docs.microsoft.com/en-us/powershell/module/az.keyvault/import-azkeyvaultcertificate?view=azps-5.0.0&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) powershell cmdlet.
+
+```
+$Password = ConvertTo-SecureString -String "123" -AsPlainText -Force
+
+Import-AzKeyVaultCertificate -VaultName "ContosoKV01" -Name "ImportCert01" -FilePath "C:\Users\contosoUser\Desktop\import.pfx" -Password $Password
+```
+
+What happens on the back end, is that the non-password protected value of your certificate is transformed into a base64-encoded string and saved as a **secret** with a content type of "application/x-pkcs12" in the vault, even though it is only visible as a **certificate** entry. This will come up in the required access policies.
+
+<a id="key-vault-access-policy-setup" />
+
+### Key Vault Access Policy setup
+
+So this is where the setup gets a little strange. Behind the scenes, App Service uses the App Service Resource Provider identity to fetch the certificate from the Key Vault, so we need to first give it the permissions to read... not the certificates, but secrets! I don't have an exact understanding of why this is, but it seems that the certificates-permissions do not play any role in this process.
+
+The App Service principal is a bit different depending on your Azure environment, but for public Azure, the appId is always abfa0a7c-a6b6-4736-8310-5855508787cd and for Azure Government it is 6a02c803-dafd-4136-b4c3-5a6f318b4714. In the portal, this service principal is named "Microsoft Azure App Service"
+
+The SP does not need to be able to list the secrets, it only needs the get permission. This can be easily given with a single powershell command.
+
+```
+Set-AzKeyVaultAccessPolicy -ServicePrincipalName $AppServiceRPSPId -ResourceId $keyVaultID -PermissionsToSecrets "Get"
+```
+
+If this policy is missing, you run into a following error message trying to deploy your ARM templates:
+
+```
+"ErrorEntity": {
+  "ExtendedCode": "59716",
+  "MessageTemplate": "The service does not have access to '{0}' Key Vault. Please make sure that you have granted necessary permissions to the service to perform the request operation.",
+  "Parameters": [
+    "myKeyVault"
+  ],
+  "Code": "BadRequest",
+  "Message": "The service does not have access to 'myKeyVault' Key Vault. Please make sure that you have granted necessary permissions to the service to perform the request operation."
+}
+```
+
+This also in turn means that the service principal doing the ARM template deployment does not need any access policies to the Key Vault.
+
+<a id="key-vault-rbac-settings" />
+
+### Key Vault RBAC settings
+
+**UPDATE:** Now this did work for a couple of weeks... until our template started failing again. The new error message instead wanted the **vaults/deploy/action** permission. After giving it to our principal deploying the ARM, everything worked again.
+
+```
+LinkedAuthorizationFailed: The client 'xxx' with object id 'xxx' has permission to perform action 'Microsoft.Web/certificates/write' on scope '/subscriptions/xxxx/resourcegroups/xxxx/providers/Microsoft.Web/certificates/myCert'; however, it does not have permission to perform action 'Microsoft.KeyVault/vaults/deploy/action' on the linked scope(s) '/subscriptions/xxxx/resourceGroups/xxx/providers/Microsoft.KeyVault/vaults/xxx' or the linked scope(s) are invalid.
+```
+
+This permission is referred to [here](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/key-vault-parameter?tabs=azure-cli?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#grant-access-to-the-secrets) and [here](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-tutorial-use-key-vault?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#prepare-a-key-vault), but in practice it seems that the requirement has just gone live in our tenant behind the scenes? Hard to say, but after this it seems that we no longer need to have the write-permission (discussed below) at all. Definitely a good change.
+
+**Previous now-defunct setup:** If you were to try to deploy your ARM templates now, you would end up with the following error message:
+
+```
+{
+  "code": "DeploymentFailed",
+  "message": "At least one resource deployment operation failed. Please list deployment operations for details. Please see https://aka.ms/DeployOperations for usage details.",
+  "details": [
+    {
+      "code": "Forbidden",
+      "message": "{\r\n \"error\": {\r\n \"code\": \"LinkedAuthorizationFailed\",\r\n \"message\": \"The client 'myClient' with object id 'xxxxxx-xxxxxxx-xxx-xxxxx' has permission to perform action 'Microsoft.Web/certificates/write' on scope '/subscriptions/xxxxxx-xxxxxxx-xxx-xxxxx/resourcegroups/myRg/providers/Microsoft.Web/certificates/customdomain.com'; however, it does not have permission to perform action 'write' on the linked scope(s) '/subscriptions/xxxxxx-xxxxxxx-xxx-xxxxx/resourceGroups/myKeyVaultRG/providers/Microsoft.KeyVault/vaults/myKeyVault' or the linked scope(s) are invalid.\"\r\n }\r\n}"
+    }
+  ]
+}
+```
+
+As described, your ARM template SP needs to have vaults/write permission on the Key Vault. This can be given through a custom role, or just giving the "Key Vault Contributor" role to the SP. This is required, because all the app services in your subscriptions use the same identity that we previously gave the Get-permissions for secrets in the vault. Thus without this requirement, anyone could use certs from our vault in their app services, granted they are in our subscriptions. I'm not quite sure how effective this is, considering now your ARM SP owns the whole vault in practice, being able to give anyone access policies anyway. Definitely not something I'd do if there was a way around it.
+
+```
+if (!$customRoleDefinitionId) { $customRoleDefinitionId = (Get-AzRoleDefinition -RoleDefinitionName "Key Vault Contributor").Id }
+
+New-AzRoleAssignment -ObjectId $servicePrincipalObjectId -RoleDefinitionId $customRoleDefinitionId -Scope $keyVaultID
+```
+
+**Vault in another subscription?**
+
+If your Key Vault and App Service are in the same subscription, you should be ready to run your ARM templates. If not, we still have some work to do here. In our case, we were still running into the error message pointing that the App Service RP identity does not have the required access policies, but I was certain those were set up correctly. I could not find any information on this anywhere, as all the blogs seemed to point out that "the vault and app service need to be in the same subscription". But when looking at the UI in the portal, there is a capability to select the subscription where the key vault is, so why would it be there if it was not possible to do?
+
+![](/images/ghost/5547ae7e4f0a3592cf62.JPG)
+
+<figcaption>
+
+Certificate selection UI in the portal
+
+</figcaption>
+
+When trying to add the cert manually, even the owner of both subscriptions had a "failed to get certificate" error. But in the end, what ended up fixing this issue was giving the **RBAC Reader-access to the Key Vault to the App Service RP identity**. It was through luck that we found this to be the solution, and even Microsoft's own support had previously told us that "It is not possible to get the secret from another subscription".
+
+```
+New-AzRoleAssignment -ApplicationId $AppServiceRPSPId -RoleDefinitionName "Reader" -Scope $keyVaultID
+```
+
+<a id="arm-templates" />
+
+## ARM Templates
+
+Last but not the least, we still need to configure our App Service through the ARM templates. Check out the full version [here](https://github.com/DrBushyTop/ARMTemplates/blob/master/AppService/appservice_ssl.json?ref=huuhka.net). This is thankfully fairly simple, though I've seen multiple ways of doing this. I've ended up using this syntax, as it is easy to understand. First we create the Microsoft.Web/Certificates resource, taking in the resource Id of the Key Vault and the name of the Certificate, named "keyVaultSecretName" here.
+
+```
+{
+  "name": "[parameters('customDomain')]",
+  "type": "Microsoft.Web/certificates",
+  "apiVersion": "2019-08-01",
+  "location": "[variables('location')]",
+  "tags": {
+    "displayName": "Custom domain certificate"
+  },
+  "properties": {
+    "keyVaultId": "[parameters('sslCertKeyVaultResourceId')]",
+    "keyVaultSecretName": "[parameters('sslCertKeyVaultSecretName')]"
+  }
+},
+```
+
+Then on the resources section of our App Service, we set up a SniEnabled hostnameBindings resource, which gets the thumbprint value from the Microsoft.Web/Certificates resource we created above. This part needs to depend on both the App Service and the Certificate.
+
+```
+{
+  "name": "[parameters('customDomain')]",
+  "type": "hostNameBindings",
+  "apiVersion":"2019-08-01",
+  "properties":{
+    "sslState": "SniEnabled",
+    "thumbprint": "[reference(resourceId('Microsoft.Web/certificates', parameters('customDomain'))).Thumbprint]"
+  },
+  "dependsOn": [
+    "[resourceId('Microsoft.Web/sites', variables('uiFuncName'))]",
+    "[resourceId('Microsoft.Web/certificates', parameters('customDomain'))]"
+  ]
+}
+```
+
+You could in theory also add the custom domain ownership check as a resource to your ARM templates as well, but I tend to make sure that it works before running the templates, so I don't bother with that extra code. Check out [this quickstart template](https://github.com/Azure/azure-quickstart-templates/blob/master/101-app-service-certificate-standard/azuredeploy.json?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) of how you could try to do that, though I've not tested it.
+
+All in all, now your certificate should be all set up, from whatever subscription you want. Do still note that these subscriptions need to be in the same tenant for this to work!
+
+<a id="summary" />
+
+## Summary
+
+As you can see, it is indeed possible to get the certificate from another subscription. In short, the steps that you need to do are:
+
+1.  Upload your SSL certificate to the Key Vault with the **[Import-AzKeyVaultCertificate](https://docs.microsoft.com/en-us/powershell/module/az.keyvault/import-azkeyvaultcertificate?view=azps-3.8.0&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)** powershell cmdlet
+2.  Give **vaults/deploy/action** permission on your Key Vault to your service principal that runs your ARM template deployments (could be a custom role).
+3.  Give **vaults/read** permission on your Key Vault to the "Microsoft Azure App Service" principal (appId _**abfa0a7c-a6b6-4736-8310-5855508787cd**_ or _6a02c803-dafd-4136-b4c3-5a6f318b4714_ if you're in the Azure Government cloud)
+4.  Give the Key Vault Access Policy "get" on "**Secrets**" to the same "Microsoft Azure App Service" principal
+5.  Generate a Microsoft.Web/Certificates resource in the resource group of your App Service (See the ARM Template)
+6.  Add the hostNameBindings-entry to the App Service (See the ARM Template). Make sure you have the domain DNS CNAME entries correctly set already.
+
+Source code (scripts, ARM templates) for this post can be found here:
+
+[DrBushyTop/ARMTemplates](https://github.com/DrBushyTop/ARMTemplates/tree/master/AppService?ref=huuhka.net)
+
+ARM templates for anyone to use. Contribute to DrBushyTop/ARMTemplates development by creating an account on GitHub.
+
+References:
+
+[Deploying Azure Web App Certificate through Key Vault](https://azure.github.io/AppService/2016/05/24/Deploying-Azure-Web-App-Certificate-through-Key-Vault.html?ref=huuhka.net#prerequisites)
+
+How to deploy an App Service Certificate through Azure Key Vault
+
+[Add and manage TLS/SSL certificates - Azure App Service](https://docs.microsoft.com/en-us/azure/app-service/configure-ssl-certificate?ref=huuhka.net)
+
+Create a free certificate, import an App Service certificate, import a Key Vault certificate, or buy an App Service certificate in Azure App Service.

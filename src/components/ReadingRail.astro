@@ -1,0 +1,89 @@
+---
+import type { MarkdownHeading } from 'astro';
+interface SeriesGroup {
+  id: string;
+  title: string;
+  posts: { slug: string; title: string }[];
+}
+interface Props { contents: MarkdownHeading[]; series: SeriesGroup[]; currentSlug: string }
+const { contents, series, currentSlug } = Astro.props;
+---
+<aside class="reading-rail" aria-label="Reading navigation">
+  {series.map(group => (
+    <details class="rail-disclosure series-disclosure">
+      <summary>
+        <span><span class="rail-label">In this series</span><span class="series-name">{group.title}</span></span>
+        <svg class="disclosure-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      </summary>
+      <nav aria-label={`${group.title} series`}>
+        <ol class="series-list">
+          {group.posts.map((post, index) => (
+            <li><a href={`/${post.slug}/`} aria-current={post.slug === currentSlug ? 'page' : undefined}><span class="series-number" aria-hidden="true">{index + 1}</span><span>{post.title}</span></a></li>
+          ))}
+        </ol>
+      </nav>
+    </details>
+  ))}
+  {contents.length > 1 && (
+    <details class="rail-disclosure contents-disclosure">
+      <summary><span class="rail-label">On this page</span><svg class="disclosure-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></summary>
+      <nav aria-label="Table of contents">
+        <div class="toc-track"><span class="toc-marker" aria-hidden="true"></span>
+        <ul class="toc-list">
+          {contents.map(heading => <li><a href={`#${heading.slug}`} data-toc-link>{heading.text}</a></li>)}
+        </ul></div>
+      </nav>
+    </details>
+  )}
+</aside>
+<script>
+  import { activeHeadingIndex } from '../lib/reading';
+
+  const rail = document.querySelector<HTMLElement>('.reading-rail');
+  const disclosure = rail?.querySelector<HTMLDetailsElement>('.contents-disclosure');
+  const list = rail?.querySelector<HTMLElement>('.toc-track');
+  const links = Array.from(rail?.querySelectorAll<HTMLAnchorElement>('[data-toc-link]') || []);
+  const headings = links.map(link => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+  const desktop = window.matchMedia('(min-width: 1200px)');
+  let queued = false;
+
+  function update() {
+    queued = false;
+    if (!rail || !list || !links.length) return;
+    const tops = headings.map(heading => heading ? heading.getBoundingClientRect().top + window.scrollY : Infinity);
+    const active = activeHeadingIndex(tops, window.scrollY, 112);
+    links.forEach((link, index) => {
+      if (index === active) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+    const link = links[active];
+    if (disclosure?.open && link) {
+      const bounds = link.getBoundingClientRect();
+      list.style.setProperty('--active-offset', `${bounds.top - list.getBoundingClientRect().top}px`);
+      list.style.setProperty('--active-height', `${bounds.height}px`);
+      list.dataset.tracking = 'true';
+      // Keep the selected entry visible inside a long rail without scrolling the article.
+      if (desktop.matches) {
+        const frame = rail.getBoundingClientRect();
+        if (bounds.top < frame.top + 8) rail.scrollTop -= frame.top + 8 - bounds.top;
+        else if (bounds.bottom > frame.bottom - 8) rail.scrollTop += bounds.bottom - frame.bottom + 8;
+      }
+    }
+  }
+  function schedule() {
+    if (!queued) { queued = true; requestAnimationFrame(update); }
+  }
+  function setContentsDefault() {
+    if (disclosure) disclosure.open = desktop.matches;
+    schedule();
+  }
+  setContentsDefault();
+  desktop.addEventListener('change', setContentsDefault);
+  rail?.querySelectorAll('details').forEach(details => details.addEventListener('toggle', schedule));
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule, { passive: true });
+  window.addEventListener('hashchange', schedule);
+  const body = document.querySelector('.article-body');
+  if (body) new ResizeObserver(schedule).observe(body);
+  document.fonts.ready.then(schedule);
+</script>

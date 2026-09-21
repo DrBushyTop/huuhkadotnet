@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-21T10:51:49.920692+00:00",
+  "generatedAt": "2026-09-21T11:22:19.169640+00:00",
   "title": "Design system: Huuhka.net",
   "extensions": {
     "colorMeta": {
@@ -216,7 +216,7 @@
       },
       "date": {
         "displayName": "Date",
-        "purpose": "Compact Geist Mono dates in the article footer, with tabular numerals."
+        "purpose": "Compact Geist Mono dates in archive card footers, with tabular numerals."
       },
       "label": {
         "displayName": "Label",
@@ -233,6 +233,38 @@
       "inline-code": {
         "displayName": "Inline code",
         "purpose": "Code, keyboard input, and sample output at 0.9em in SauceCodePro Nerd Font Mono."
+      },
+      "reading-title": {
+        "displayName": "Reading title",
+        "purpose": "Responsive long-form title."
+      },
+      "reading-body": {
+        "displayName": "Reading body",
+        "purpose": "Long-form prose; phone size is recorded in DESIGN.md."
+      },
+      "reading-heading": {
+        "displayName": "Reading heading",
+        "purpose": "Second-level long-form heading."
+      },
+      "reading-subheading": {
+        "displayName": "Reading subheading",
+        "purpose": "Third-level long-form heading."
+      },
+      "reading-date": {
+        "displayName": "Reading date",
+        "purpose": "Original publication and updated dates, uppercase with tabular numerals."
+      },
+      "reading-rail": {
+        "displayName": "Reading rail",
+        "purpose": "Compact series and contents links."
+      },
+      "reading-rail-label": {
+        "displayName": "Reading rail label",
+        "purpose": "Uppercase labels identifying reading-navigation disclosures."
+      },
+      "reading-next-title": {
+        "displayName": "Reading next title",
+        "purpose": "Compact continuation-link title; 16px on phones."
       }
     },
     "shadows": [],
@@ -256,6 +288,11 @@
         "name": "menu-appear",
         "value": "clip-path: inset(0 0 8% 0) to inset(0), 160ms ease-out",
         "purpose": "Reveal mobile page links when the dialog opens; disabled for reduced motion."
+      },
+      {
+        "name": "reading-rail",
+        "value": "transform 160ms ease-out",
+        "purpose": "Move the 2px active contents marker and rotate disclosure chevrons; no transition with reduced motion."
       }
     ],
     "breakpoints": [
@@ -278,6 +315,18 @@
       {
         "name": "desktop-header-min",
         "value": "761px"
+      },
+      {
+        "name": "reader-phone-max",
+        "value": "600px"
+      },
+      {
+        "name": "reader-desktop-min",
+        "value": "1200px"
+      },
+      {
+        "name": "reader-inline-rail-max",
+        "value": "1199px"
       }
     ],
     "focus": {
@@ -295,14 +344,21 @@
         ".impeccable/surfaces/src-pages-index-astro.md",
         "src/styles/code.css",
         "public/fonts/sauce-code-pro/provenance.json",
-        "public/fonts/sauce-code-pro/LICENSE.txt"
+        "public/fonts/sauce-code-pro/LICENSE.txt",
+        "src/pages/[slug].astro",
+        "src/styles/article.css",
+        ".impeccable/surfaces/src-pages-slug-astro.md",
+        "docs/migration.md",
+        "src/components/ReadingRail.astro",
+        "src/data/series.json",
+        "src/lib/reading.ts"
       ],
-      "authority": "User-selected round-four A on September 21, 2026, followed by compact popular cards, Encore-like mono navigation and neutral highlights, a single-row mobile menu, rounded padded archive cards with topic tags and smaller titles, and approved Geist Sans headings and wordmark. The user then selected SauceCodePro Nerd Font for code and requested removal of the visible sample-selection label. The user then requested tighter introduction, section, and archive spacing while preserving card padding and grid gaps.",
-      "status": "Requested header, card, and font refinements implemented. Preliminary homepage only; article reader, migration, and deployment remain separate.",
+      "authority": "Approved homepage composition and fonts preserved. Reader refinements use a centered content column, compact footer, native series disclosures, and scroll-tracking contents without changing the index system.",
+      "status": "Local migration and refined reader implemented, including three overlapping series groups. Deployment, production indexing, and analytics remain deferred.",
       "tonalRamps": "Synthesized OKLCH panel previews, not additional application color tokens.",
-      "componentSamples": "Isolated style specimens, not working search, pagination, or mobile-menu behavior. Image slots are placeholders; the homepage uses real published imagery.",
-      "popularSelection": "First three preview entries remain provisional internally, without a visible sample-selection label and without a verified analytics claim.",
-      "verification": "The Geist heading/card review covers its captured scope. Native dialog Escape dismissal has not been confirmed through T3."
+      "componentSamples": "Isolated style specimens, not working application search, pagination, mobile-menu, or scroll-tracking behavior. Image slots are placeholders; the homepage uses real published imagery.",
+      "popularSelection": "Newest three collection entries remain provisional, without a visible sample-selection label or measured-ranking claim.",
+      "verification": "Source-backed documentation refresh. Browser spot-check evidence is bounded to its recorded pages and interactions; no whole-site, keyboard, or screen-reader certification."
     },
     "fontAssets": {
       "code": {
@@ -410,15 +466,24 @@
       "description": "Small light-backed code token; long tokens may wrap.",
       "html": "<code class=\"ds-inline-code\">az deployment group create</code>",
       "css": ".ds-inline-code{font-family:var(--code-font,'SauceCodePro Nerd Font Mono',ui-monospace,monospace);font-size:.9em;font-variant-ligatures:none;padding:2px 5px;border-radius:4px;background:var(--popular-ground,#f1f5f7);overflow-wrap:anywhere}"
+    },
+    {
+      "name": "Article reader",
+      "kind": "custom",
+      "refersTo": "reading-prose",
+      "description": "Centered reader typography, compact metadata, and native navigation disclosures. The isolated specimen omits the outside grid columns and scroll-tracking script.",
+      "html": "<article class=\"ds-reader\"><h1>Article title</h1><div class=\"ds-reader-meta\"><span>Pasi Huuhka</span><time datetime=\"2026-09-21\">21 Sep 2026</time></div><aside class=\"ds-reader-rail\" aria-label=\"Reading navigation\"><details><summary><span><span class=\"ds-rail-label\">In this series</span><span class=\"ds-series-name\">Agentic Dev</span></span><svg class=\"ds-chevron\" width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"m4 6 4 4 4-4\" stroke=\"currentColor\" stroke-width=\"1.5\" /></svg></summary><nav aria-label=\"Agentic Dev series\"><a href=\"#ds-reader-section\" aria-current=\"page\">Article title</a></nav></details><details><summary><span class=\"ds-rail-label\">On this page</span><svg class=\"ds-chevron\" width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"m4 6 4 4 4-4\" stroke=\"currentColor\" stroke-width=\"1.5\" /></svg></summary><nav aria-label=\"Table of contents\"><a href=\"#ds-reader-section\">Section title</a></nav></details></aside><div class=\"ds-reader-prose\"><h2 id=\"ds-reader-section\">Section title</h2><p>Technical explanations retain the approved body and code fonts.</p></div></article>",
+      "css": ".ds-reader{max-width:720px;margin-inline:auto;color:var(--ink,#202b3a);font-family:var(--body-font,'Source Sans 3 Variable',sans-serif)}.ds-reader h1,.ds-reader h2{font-family:var(--brand-font,'Geist Variable',sans-serif);font-weight:600}.ds-reader h1{font-size:clamp(30px,3.2vw,44px);line-height:1.18;letter-spacing:-.025em;margin-block:20px}.ds-reader-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;color:var(--muted,#596574);font-size:14px}.ds-reader time{font-family:var(--nav-font,'Geist Mono Variable',monospace);font-size:11px;font-weight:400;line-height:1.5;letter-spacing:.02em;text-transform:uppercase;font-variant-numeric:tabular-nums}.ds-reader-rail{margin-block:24px;font-size:13px;line-height:1.45}.ds-reader-rail summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:5px;list-style:none;cursor:pointer}.ds-reader-rail summary::-webkit-details-marker{display:none}.ds-rail-label{display:block;font-family:var(--nav-font,'Geist Mono Variable',monospace);font-size:10px;line-height:1.6;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#596574)}.ds-series-name{display:block;margin-top:5px;font-family:var(--brand-font,'Geist Variable',sans-serif);font-size:13px;line-height:1.45;font-weight:500}.ds-chevron{flex-shrink:0;color:var(--muted,#596574);transition:transform 160ms ease-out}.ds-reader-rail details[open]>summary .ds-chevron{transform:rotate(180deg)}.ds-reader-rail details+details{margin-top:24px}.ds-reader-rail nav{margin-top:10px}.ds-reader a{display:block;padding-block:7px;color:var(--muted,#596574)}.ds-reader a[aria-current]{color:var(--ink,#202b3a);font-weight:600}.ds-reader a:hover{color:var(--link,#076b97);text-decoration:underline}.ds-reader :is(a,summary):focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px}.ds-reader-prose{font-size:19px;line-height:1.7;overflow-wrap:anywhere}.ds-reader h2{font-size:28px;line-height:1.3;margin-block:1.6em .6em;scroll-margin-top:24px}.ds-reader-prose p{margin-block:0 1.2em}@media(max-width:1199px){.ds-reader-rail details{border-bottom:1px solid var(--line,#dce3e8)}.ds-reader-rail details+details{margin-top:0}.ds-reader-rail summary{min-height:44px;padding-block:10px}.ds-reader-rail a{min-height:38px;padding-block:9px}}@media(max-width:600px){.ds-reader h1{margin-block:18px}.ds-reader-prose{font-size:18px}.ds-reader h2{font-size:25px}}@media(prefers-reduced-motion:reduce){.ds-chevron{transition:none}}"
     }
   ],
   "narrative": {
     "northStar": "Articles first",
-    "overview": "Huuhka.net is a personal technical publication. Article images, publication dates, and clear titles carry the page. The small author portrait and compact navigation identify Pasi without competing with the writing.\n\nThe implemented direction uses white backgrounds, slate text, restrained blue details, and sans-serif typography. Compact popular links sit above larger rounded archive cards with padded text, topic tags, and dates. This is the approved preliminary homepage direction, not final production polish.",
+    "overview": "Huuhka.net is a personal technical publication. Article images, publication dates, and clear titles carry the index. The small author portrait and compact navigation identify Pasi without competing with the writing.\n\nWhite backgrounds, slate text, restrained blue details, and sans-serif typography connect the index to the article reader. Compact popular links sit above larger padded archive cards. Long-form pages give prose, diagrams, and code their own reading space without changing the approved header or palette.",
     "keyCharacteristics": [
       "Image-led article links with compact topic tags, visible dates, and no excerpts.",
-      "A light sticky header with an original geometric H, mono navigation, and a single-row mobile menu trigger.",
+      "A light sticky header with the geometric H, mono navigation, and a single-row mobile menu trigger.",
       "Compact popular cards and roomier rounded archive cards with restrained borders.",
+      "Centered long-form prose with a compact series and contents rail, uncropped feature images, and horizontally scrolling code.",
       "A secondary author introduction with a real portrait."
     ],
     "rules": [
@@ -430,17 +495,18 @@
     ],
     "dos": [
       "Keep the author's real portrait and published article imagery.",
-      "Keep publication dates visible and preserve the original article metadata.",
+      "Keep publication dates visible and preserve original article metadata.",
       "Distinguish compact popular links from larger padded archive cards.",
       "Keep keyboard focus visible and preserve usable article links without JavaScript.",
-      "Use Geist Sans for headings and the wordmark, Source Sans 3 for body copy, Geist Mono for navigation, tags, and dates, and SauceCodePro Nerd Font Mono for code."
+      "Use Geist Sans for headings and the wordmark, Source Sans 3 for body copy, Geist Mono for navigation, tags, and dates, and SauceCodePro Nerd Font Mono for code.",
+      "Keep the contents list before prose in document order and allow code and tables to scroll within the reader."
     ],
     "donts": [
-      "Don't present sample popular selections as measured rankings.",
-      "Don't add excerpts, category-filter chips, a topic sidebar, or an oversized author hero to the approved homepage.",
+      "Don't present provisional popular selections as measured rankings.",
       "Don't replace the light header with a flat pastel navigation band.",
       "Don't introduce a serif publication masthead or invented promotional copy.",
-      "Don't claim the article reader, content migration, or deployment is complete."
+      "Don't apply archive-image cropping to article diagrams or feature images.",
+      "Don't treat browser spot checks as a full keyboard or screen-reader audit."
     ]
   }
 }

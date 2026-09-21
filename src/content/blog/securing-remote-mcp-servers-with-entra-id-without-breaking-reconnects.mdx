@@ -1,0 +1,197 @@
+---
+title: "Securing remote MCP servers with Entra ID without breaking reconnects"
+slug: "securing-remote-mcp-servers-with-entra-id-without-breaking-reconnects"
+publishedAt: "2026-01-16T20:31:00.000+02:00"
+updatedAt: "2026-04-19T16:35:46.000+03:00"
+description: "I've been wiring remote MCP servers behind Entra-protected
+  endpoints lately, and the awkward part isn't really validating a JWT, but
+  everything around it."
+tags:
+  - "AI"
+  - "OpenCode"
+  - "Security"
+tagSlugs:
+  - "ai"
+  - "opencode"
+  - "security"
+image: "/images/ghost/55fea40e9a14ca012d76.jpg"
+imageAlt: ""
+draft: false
+featured: false
+series:
+  - "secure-enterprise-ai-tooling-on-azure"
+---
+
+I've been wiring remote MCP servers behind Entra-protected endpoints lately, and the awkward part isn't really validating a JWT, but everything around it.
+
+Most MCP server implementations don't come with Entra ID support out of the box. In the AI platform I've been building, every service sits behind a shared APIM gateway that requires an Entra bearer token. That includes the MCP servers. The way I handle this is by running an Entra-authenticating reverse proxy in front of the upstream MCP server, so the server itself doesn't need to know anything about Entra at all. The proxy validates the caller's token, and then forwards the request upstream.
+
+That moves the authentication story out of the individual MCP server code and into a shared layer that's consistent across the platform. But it also means that every local client needs to be able to acquire the right token, attach it to every outbound request, and handle the usual lifecycle problems: expiry, 401 retries, and reconnects after session loss.
+
+On the client side, I'm using [OpenCode](https://opencode.ai/?ref=huuhka.net) as the coding tool. OpenCode has a plugin system that lets you intercept outbound HTTP requests, inject headers, and react to lifecycle events. I ended up building a set of plugins that handle all of this transparently, so the developers using the platform don't have to think about auth at all. It just works in the background.
+
+<a id="setup" />
+
+### Setup
+
+The shape of the setup is fairly simple:
+
+-   Local OpenCode plugins acquire Entra tokens and attach them to the right outbound requests
+-   APIM and a reverse proxy sit in front of the remote MCP servers
+-   The proxy validates the bearer token and forwards traffic to the upstream MCP server
+-   The MCP server itself stays unaware of Entra-specific concerns
+
+That split has worked well for me. The authentication behavior stays consistent across services, and the MCP server implementation can stay focused on MCP instead of identity plumbing.
+
+<a id="request-flow" />
+
+### Request flow
+
+At a high level, the request path is straightforward. The local client requests an Entra token for the configured audience, and an OpenCode plugin attaches that token to the outbound MCP HTTP request. APIM and the reverse proxy validate the token and forward the request upstream. If the token is stale or the session is lost, the client can refresh the token and try the transport recovery path.
+
+<a id="its-just-http" />
+
+### It's just HTTP
+
+MCP servers aren't especially exotic from a security point of view. They're HTTP servers with some long-lived connection behavior. You still need to authenticate callers, validate tokens, and make sure the transport can reconnect when things go wrong.
+
+Once the transport is remote, most of the difficulty is just protected HTTP plumbing with some session continuity concerns on top. In practice, the solution space is much more normal than the surrounding discussion sometimes suggests.
+
+What I ended up with was one shared token acquisition path on the client side, narrow bearer injection for the intended remote endpoints, service-side validation that accepts the issuer and audience variants I know I'll see in practice, and a reconnect model that can heal dropped transport sessions.
+
+<a id="shared-token-acquisition" />
+
+### Shared token acquisition
+
+The first practical lesson was that token acquisition shouldn't be reinvented separately by every plugin.
+
+I have several OpenCode plugins that need to acquire Entra tokens. One handles auth for the MCP servers behind the platform proxy. Another handles auth for the LLM provider calls routed through the same APIM gateway. A third handles auth for an enterprise session sharing service. It just made sense to consolidate the token acquisition logic into one shared module.
+
+So I built one shared auth module with a very plain order of operations:
+
+1.  Return a fresh cached token if one exists.
+2.  Try `DefaultAzureCredential`.
+3.  If that fails, fall back to `az account get-access-token`.
+4.  If the CLI explicitly needs login, do a controlled login flow and retry once.
+
+All of this lives in a shared library that every plugin imports, so the behavior is identical everywhere.
+
+Because this runs inside OpenCode's plugin system, I could also integrate the login flow into the UI itself. If a user needs to sign in, the plugin shows a toast notification guiding them through the process instead of just leaving them with a failed auth error and a hint about running \`az login\` on their own. Toasts only work on the TUI version though, so it's not a perfect solution. However, this was good enough for even the non-technical users to be logged in and productive without needing to understand the Az CLI at all.
+
+This setup also gave me the two things I cared about. Non-interactive environments had a good chance of succeeding through identity-based auth, and local developer machines still had a reliable escape hatch through the CLI.
+
+The other useful detail was separating silent acquisition from interactive login. A plugin that's running during startup should be allowed to try to get a token quietly. It shouldn't immediately decide to throw a browser sign-in flow at the user before the UI is even properly ready.
+
+<a id="audience-resolution" />
+
+### Audience resolution
+
+Once token acquisition is shared, the next thing that matters is that all paths agree on what audience is being requested.
+
+That sounds trivial until you support both custom API audiences and Azure resource audiences. At that point you need the identity path and the CLI path to resolve the target exactly the same way, or you end up debugging 401s that are really just inconsistencies in your own local tooling.
+
+The shape is simple enough:
+
+```ts
+export type AuthConfig = {
+  tenant?: string;
+  clientId?: string;
+  resource?: string;
+};
+
+export function resolveAudience(config: AuthConfig) {
+  if (config.clientId) {
+    const scope = `api://${config.clientId}/.default`;
+    return {
+      kind: "scope" as const,
+      scope,
+      cliArgs: ["--scope", scope] as const,
+    };
+  }
+
+  if (config.resource) {
+    const resource = config.resource.replace(/\/+$/, "");
+    return {
+      kind: "resource" as const,
+      scope: `${resource}/.default`,
+      cliArgs: ["--resource", resource] as const,
+    };
+  }
+
+  throw new Error("Missing clientId or resource");
+}
+```
+
+It's important that every caller in the local tooling ends up behaving consistently. The MCP auth plugin, the provider auth plugin, and the enterprise share plugin all go through the same resolution logic. If one of them gets the scope wrong, the token won't match what the service expects, and the result is a `401` that looks like a service-side problem but is really a local misconfiguration.
+
+<a id="attaching-tokens" />
+
+### Attaching tokens
+
+Once the client can acquire the right token, the next question is where it should use it.
+
+I'd avoid broad global rules here. In the OpenCode plugins, each one intercepts `fetch` and matches outbound requests against explicitly configured URL prefixes. The MCP auth plugin knows which URLs correspond to remote MCP servers behind the platform proxy. The provider auth plugin knows which providers route through the gateway. Each plugin only injects a bearer token for its own scope. That way you don't accidentally start attaching tokens to random outbound requests that shouldn't have them, and you keep the auth behavior focused on the intended paths.
+
+The other useful behavior was to treat `401` as a signal to evict the cached token and retry once. Without that, you can end up reusing a bad token until it expires. With too much retry logic, you just create more noise. One forced refresh and one retry is a decent middle ground.
+
+<a id="issuer-compatibility" />
+
+### Issuer compatibility
+
+It's very tempting to validate only the Entra v2 issuer because that's the one you had in mind when configuring the app registration. In practice, that can be wrong.  
+What pushed me into this in the first place was seeing legitimate callers arrive with the older v1 issuer format. In my environment that showed up with managed identity and gateway-mediated paths, which was enough to make strict v2-only validation a problem.
+
+Microsoft's own Entra token validation guidance is explicit here: Microsoft Entra-issued access tokens can use either `https://sts.windows.net/{tenant-id}` for v1.0 tokens or `https://login.microsoftonline.com/{tenant-id}/v2.0` for v2.0 tokens. So this isn't some oddity specific to MCP. It's just something your API validation layer needs to account for if valid callers in your environment can receive both token versions.
+
+The same thing happens with audiences. One token may present the bare client ID. Another may use the application ID URI form. So the practical rule became to accept the variants that legitimate callers in my environment can actually produce:
+
+```ts
+export function buildValidIssuers(tenantId: string): string[] {
+  return [
+    `https://login.microsoftonline.com/${tenantId}/v2.0`,
+    `https://sts.windows.net/${tenantId}/`,
+  ];
+}
+
+export function buildValidAudiences(clientId: string): string[] {
+  return [clientId, `api://${clientId}`];
+}
+```
+
+<a id="proxy-and-reconnects" />
+
+### Proxy and reconnects
+
+Once auth is working, the problem is still only half solved.
+
+The reverse proxy that fronts the upstream MCP servers needs to behave like decent transport plumbing. It shouldn't buffer SSE responses. It should use an upstream HTTP version the server actually supports. It should expose a simple health route for probes instead of forcing those probes into your auth story.  
+After that, the reconnect behavior becomes the interesting part.
+
+What I liked in the implementation here was that it didn't rely on a single recovery mechanism. In the MCP auth plugin, there's a lighter health reconnect tick that periodically checks whether targets are still connected. There's a slower hard reconnect tick that fully resets sessions on a longer cadence. And on top of that, request-time behavior can recover a target when the transport starts showing session loss symptoms, like a 404 with a session-not-found error body.
+
+That felt realistic. Long-lived authenticated transport tends to fail in a few different ways, and it's useful to have more than one way back to a healthy state.  
+The cooldown logic matters too. If several concurrent requests all decide that they should reconnect the same remote MCP target at once, you've just created a new kind of problem for yourself. The plugin deduplicates recovery attempts per target and applies a cooldown window so that one burst of session-not-found responses doesn't turn into a reconnect storm.
+
+This is also where telemetry earns its keep. If the proxy can log and trace events like accepted sessions, possible session loss, retries, and timeouts after session acceptance, you stop guessing quite so much.
+
+One thing worth calling out separately is that transport reconnects and cross-process session continuity are related, but not identical, problems. Reconnect logic helps the client recover when an existing transport drops. It does not by itself make server-side session state survive a restart or rollout. I'll cover that continuity side separately in a follow-up post using Redis.
+
+<a id="wrap-up" />
+
+### Wrap up
+
+The main lesson for me was that remote MCP security isn't mostly about MCP. It's about consistency.
+
+Consistent token acquisition. Consistent audience resolution. Consistent issuer handling. Consistent proxy behavior when the connection gets interrupted. Once those pieces line up, remote MCP feels much less special and much more like what it really is: another authenticated infrastructure path with slightly more session sensitivity than average.
+
+In my case, the fact that the MCP servers themselves don't know anything about Entra is a feature, not a limitation. The proxy handles auth, the OpenCode plugins handle token lifecycle, and the developers using the platform don't have to care about any of it.
+
+The solution isn't to invent some MCP-specific security model. It's to do the identity and transport work properly.
+
+If you're building something similar, the practical checklist I'd keep in mind is:
+
+-   Centralize token acquisition
+-   Resolve audiences consistently across every local auth path
+-   Accept the issuer and audience variants your real callers can legitimately produce
+-   Keep bearer injection narrow and explicit
+-   Treat reconnect behavior and cross-restart session continuity as separate design problems

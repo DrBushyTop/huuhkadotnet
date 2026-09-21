@@ -1,0 +1,290 @@
+[
+  {
+    "name": ".NET Core",
+    "slug": "net-core",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "AI",
+    "slug": "ai",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "API Management",
+    "slug": "api-management",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "App Service",
+    "slug": "app-service",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "ARM Templates",
+    "slug": "arm-templates",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Artificial Intelligence",
+    "slug": "artificial-intelligence",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "AZ-500",
+    "slug": "az-500",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Azure",
+    "slug": "azure",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Azure DevOps",
+    "slug": "azure-devops",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Azure Pipelines",
+    "slug": "azure-pipelines",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Azure Private Link",
+    "slug": "azure-private-link",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Bicep",
+    "slug": "bicep",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Certification",
+    "slug": "certification",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Codespaces",
+    "slug": "codespaces",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Community",
+    "slug": "community",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Data",
+    "slug": "data",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Data Factory",
+    "slug": "data-factory",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Developer Tools",
+    "slug": "developer-tools",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "DevOps",
+    "slug": "devops",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Entity Framework",
+    "slug": "entity-framework",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Getting Started",
+    "slug": "getting-started",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "GitHub",
+    "slug": "github",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "GitHub Copilot",
+    "slug": "github-copilot",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Go",
+    "slug": "go",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Kubernetes",
+    "slug": "kubernetes",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Microsoft Foundry",
+    "slug": "microsoft-foundry",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Migration",
+    "slug": "migration",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "MVP",
+    "slug": "mvp",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "OpenCode",
+    "slug": "opencode",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "PowerShell",
+    "slug": "powershell",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Security",
+    "slug": "security",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "SQL",
+    "slug": "sql",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "SRE",
+    "slug": "sre",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Static Websites",
+    "slug": "static-websites",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "Telemetry",
+    "slug": "telemetry",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  },
+  {
+    "name": "YAML",
+    "slug": "yaml",
+    "description": "",
+    "image": null,
+    "metaTitle": null,
+    "metaDescription": null
+  }
+]

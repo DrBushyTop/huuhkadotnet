@@ -1,0 +1,204 @@
+---
+title: "Browser verification for coding agents: Chrome DevTools MCP vs agent-browser"
+slug: "browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser"
+publishedAt: "2026-01-28T19:13:00.000+02:00"
+updatedAt: "2026-04-09T19:15:23.000+03:00"
+description: "This post is about browser feedback for coding agents during
+  normal development work, not about fully autonomous browser agents or
+  end-to-end testing as such."
+tags:
+  - "Artificial Intelligence"
+  - "GitHub Copilot"
+  - "OpenCode"
+  - "Developer Tools"
+tagSlugs:
+  - "artificial-intelligence"
+  - "github-copilot"
+  - "opencode"
+  - "developer-tools"
+image: "/images/ghost/dd1e644a9ca3206b56fd.png"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+I've been treating browser-side verification as a standard part of the implementation loop when working with coding agents for a while now.
+
+Frontend work is still one of the places where current models make a steady stream of mistakes. CSS is often wrong in small but obvious ways, interaction states get missed, responsive behavior regresses, and the model will happily tell you everything is fine unless you give it some way to actually look at the result.
+
+This post is about browser feedback for coding agents during normal development work, not about fully autonomous browser agents or end-to-end testing as such.
+
+None of this is really tied to one harness either. The same general ideas work with basically any coding agent setup that can expose MCP servers or CLI tools, whether that is [OpenCode](https://opencode.ai/?ref=huuhka.net), [GitHub Copilot](https://github.com/features/copilot?ref=huuhka.net), [Claude Code](https://code.claude.com/docs/en/overview?ref=huuhka.net), [Codex](https://developers.openai.com/codex?ref=huuhka.net) or something else.
+
+The two tools I've been using most are [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp?ref=huuhka.net) and [agent-browser](https://github.com/vercel-labs/agent-browser?ref=huuhka.net).
+
+<a id="the-short-version" />
+
+### The short version
+
+-   I use both, but at the time of writing I still reach for Chrome DevTools MCP more.
+-   **Model familiarity:** current models seem to understand the Chrome DevTools MCP tool surface better than the agent-browser CLI.
+-   **Session isolation:** agent-browser feels more naturally aligned with isolated per-agent work, because it is a CLI with explicit session handling. Chrome DevTools MCP has improved here too with named isolated contexts, so the difference is more about workflow shape than absence of support.
+-   **Debugging depth:** Chrome DevTools MCP gives a richer debugging surface, especially for console, network, performance and general inspection.
+-   **Delivery model:** in [OpenCode](https://opencode.ai/?ref=huuhka.net), MCP is always present in the model context, while the [agent-browser skill](https://github.com/vercel-labs/agent-browser/tree/main/skills/agent-browser?ref=huuhka.net) can be loaded only when needed.
+-   **Parallel work friction:** multiple agents trying to use Chrome DevTools MCP in parallel can easily end up fighting for browser control.
+-   These tools are very useful because current models are still pretty bad at frontend correctness if you only let them reason from code.
+
+<a id="why-i-keep-adding-browser-verification-into-the-loop" />
+
+### Why I keep adding browser verification into the loop
+
+I've written earlier about [Research - Plan - Implement](/research-plan-implement/), [Primary vs Subagents in LLM harnesses](/primary-vs-subagents-in-llm-harnesses/) and [A mental model for LLM tooling primitives](/a-mental-model-for-llm-tooling-primitives/).
+
+The browser tooling question sits underneath all of those.
+
+If I have an implementation agent that can edit code, run tests and lint, that is already useful. But especially for UI work, there is still a pretty big gap between "the code compiles" and "the feature is actually correct".
+
+That gap is exactly where browser tools help. They let the model inspect what really rendered, what requests fired, what errors showed up in the console, whether the element is actually visible, and whether the flow works beyond static code review. In practice that gives a much better feedback loop than just asking the model to look at JSX or CSS and hope for the best.
+
+<a id="two-different-design-bets" />
+
+### Two different design bets
+
+These two tools are aimed at slightly different shapes of work.  
+[agent-browser](https://github.com/vercel-labs/agent-browser?ref=huuhka.net) is a CLI-first browser automation tool. The workflow is command-driven, and in coding harnesses you can expose it through the [agent-browser skill](https://github.com/vercel-labs/agent-browser/tree/main/skills/agent-browser?ref=huuhka.net) when actually needed.
+
+[Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp?ref=huuhka.net) is an MCP server. The browser capabilities are available as a tool surface directly through the harness.
+
+That sounds like a small implementation detail, but it really does affect how the tools feel in daily use. With agent-browser, the capability is more opt-in. With Chrome DevTools MCP, the capability is more ambient. That has obvious pros and cons.
+
+<a id="chrome-devtools-mcp-rich-debugging-awkward-sharing" />
+
+### Chrome DevTools MCP: rich debugging, awkward sharing
+
+The biggest reason I still reach for Chrome DevTools MCP more often is simple: it gives a very strong debugging surface.
+
+You get browser automation, but also:
+
+-   Console inspection
+-   Network inspection
+-   Screenshots and snapshots
+-   Performance tracing
+-   Lighthouse audits
+-   Memory snapshots
+
+That makes it more than a "click around in the page" tool. It is closer to handing the model a browser plus a chunk of DevTools itself.
+
+Current models also seem to know how to use this MCP surface better than they know how to use agent-browser. That is not a scientific benchmark, just my practical impression after using both. The models seem more ready to do reasonable things with page selection, snapshots, console logs and network requests than they are to drive a CLI workflow correctly from scratch.
+
+The downside has mostly shown up when I try to push more parallel agent work through it: Agents are not particularly good at sharing Chrome DevTools MCP sanely across concurrent work. If I have multiple agents or parallel workstreams trying to use the same browser tooling, it starts feeling like a tug of war over the active page or session. That may partly be a prompting issue on my side, but in practice it has meant that browser verification works better when I centralize it to one orchestrator or one review pass instead of letting every parallel worker poke at the same browser.
+
+So:
+
+Chrome DevTools MCP is very strong for **one active agent** doing deep verification and debugging.- It is less comfortable as a **shared browser layer** for multiple concurrent agents.
+
+> **Update 9.4.2026:** I went back and checked this more carefully. [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp?ref=huuhka.net) added storage-isolated browser contexts in [v0.18.0](https://github.com/ChromeDevTools/chrome-devtools-mcp/releases/tag/chrome-devtools-mcp-v0.18.0?ref=huuhka.net) via `isolatedContext` on `new_page`, and then added page routing for parallel multi-agent workflows in [v0.19.0](https://github.com/ChromeDevTools/chrome-devtools-mcp/releases/tag/chrome-devtools-mcp-v0.19.0?ref=huuhka.net). So the multi-agent story is better than I originally thought, though in practice it still depends on what your harness actually exposes and how well the model uses it.
+
+So this is not really a case of agent-browser having sessions and Chrome DevTools MCP not having them. Chrome DevTools MCP does now have named isolated contexts. The difference is more that agent-browser has a more explicit workflow around sessions, saved state, auth reuse and diffs, whereas Chrome DevTools MCP is stronger as a live inspection and diagnostics surface.
+
+<a id="agent-browser-explicit-control-natural-session-separation" />
+
+### agent-browser: explicit control, natural session separation
+
+What I like about agent-browser is that the whole thing feels more explicit.  
+It is a CLI tool with concrete commands, explicit sessions, state save/load, snapshots, screenshots, console inspection, request tracking, diffing and a few other useful pieces. It also has a clear [skill package](https://github.com/vercel-labs/agent-browser/tree/main/skills/agent-browser?ref=huuhka.net) that teaches the model the recommended workflow when needed.
+
+The on-demand skill aspect is worth highlighting.
+
+One of the common problems with MCP servers in general is that they can take a fair amount of context all the time, whether or not the task really needs them. Skills are a more selective mechanism. The model only expands the instructions when it actually decides it needs that capability. The deeper difference is less "skill vs MCP" and more ambient tool surface versus explicit workflow tool.
+
+The other thing I like is that agent-browser feels more naturally suited to isolated sessions. That makes it probably the better shape for future parallel verification flows where individual agents verify their own work without all trying to grab the same browser handle.
+
+It also feels more like a reusable automation utility. Things like saved state, auth reuse, diffing, and provider support make it easier to imagine as a repeatable browser worker in a larger workflow.
+
+Headless support is part of this story too. Both tools can run headless, but the shape is different. With agent-browser, headless or headed operation is a natural part of the CLI workflow. One practical pattern I've been using is to open a headed session first, do whatever auth setup is needed there, and then reuse that state for the agent's headless sessions afterward. Chrome DevTools MCP does support headless mode as well, but that is more of a server launch or browser configuration detail than part of the agent's normal workflow.
+
+The main weakness right now is not the tool itself. Current models do not seem deeply fluent with it yet.
+
+The agent-browser skill is fairly extensive, and that helps, but it also makes very obvious that models are not coming in with much native familiarity. Quite often they fumble around with the CLI a bit before landing on the right command sequence. There does not seem to be much training data here yet. That will likely improve. Right now though, it is still visible.
+
+One thing I also checked more carefully here is whether agent-browser exposes comparable network and performance inspection to Chrome DevTools MCP.The short answer is: partially, but not really at the same depth.
+
+It does expose `network requests`, `trace`, and `profiler` commands, and I verified that the profiling and trace capture do work in practice. But it still feels more like request monitoring plus trace capture than full DevTools-style inspection. Chrome DevTools MCP is stronger here because it exposes explicit tools for things like listing network requests, fetching a specific request, saving request or response bodies, Lighthouse audits, and performance-insight style workflows.
+
+So I would not describe the network or performance inspection story as equivalent today.
+
+<a id="rough-feature-comparison" />
+
+### Rough feature comparison
+
+These are two different design bets, not a case of one tool simply being better.
+
+![](/images/ghost/845ddcb4f01cd7f24ee7.png)
+
+<figcaption>
+
+Wish I had support for tables...
+
+</figcaption>
+
+<a id="screenshot-handling-in-opencode" />
+
+### Screenshot handling in OpenCode
+
+One very practical issue I have hit with Chrome DevTools tooling in OpenCode is screenshot handling.
+
+Sometimes when the model takes a screenshot, the image payload ends up flooding the session context, the whole session can fall over pretty quickly. I've had this happen enough times that it is worth calling out explicitly.
+
+The workaround is simple but useful: tell the model to save the screenshot to a file first, then read the file afterward if needed.
+
+That sounds minor, but it is exactly the kind of operational detail that matters once these tools become part of the normal workflow.
+
+<a id="beyond-visual-verification" />
+
+### Beyond visual verification
+
+Most of my own use has been around visual verification, but the useful scope is wider than that.
+
+Some examples:
+
+-   **Console errors:** checking whether a new feature introduced them
+-   **Network requests:** catching failed API calls after a UI change
+-   **Auth and session state:** verifying redirects, cookies, local storage
+-   **Bug reproduction:** issues that are easier to see in the browser than in code
+-   **Responsive / dark mode:** quick testing without manual switching
+-   **Artifacts:** capturing screenshots, traces or request logs for later review
+-   **Adversarial review:** letting a review agent try to break the implementation
+-   **Interaction flow:** validating the actual flow works, not just the static layout
+
+Sometimes the page looks fine in a screenshot, but the real problem is a broken loading state, disabled button, wrong request payload, client-side error or auth/session issue. Browser tooling is useful exactly because it can move between visual inspection and behavioral debugging instead of forcing you to pick one.
+
+<a id="browser-tooling-fits-review-agents-well" />
+
+### Browser tooling fits review agents well
+
+One thing I've liked is handing browser tooling to a more adversarial review agent after implementation.  
+That review pass can be asked to inspect the implemented page visually, check console and network errors, validate a specific flow end to end and try edge cases the implementation agent may have skipped.
+
+That tends to work well because the review agent is not attached to the implementation it just wrote. It is looking for mismatches instead of trying to defend its own earlier reasoning. For frontend work in particular, that extra pass has felt useful, but is a useful tool for any coding tasks. The cost you pay is of course the time it takes for the extra model to think.
+
+<a id="open-questions" />
+
+### Open questions
+
+A few things I have not fully resolved yet.
+
+**Who should own browser verification?** The implementation agent, a higher-level orchestrator, or a separate reviewer? I currently lean toward orchestrator or reviewer, especially if concurrent agents are involved, but if you set up shared auth, I'm sure both options can work. Similarily **Session isolation for parallel agents** tackles a bit of the similar problem space. If every agent shares one browser, you get contention. If every agent gets its own clean and controllable browser state, a lot of the workflow becomes simpler and they get faster feedback to fix their own issues quickly.
+
+**Security and state handling.** The moment these tools start storing auth state, cookies, local storage or remote debugging connections, there is a real security conversation to have.
+
+**Performance and debugging, not just CSS.** It would be easy to accidentally frame these as only visual verification tools. That would undersell Chrome DevTools MCP especially, since a lot of its value is in debugging and performance analysis.
+
+<a id="playwright-mcp" />
+
+### Playwright MCP
+
+Another tool in this space is [Playwright MCP](https://github.com/microsoft/playwright-mcp?ref=huuhka.net). I have not used it myself yet, so I won't pretend I have a strong opinion.  
+Interestingly, its own README makes a distinction between MCP-based workflows and CLI + skill based workflows for coding agents, which is very much the same design space as the tradeoff discussed above. Worth evaluating.
+
+<a id="final-thought" />
+
+### Final thought
+
+Giving coding agents some way to verify browser state is increasingly worth it, because current models are still nowhere near reliable enough to just "reason the UI correctly" from code alone.

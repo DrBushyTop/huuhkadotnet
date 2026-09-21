@@ -1,0 +1,92 @@
+---
+title: "Quick ways of getting ObjectIds"
+slug: "quick-ways-of-getting-objectids"
+publishedAt: "2025-02-16T19:57:00.000+02:00"
+updatedAt: "2025-02-22T19:58:38.000+02:00"
+description: "A few quick ways of figuring out objectIds when you don't have
+  access to the Entra Portal"
+tags:
+  - "Azure"
+  - "PowerShell"
+  - "Security"
+tagSlugs:
+  - "azure"
+  - "powershell"
+  - "security"
+image: "/images/ghost/849f14182df0b13d1b70.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+When working as a consultant it's often the case that you're not allowed to use the Entra ID portal at all. The thing is, if you are configuring some environments you still do require information on groups and users objectIds. For example you might want to give developers permissions to develop locally against some Azure service, and giving those permissions in Bicep needs the objectId of the principal. Here are a couple of fast ways of figuring those out.
+
+<a id="access-only-through-pim" />
+
+### Access only through PIM?
+
+If your manual access is handled only through PIM, that is often set up for the group you want to give further permissions to in your app. The **Microsoft.Authorization** provider has a **roleEligibilityScheduleInstances** api we can use to enumerate the groups and scopes. This is the same api that gets called when you go to activate a role in the Azure portal.
+
+From PowerShell, you can do the following to call the API:
+
+```powershell
+$token = Get-AzAccessToken -ResourceUrl "https://management.azure.com" -AsSecureString | Select-Object -ExpandProperty Token
+
+$response = Invoke-WebRequest `
+    -Uri 'https://management.azure.com/providers/Microsoft.Authorization/roleEligibilityScheduleInstances?api-version=2020-10-01&$filter=asTarget()' `
+    -Method GET `
+    -Headers @{Authorization = "Bearer $($token | ConvertFrom-SecureString -AsPlainText)" } `
+| ConvertFrom-Json
+
+# Extract and transform data
+$response.value | Select-Object -ExpandProperty properties |
+Select-Object -ExpandProperty expandedProperties |
+Select-Object @{Name = "PrincipalName"; Expression = { $_.principal.displayName } }, `
+@{Name = "PrincipalObjectId"; Expression = { $_.principal.id } }, `
+@{Name = "RoleName"; Expression = { $_.roleDefinition.displayName } }, `
+@{Name = "ScopeName"; Expression = { $_.scope.displayName } }, `
+@{Name = "ScopeId"; Expression = { $_.scope.id } }
+```
+
+This should return a list of ids, roles and scopes like below:
+
+![](/images/ghost/acbf4205c4dd3d0f08bf.png)
+
+You can also just go to the activation page in the portal directly and get the results from the developer console.
+
+![](/images/ghost/6ba21bc4bca97aee4955.png)
+
+<a id="dont-know-your-own-objectid" />
+
+### Don't know your own objectId?
+
+If you only need to know your own objectId, you can use either this method or the developer console method in the next section. The bonus here is that you can get the objectId of any user by calling the internal Azure Portal API `main.iam.ad.ext.azure.com` . There is an additional benefit(?) of these calls not being visible in any audit logs.
+
+**The following call enumerates 999 users**, so you might not need quite as many. This was picked up from [Christian Philipov's talk at Disobey 2025](https://fwdcloudsec.org/assets/presentations/2024/europe/christian-philipov-staying-sneaky-in-azure.pdf?ref=huuhka.net).
+
+```powershell
+$portalToken = Get-AzAccessToken -ResourceUrl "74658136-14ec-4630-ad9b-26e160ff0fc6" -AsSecureString | Select-Object -ExpandProperty Token
+
+Invoke-WebRequest `
+    -Uri 'https://main.iam.ad.ext.azure.com/api/Users?top=999&nextLink=&searchText=&orderByThumnails=true&maxThumbnailCount=79508295&state=All' `
+    -Method POST `
+    -Headers @{
+    Authorization            = "Bearer $($portalToken | ConvertFrom-SecureString -AsPlainText)"
+    'x-ms-client-request-id' = 'd1b3b3b3-0b3b-4b3b-8b3b-3b3b3b3b3b3b'
+} | ConvertFrom-Json | Select-Object -ExpandProperty items | Select-Object -Property objectId, displayName, userPrincipalName
+```
+
+The resourceUrl should be the one listed, but the `x-ms-client-request-id` can be whatever.
+
+This returns a list of all the users in the tenant (or 999, really). Filter it as you please.
+
+<a id="getting-objectids-of-groups-via-the-developer-console" />
+
+### Getting ObjectIds of groups via the developer console
+
+This method can also be called via PowerShell or any other tool able to make REST calls. It's often quicker to just go to the portal.
+
+Navigate to the **Access control (IAM)** page of the subscription / resource group / resource you know the group or user has access to with the network tab of your browser developer console open and search for **roleAssignments** to find out the call. These don't directly show the name of the user so you might need to do some deduction, but often it's clear enough.
+
+![](/images/ghost/818493b6f4fea1079e94.png)

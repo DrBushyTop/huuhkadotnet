@@ -1,0 +1,118 @@
+---
+title: "Azure DevOps Agents using Managed Identitites"
+slug: "azure-devops-agents-using-managed-identitites"
+publishedAt: "2024-03-17T20:52:16.000+02:00"
+updatedAt: "2024-03-17T20:52:16.000+02:00"
+description: "This post shows an example of how to use Azure DevOps Agents
+  without Personal Access Tokens, using Managed Identities instead."
+tags:
+  - "Azure DevOps"
+  - "Azure Pipelines"
+  - "DevOps"
+  - "Security"
+tagSlugs:
+  - "azure-devops"
+  - "azure-pipelines"
+  - "devops"
+  - "security"
+image: "/images/ghost/5492d49cda1c41366c21.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+The currently documented way of handling authentication to Azure DevOps from the Azure DevOps Agent executable expects for you to generate a Personal Access Token (PAT) with permissions to manage Agent Pool resources. In this post we'll take a look at how we can avoid this by using Managed Identities instead.
+
+**Word of warning:** This functionality is **undocumented** and **might break** at some point. However, we've been running this without issues for several months now.
+
+Before we start, check out the [Dockerfile build here](https://learn.microsoft.com/azure/devops/pipelines/agents/docker?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#create-and-build-the-dockerfile-1) to get an idea how the Azure DevOps agent is run. We'll be making the changes to the start.sh file. However, in my case the Dockerfile already installs a version of the Azure DevOps agent executable, and it is not downloaded during the start.sh run.
+
+Sometime in the last couple of years, Azure DevOps has added a somewhat undocumented feature of Entra ID oauth token support for it's REST endpoints. What this means in practice is that **any endpoint that requires a PAT should be able to take in a bearer token as well**. This is what our solution here is based on.
+
+So let's start making some edits. I want to keep the image usable with both a PAT and a Managed Identity, so I'm using a Environment Variable MANAGED\_IDENTITY\_OBJECT\_ID to decide what to do. If this is present, we use it.
+
+```bash
+## This snippet handles setting the token
+
+if [ -z "$AZP_TOKEN_FILE" ]; then
+  # Check if MANAGED_IDENTITY_OBJECT_ID is present
+  if [ -n "$MANAGED_IDENTITY_OBJECT_ID" ]; then
+    response=$(curl -s "$IDENTITY_ENDPOINT?api-version=2019-08-01&resource=499b84ac-1321-427f-aa17-267ca6975798&object_id=$MANAGED_IDENTITY_OBJECT_ID" -H X-IDENTITY-HEADER:$IDENTITY_HEADER)
+    AZP_TOKEN=$(echo "$response" | jq -r '.access_token')
+
+    if [ -z "$AZP_TOKEN" ]; then
+      echo 1>&2 "error: failed to retrieve token using MANAGED_IDENTITY_OBJECT_ID"
+      exit 1
+    fi
+  elif [ -z "$AZP_TOKEN" ]; then
+    # Fall back to the AZP_TOKEN variable if APPLICATION_ID is not set
+    echo 1>&2 "error: missing AZP_TOKEN environment variable"
+    exit 1
+  fi
+
+  AZP_TOKEN_FILE=/azp/.token
+  echo -n $AZP_TOKEN > "$AZP_TOKEN_FILE"
+fi
+
+unset AZP_TOKEN
+```
+
+**The things to note here:**
+
+-   We're using the metadata endpoint, for which the Azure resources provide the addresses and required headers through env variables. [Here's the documentation for the endpoint I'm using here](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-to-use-vm-token?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net).
+    -   I'm running my agents in Azure Container Apps. If you use another service, you might need to make a few changes to the metadata endpoint. For [Container Instances and VMs, I think this is the endpoint you need to use instead](https://learn.microsoft.com/azure/virtual-machines/instance-metadata-service?tabs=windows&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net).
+-   **499b84ac-1321-427f-aa17-267ca6975798** is a resource for Azure DevOps in Entra Id. This can be hardcoded as it should be identical for all tenants (at least from what I've seen)
+-   Tokens last for 60 minutes, but this is not a problem as Azure DevOps only uses this to add the agent to the pool after which it generates internal tokens to handle polling the queues for new jobs etc. [This interaction is described here.](https://learn.microsoft.com/azure/devops/pipelines/agents/agents?view=azure-devops&tabs=yaml%2Cbrowser&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#communication-with-azure-pipelines)
+
+Next we need to do similar things to handle the cleanup, as the token might have already expired. _(This might not work 100% as I've had some lingering offline agents in my pools)_
+
+```bash
+cleanup() {
+  if [ -n "$AZP_PLACEHOLDER" ]; then
+    echo 'Running in placeholder mode, skipping cleanup'
+    return
+  fi
+  if [ -e config.sh ]; then
+    print_header "Cleanup. Removing Azure Pipelines agent..."
+
+    if [ -n "$MANAGED_IDENTITY_OBJECT_ID" ]; then
+      response=$(curl -s "$IDENTITY_ENDPOINT?api-version=2019-08-01&resource=499b84ac-1321-427f-aa17-267ca6975798&object_id=$MANAGED_IDENTITY_OBJECT_ID" -H X-IDENTITY-HEADER:$IDENTITY_HEADER)
+      AZP_TOKEN=$(echo "$response" | jq -r '.access_token')
+
+      if [ -z "$AZP_TOKEN" ]; then
+      echo 1>&2 "error: failed to retrieve token using MANAGED_IDENTITY_OBJECT_ID"
+      exit 1
+      fi
+
+      AZP_TOKEN_FILE=/azp/.token
+      echo -n $AZP_TOKEN > "$AZP_TOKEN_FILE"
+    fi
+
+    # If the agent has some running jobs, the configuration removal process will fail.
+    # So, give it some time to finish the job.
+    while true; do
+      ./config.sh remove --unattended --auth PAT --token $(cat "$AZP_TOKEN_FILE") && break
+
+      echo "Retrying in 30 seconds..."
+      sleep 30
+    done
+  fi
+}
+```
+
+[You can view the full file here](https://github.com/DrBushyTop/blogExamples/blob/master/azureDevOpsAgentManagedIdentity/start.sh?ref=huuhka.net)
+
+<a id="changes-needed-in-azure-devops" />
+
+### Changes needed in Azure DevOps
+
+If you run the container without doing the following steps, you might get notified that no Agent Pools with the given name are found. This was a bit puzzling at first, but it turns out that the Managed Identity needs to be given a **Basic license** to Azure DevOps before it can read the pools regardless of other permissions. Sometimes adding the identity to Azure DevOps can be a bit difficult with searches not finding it, so I recommend doing this step first.
+
+![](/images/ghost/ecec18341e7df8772c32.png)
+
+We still need to give the identity some permissions, namely the same permissions that the PAT Token should have: Read and Manage Agent Pools AND the Administrator permission to the pool instance itself **on the Organization level** (I don't think the Project level is needed)
+
+![](/images/ghost/5195cc9f4170fe67a32e.png)
+
+And that should be all! Now if you start the agent with the Managed Identity ObjectId env variable present, you should be good to go!

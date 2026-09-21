@@ -1,0 +1,275 @@
+---
+title: "Monitoring Setup for Azure AD B2C tenants"
+slug: "monitoring-setup-for-azure-ad-b2c"
+publishedAt: "2023-03-19T20:52:44.000+02:00"
+updatedAt: "2023-03-19T20:52:44.000+02:00"
+description: "I've recently been working on implementing Azure AD B2C from
+  scratch, and wanted to write down some thoughts about how to implement the
+  monitoring for new tenants."
+tags:
+  - "Azure"
+  - "Telemetry"
+tagSlugs:
+  - "azure"
+  - "telemetry"
+image: "/images/ghost/71f2ceb50c75f9b280fe.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoDescription: "I've recently been working on implementing Azure AD B2C from
+  scratch, and wanted to write down some thoughts about how to implement the
+  monitoring for new tenants"
+series: []
+---
+
+I've recently been working on implementing [Azure AD B2C](https://azure.microsoft.com/en-us/products/active-directory/?ref=huuhka.net) from scratch, and wanted to write down some thoughts about how to implement the monitoring for new tenants.
+
+As with any solution, monitoring your Azure AD B2C setup is critical to ensure that it is performing as expected and to identify and troubleshoot any issues that may arise.
+
+What's peculiar with Azure AD B2C is that it creates a new, stripped down version of a normal Azure AD tenant, adding the B2C capabilities on top of that. The only visible thing in the non-B2C tenant (let's call this the "main" tenant from now on) is a B2C resource that handles billing. This tenant cannot have a subscription or any other Azure resources tied to it, so the main question is, how do you actually store your audit, sign-in, and other logs?
+
+It's arguable whether you should spend too much time on automation here. Tenants get created very seldom, and a couple of the steps cannot be done with service principals.
+
+**Some things to note before we start:**
+
+-   [Azure Tenants cannot be created by service principals](https://stackoverflow.com/questions/70416063/azure-service-principal-to-create-and-log-into-b2c-tenants?ref=huuhka.net)
+-   Any user that creates a tenant will have global admins to the B2C tenant
+-   For automation, you need two service principals, one for the main tenant, and another for the B2C tenant. This can be replaced by a single human user
+-   User setting up monitoring needs to be able to configure diagnostics settings of the B2C tenant, as well as have owner-like permissions for **a subscription** in the main tenant
+-   [The diagnostics settings cannot be set up by service principals, at least via terraform](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_aad_diagnostic_setting?ref=huuhka.net)
+
+<a id="setup-steps" />
+
+## Setup steps
+
+I'm assuming you already have a Azure AD and Azure AD B2C tenants created.
+
+-   Create a Log Analytics and Application Insights resources in the main tenant
+-   (Optional) Add monitoring workbooks to the workspace
+-   Create a user group in the B2C tenant, add the users that will configure diagnostics settings
+-   Create a Azure Lighthouse registration definition and assignments against the resource group with log analytics
+-   Configure diagnostics settings in B2C
+
+As you can see, we need to use Azure Lighthouse to delegate the Log Analytics resources to the B2C tenant, so the Diagnostics configuration can be done.
+
+Let's go through these steps in more detail.
+
+<a id="create-logging-resources" />
+
+### Create logging resources
+
+Nothing too special here. We're just creating the resources via Terraform or Bicep. Log analytics is needed for the diagnostics settings, whereas [Application Insights is often used for B2C Custom Policies events](https://learn.microsoft.com/en-us/azure/active-directory-b2c/analytics-with-application-insights?pivots=b2c-custom-policy&ref=huuhka.net).
+
+```hcl
+
+resource "azurerm_resource_group" "rg" {
+  name     = "myrg"
+  location = var.location
+
+  tags = var.tags
+}
+
+resource "azurerm_log_analytics_workspace" "loganalytics" {
+  name                = "mylaw"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  retention_in_days   = 60
+  sku                 = "PerGB2018"
+
+  tags = var.tags
+}
+
+resource "azurerm_application_insights" "appinsights" {
+  name                = "myappinsights"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  application_type    = "web"
+
+  workspace_id = azurerm_log_analytics_workspace.loganalytics.id
+
+  tags = var.tags
+}
+
+```
+
+<a id="-optional-add-monitoring-workbooks-to-the-workspace" />
+
+### (Optional) Add monitoring workbooks to the workspace
+
+You might want to get some reasonable dashboards for your logs. Thankfully Microsoft has provided some pretty good ones we can use almost straight out the box.
+
+[GitHub - azure-ad-b2c/siem: The repository contains artifacts to create and publish reports, alerts, and dashboards based on Azure AD B2C logs. These artifacts can also be used for Security Information & Event Management (SIEM) related tasks.](https://github.com/azure-ad-b2c/siem?ref=huuhka.net)
+
+The repository contains artifacts to create and publish reports, alerts, and dashboards based on Azure AD B2C logs. These artifacts can also be used for Security Information &amp; Event Management ...
+
+I've copied the workbooks  .json files from the workbooks folder of the repo to my own repo. Then in Terraform, we can create the workbooks like this. Note that the Abandon Journeys workbook does depend on you passing the name of the App Insights in.
+
+Some examples for Terraform:
+
+```hcl
+
+resource "random_uuid" "abandon_journeys" {
+}
+resource "azurerm_application_insights_workbook" "abandon_journeys" {
+  name                = random_uuid.abandon_journeys.result
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  display_name        = "Abandon Journeys Report"
+  source_id           = lower(azurerm_log_analytics_workspace.loganalytics.id)
+  category            = "workbook"
+  data_json           = jsonencode(templatefile("${path.module}/books/abandon_journeys.json", { app_insights_name = azurerm_application_insights.appinsights.name }))
+}
+
+
+resource "random_uuid" "conditional_access_report" {
+}
+resource "azurerm_application_insights_workbook" "conditional_access" {
+  name                = random_uuid.conditional_access.result
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  display_name        = "Condtional Access Report"
+  source_id           = lower(azurerm_log_analytics_workspace.loganalytics.id)
+  category            = "workbook"
+  data_json           = jsonencode(file("${path.module}/books/conditional_access_report.json"))
+}
+
+```
+
+<a id="create-a-user-group-in-the-b2c-tenant" />
+
+### Create a user group in the B2C tenant
+
+Normal security group here, with users added in.
+
+If you're using a service principal for this, it should have the following MS Graph permissions:
+
+-   Group.ReadWrite.All
+-   User.Read.All
+
+Here's a Terraform example. Replace or fetch the user objectIds:
+
+```hcl
+
+resource "azuread_group" "logging_administrators" {
+  display_name     = "B2C Logging Administrators"
+  owners           = ["my-user objectid"]
+  security_enabled = true
+
+  members = ["my-user objectid"]
+}
+
+```
+
+<a id="create-a-azure-lighthouse-registration-definition-and-assignments" />
+
+### Create a Azure Lighthouse registration definition and assignments
+
+Azure Lighthouse sets up the delegation for the user group we just created to manage the resource group with the logging resources.
+
+This part requires that the user or principal deploying the code has write permissions to roleAssignments, so basically Owner permissions on the subscription level. I've created a tiny bit more restricted role, **but as the role has the permission to give itself more permissions**, this should still be treated the same as Owner. Main benefit here is just to make it harder to accidentally make mistakes.
+
+Here's the JSON representation for the role:
+
+```json
+{
+	"id": "/subscriptions/someguid/providers/Microsoft.Authorization/roleDefinitions/someguid",
+	"properties": {
+    "roleName": "Lighthouse Delegation Creator",
+    "description": "Is able to create lighthouse registrationDefinitions and registrationAssignments",
+    "assignableScopes": ["/subscriptions/mysubguid"],
+    "permissions": [
+      {
+        "actions": [
+          "Microsoft.ManagedServices/registrationDefinitions/read",
+          "Microsoft.ManagedServices/registrationDefinitions/write",
+          "Microsoft.ManagedServices/registrationDefinitions/delete",
+          "Microsoft.ManagedServices/registrationAssignments/read",
+          "Microsoft.ManagedServices/registrationAssignments/write",
+          "Microsoft.ManagedServices/registrationAssignments/delete",
+          "Microsoft.ManagedServices/operationStatuses/read",
+          "Microsoft.ManagedServices/operations/read",
+          "Microsoft.Authorization/roleAssignments/read",
+          "Microsoft.Authorization/roleAssignments/write",
+          "Microsoft.Authorization/roleAssignments/delete"
+        ],
+        "notActions": [],
+        "dataActions": [],
+        "notDataActions": []
+      }
+		]
+	}
+}
+```
+
+Then, onto the Lighthouse config. First we need to create a "Lighthouse Registration Definition" which specifies:
+
+-   What is the tenant that manages the things we assign this definition to
+-   What role will be given to the authorized managing users
+-   Who in that tenant has the authorization
+
+```hcl
+resource "random_uuid" "offer_name" {}
+
+resource "azapi_resource" "lighthouse_offer" {
+  type      = "Microsoft.ManagedServices/registrationDefinitions@2022-10-01"
+  name      = random_uuid.offer_name.result
+  parent_id = "/subscriptions/${var.subscription_id}"
+  body = jsonencode({
+    properties = {
+      authorizations = [
+        {
+          principalId            = "objectIdOfB2CGroup"
+          principalIdDisplayName = "DisplayNameOfB2CGroup"
+          roleDefinitionId       = "b24988ac-6180-42a0-ab88-20f7382dd24c" # Contributor
+        }
+      ]
+      registrationDefinitionName = "myOffer"
+      description                = "Example offer for B2C"
+      managedByTenantId          = "tenantID of the B2C tenant"
+    }
+  })
+
+  response_export_values = [
+    "id"
+  ]
+}
+```
+
+Next, we need to assign the definition to our resource group in the main tenant. Basically saying that this will be managed by the B2C tenant AD group.
+
+```
+resource "azapi_resource" "logging_delegation" {
+  type      = "Microsoft.ManagedServices/registrationAssignments@2022-10-01"
+  name      = random_uuid.offer_name.result
+  parent_id = "logging resource group resource ID"
+  body = jsonencode({
+    properties = {
+      registrationDefinitionId = jsondecode(azapi_resource.lighthouse_offer.output).id
+    }
+  })
+}
+```
+
+<a id="configure-diagnostics-settings-in-b2c" />
+
+### Configure diagnostics settings in B2C
+
+Last, we just need to set up the diagnostics settings. This step apparently cannot be done by service principal authentication (at least in Terraform), so a user needs to do this part. You might need to wait a few minutes for the previous steps delegation to start working.
+
+You can either create a Terraform module for this with [this resource type](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/monitor_aad_diagnostic_setting?ref=huuhka.net), or just configure these manually.
+
+If you're doing the manual config, first set the delegated subscription in the Default Subscription filter under the Directories + Subscriptions menu of the portal settings.
+
+![](/images/ghost/956eecb5c6593e3a9209.png)
+
+Then just configure the diagnostics settings as you like.
+
+![](/images/ghost/d316167b4b42f205537d.png)
+
+And that's it!
+
+Microsoft also has these things documented in the below link, but does not provide direct templates for any configs.
+
+[Monitor Azure AD B2C with Azure Monitor - Azure AD B2C](https://learn.microsoft.com/en-us/azure/active-directory-b2c/azure-monitor?ref=huuhka.net)
+
+Learn how to log Azure AD B2C events with Azure Monitor by using delegated resource management.

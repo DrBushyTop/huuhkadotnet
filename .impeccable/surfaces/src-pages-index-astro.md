@@ -2,50 +2,33 @@
 version: 1
 slug: "src-pages-index-astro"
 primary_target: "src/pages/index.astro"
-related_targets: []
+related_targets:
+  - "src/lib/posts.ts"
+  - "src/lib/search.ts"
 ---
 
 # Homepage
 
-Mode: Read. Build a preliminary homepage in Astro, not the content migration.
-The user selected round four A on September 21, 2026, then requested more
-prominent, compact rectangular popular cards based on the supplied Encore
-screenshot. Subsequent requests bring the header and archive cards closer to Encore.
-
-The implemented homepage is the approved composition reference.
-Use the actual portrait and published post images instead of generated images.
-Article links, About, and RSS continue to the existing live site in this pass.
-Popular picks use the first three entries for now. The user requested removing
-the visible sample-selection label. No production deployment.
-Follow-up: show at least twelve articles initially. The preview includes fifteen
-RSS entries, with a button revealing the remaining three. Search covers all fifteen.
+Mode: Read. Preserve the approved homepage composition while replacing the preview entries with the complete local content collection. No deployment.
 
 ## Direction contract
 
-THESIS: A personal article index with popular picks before the dated archive.
-No oversized introduction, category filters, or excerpts.
+THESIS: A personal article index with provisional popular picks before the dated archive. No oversized introduction, category filters, or excerpts.
 
-OWN-WORLD: White header, small blue geometric H, uppercase Geist Mono navigation,
-dark slate text, quiet blue links. Popular links have filled, bordered horizontal
-rectangles. Archive cards use a pale fill, fine border, rounded image corners,
-19px medium Geist Sans titles, up to two small topic tags, and a spaced date/read-more footer.
-Geist Sans also sets the wordmark and section headings at semibold weight.
-Code blocks and inline code use self-hosted SauceCodePro Nerd Font Mono.
-The default block size is 14px with 1.65 line height and horizontal scrolling.
-Keep vertical section gaps compact: 24px introduction padding, 28px before the
-archive on desktop and 24px on phones. Preserve archive-card content padding.
+OWN-WORLD: White header, small blue geometric H, uppercase Geist Mono navigation, slate text, and quiet blue links. Popular cards are compact filled rectangles. Archive cards retain pale fill, fine borders, rounded image corners, 19px medium Geist Sans titles, up to two topic tags, and the date/read-more footer. Geist Sans also sets the wordmark and section headings. Preserve the shared palette, card padding, and code font in DESIGN.md.
 
-STORY: Readers recognize Pasi, find a suggested article, or search the recent
-archive by title and topic. Links open the original published articles.
+STORY: Readers recognize Pasi, choose a suggested article, or search titles and topics across all 55 imported posts. Article cards, About, community activities, and RSS now open local routes. The popular group uses the newest three entries as provisional picks without a sample-selection label or a verified analytics claim.
 
-FIRST VIEWPORT: A compact header with LinkedIn, GitHub, RSS at right. A 56px
-portrait introduction. Three compact popular cards. Below, a three-column
-dated archive with fuzzy search beside its heading. Mobile stacks the cards.
-The phone header stays on one row with GitHub and a menu button. Its full-screen
-navigation dialog separates page links from social links.
+FIRST VIEWPORT: A compact header with LinkedIn, GitHub, and RSS links. A small portrait introduction, three popular cards, then the dated archive with search beside its heading. Desktop archive cards use three columns; phone cards stack. The phone header stays on one row with GitHub and a full-screen navigation menu.
 
-FORM: User-selected round four A, popular-first, original seed `0b098bcc`.
-The user changed the popular-card treatment and requested a preliminary build;
-exact font matching is deferred. Preserve structure, not generated lettering.
+FORM: The approved image-led homepage remains the composition reference. Use the real portrait and published post images, with local WebP archive thumbnails. Keep introduction padding at 24px and the archive separation at 28px on desktop and 24px on phones. Preserve padding inside archive cards.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: Keep documentation matched to source. Browser evidence covers only its recorded pages, widths, and interactions; do not infer whole-site or keyboard certification.
+
+## Content and behavior
+
+- Show 12 articles initially and reveal another 12 with Load more, until the collection is exhausted. Do not switch to automatic infinite scrolling.
+- Search all posts, including hidden batches; retain URL query state, clear actions, live counts, and the empty state.
+- Without JavaScript, show all articles and hide search and loading controls.
+- Keep metadata from the collection. Display at most two non-interactive topic labels on cards; full linked tags belong on article pages.
+- Keep noindex and analytics disabled during local migration. Production requirements belong in `docs/migration.md`.

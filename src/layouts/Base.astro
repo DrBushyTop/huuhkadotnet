@@ -4,29 +4,48 @@ import '@fontsource-variable/source-sans-3';
 import '../styles/global.css';
 import '../styles/code.css';
 import Header from '../components/Header.astro';
-interface Props { title: string }
-const { title } = Astro.props;
+interface Props {
+  title: string; description?:string; canonicalUrl?:string; image?:string;
+  ogTitle?:string; ogDescription?:string; twitterTitle?:string; twitterDescription?:string; twitterImage?:string;
+  publishedAt?:string; updatedAt?:string; reading?:boolean;
+}
+const {title,description='Articles by Pasi Huuhka on DevOps, Azure, and building software with AI.',canonicalUrl,image,ogTitle,ogDescription,twitterTitle,twitterDescription,twitterImage,publishedAt,updatedAt,reading=false} = Astro.props;
+const canonical = canonicalUrl || new URL(Astro.url.pathname, Astro.site).href;
+const absolute = (path:string) => new URL(path,Astro.site).href;
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Articles by Pasi Huuhka on DevOps, Azure, and building software with AI." />
+    <meta name="description" content={description} />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#ffffff" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:site_name" content="Huuhka.net" />
+    <meta property="og:type" content={publishedAt ? 'article':'website'} />
+    <meta property="og:title" content={ogTitle || title} />
+    <meta property="og:description" content={ogDescription || description} />
+    <meta property="og:url" content={canonical} />
+    {image && <meta property="og:image" content={absolute(image)} />}
+    <meta name="twitter:card" content={image ? 'summary_large_image':'summary'} />
+    <meta name="twitter:title" content={twitterTitle || ogTitle || title} />
+    <meta name="twitter:description" content={twitterDescription || ogDescription || description} />
+    {(twitterImage || image) && <meta name="twitter:image" content={absolute((twitterImage || image)!)} />}
+    {publishedAt && <meta property="article:published_time" content={publishedAt} />}
+    {updatedAt && <meta property="article:modified_time" content={updatedAt} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="alternate" type="application/rss+xml" title="Huuhka.net RSS" href="https://www.huuhka.net/rss/" />
+    <link rel="alternate" type="application/rss+xml" title="Huuhka.net RSS" href="/rss/" />
     <title>{title}</title>
+    <slot name="head" />
   </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to articles</a>
+  <body class:list={[{'reading-view':reading}]}>
+    <a class="skip-link" href="#main">Skip to content</a>
     <Header />
     <slot />
-    <footer class="site-footer page-width">
+    <footer class:list={['site-footer', 'page-width', {'reading-footer':reading}]}>
       <p>© {new Date().getFullYear()} Pasi Huuhka</p>
-      <p>Design preview. Article links open the current huuhka.net.</p>
-      <a href="https://www.huuhka.net/rss/">RSS feed</a>
+      <nav aria-label="Footer"><a href="/community-activities/">Community activities</a><a href="/rss/">RSS feed</a></nav>
     </footer>
   </body>
 </html>

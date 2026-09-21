@@ -1,0 +1,129 @@
+---
+title: "Using Bicep to manage Microsoft Graph"
+slug: "using-bicep-to-manage-entra-id-and-why-i-probably-wont-be-doing-it"
+publishedAt: "2025-02-23T19:56:00.000+02:00"
+updatedAt: "2025-03-15T19:59:23.000+02:00"
+description: "The Bicep team has recently published the \"Bicep Templates for
+  Microsoft Graph\" extension into public preview. I've been playing around with
+  it a bit, and wanted to document my experiences."
+tags:
+  - "DevOps"
+  - "Bicep"
+  - "Security"
+tagSlugs:
+  - "devops"
+  - "bicep"
+  - "security"
+image: "/images/ghost/613ccbedb06f88a713b6.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+The Bicep team has recently published the ["Bicep Templates for Microsoft Graph"](https://learn.microsoft.com/en-us/graph/templates/?ref=huuhka.net) extension into public preview. I've been playing around with it a bit, and wanted to document my experiences.
+
+To get started, you'll need to follow these docs:
+
+-   [Install Bicep Tools](https://learn.microsoft.com/en-us/graph/templates/quickstart-install-bicep-tools?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [Define extension in your bicepconfig and bicep file](https://learn.microsoft.com/en-us/graph/templates/quickstart-create-bicep-interactive-mode?tabs=CLI&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [Find references of the types](https://learn.microsoft.com/graph/templates/reference/overview?view=graph-bicep-1.0&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+<a id="deploying-app-registrations" />
+
+### Deploying App Registrations
+
+I think in general the extension is easy to use and makes me want to switch from using scripts to generate any app registrations I need for my applications. The common use case our projects has is that we need to have an app registration that has application roles set in the manifest. Our own application will then check if the caller of the REST endpoint has said role.
+
+Here's how I would implement something like that. [View the full code here.](https://github.com/DrBushyTop/blogExamples/blob/master/bicepGraph/appRegistration.bicep?ref=huuhka.net)
+
+```bicep
+var appApplicationPermissions = [
+  // Application permissions offered by the API
+  // These are used by services to call the API as themselves, without a user
+  {
+    value: 'Examples.Access.All'
+    id: '558bc863-88bd-479a-8731-d5beb4121827'
+    displayName: 'Access all examples'
+    description: 'Allow the application to access all examples as itself.'
+    isEnabled: true
+    allowedMemberTypes: [
+      'Application'
+    ]
+  }
+]
+
+resource appReg 'Microsoft.Graph/applications@v1.0' = {
+  // Snipped 
+  appRoles: appApplicationPermissions
+  // More code..
+}
+
+resource appRegSp 'Microsoft.Graph/servicePrincipals@v1.0' = {
+  appId: appReg.appId
+}
+
+resource appRegRoles 'Microsoft.Graph/appRoleAssignedTo@v1.0' = [
+  for (permission, index) in appApplicationPermissions: {
+    appRoleId: permission.id
+    principalId: appInfraInfo.callingApplicationPrincipalId
+    resourceId: appRegSp.id
+  }
+]
+```
+
+This works, and looks much cleaner than our previous script implementation. The problem is, however, that assigning the roles is a [highly privileged operation](https://learn.microsoft.com/graph/templates/reference/approleassignedto?view=graph-bicep-1.0&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#permissions) and requires [global admin consent in Entra ID](https://learn.microsoft.com/entra/identity/enterprise-apps/grant-admin-consent?pivots=portal&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) on the application we give permissions to.
+
+The problem of course isn't really due to the Bicep extension, but just how Graph works. I don't want to give my service principal handling the environment automation the A**ppRoleAssignment.ReadWrite.All** permission, as then it could wreak havoc in the tenant, and there's no permission like **AppRoleAssignment.ReadWrite.OwnedBy**, which could limit the blast radius to just the relevant parts. Thus I can run this if I have the required permissions, but in customer cases that's rarely the case. And I definitely cannot automate this for pipeline runs. Thankfully, the values don't change too often here so we can manually manage this for now.
+
+<a id="putting-things-into-groups" />
+
+### Putting things into groups
+
+The other use case where I can see this being useful is working with managed identities in my application. Usually, I've resorted to using user assigned managed identities exclusively, as it automatically abstracts the permission setup away from the actual infrastructure running my code. There's always a situation where permission is given to some external system and then we for whatever reason need to switch or recreate the infra we're running on, deleting the system assigned identity. User assigned identities avoid this problem altogether.
+
+The problem is, that user assigned identities are not the "default" identity used by most SDKs when using things like [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential?view=azure-dotnet&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) or similar, leading to cases where bugs happen due to no identity being specified. This can of course be configured via the AZURE\_CLIENT\_ID environment variable and other settings via Bicep, but it's easy to miss one and wonder why something does not work. These could be [ServiceBusConnection](https://blog.novanet.no/azure-functions-servicebustrigger-using-managed-identity-doesnt-wake-up-when-running-on-consumption-plan/?ref=huuhka.net) settings, or [Key Vault References](https://learn.microsoft.com/azure/app-service/app-service-key-vault-references?tabs=azure-cli&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#access-vaults-with-a-user-assigned-identity) etc.
+
+As you've probably already figured out, we could opt to use groups as the abstraction instead, and just add the external permissions to the group directly. This might not work for all cases, where the external system requires application IDs for the permission setup, but then you can resort back to user assigned ids.
+
+In the example below, I'm adding two user assigned identities to a group. They could be system assigned identities just as well.
+
+```bicep
+extension 'br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:0.1.8-preview'
+
+resource identity1 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
+  name: 'identity1'
+  location: 'swedencentral'
+}
+
+resource identity2 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
+  name: 'identity2'
+  location: 'swedencentral'
+}
+
+resource group 'Microsoft.Graph/groups@v1.0' = {
+  displayName: 'bicepDemoGroup'
+  mailEnabled: false
+  mailNickname: 'bicepDemoGroup'
+  securityEnabled: true
+  uniqueName: 'bicepDemoGroup'
+  members: [
+    identity1.properties.principalId
+    identity2.properties.principalId
+  ]
+}
+
+// Proceed to give permissions to group...
+```
+
+This is not perfect, as the first deploy often might not have replicated the user assigned identity principal IDs yet, failing the deployment. Perhaps they'll fix this later, or maybe splitting this into different modules might avoid the problem, but it's a bit messy.
+
+<a id="managing-subscriptionless-tenants" />
+
+### Managing subscriptionless tenants
+
+I've been working on some projects with Azure AD B2C as the custom identity platform. [B2C tenants cannot have subscriptions (without a lighthouse integration)](/monitoring-setup-for-azure-ad-b2c/), so previously Bicep files could not be deployed against the tenants at all. Now with the Graph extension and the new "tenant" scope, this too is possible.
+
+I'm still working on implementing this on the background, but this would now make the automation of the whole tenant much easier.
+
+[See some examples here](https://learn.microsoft.com/graph/templates/how-to-deploy-without-azure-sub?view=graph-bicep-1.0&tabs=CLI&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)

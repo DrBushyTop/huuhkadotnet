@@ -1,0 +1,41 @@
+---
+title: "Simple Log Aggregation with Azure Metrics Aggregator"
+slug: "simple-log-aggregation"
+publishedAt: "2024-11-01T20:22:00.000+02:00"
+updatedAt: "2025-02-22T20:23:05.000+02:00"
+description: "I created a simple tool to make aggregation of data easier for
+  Azure Monitor based alerts"
+tags:
+  - "Azure"
+  - "Azure DevOps"
+  - "Azure Pipelines"
+  - "DevOps"
+  - "SRE"
+tagSlugs:
+  - "azure"
+  - "azure-devops"
+  - "azure-pipelines"
+  - "devops"
+  - "sre"
+image: "/images/ghost/d102a3c46aaa59c501ea.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+I've been pushing to move our monitoring focus from infrastructure related alerts to more of a Service Level Objective minded approach. Our projects run on Azure, and we use the Azure native tooling to monitor and send alerts when thresholds are reached.
+
+[Azure Monitor provides a few types of alerts we can use](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-types?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#types-of-azure-monitor-alerts), and of these the Log Search Alert is the most powerful. My use case however is a bit hard to implement with just the application's own data, as there is a limit of how much data can be queried for the alert. If for example I wanted to make a generic alert of `If we have used more than x% of our error budget within the last 10 minutes, trigger the alert`, I couldn't really calculate the error budget in real time for the whole 28 day period we usually use for calculating it. I believe the limit is something like 2 days of data.
+
+So I figured a simple solution is just to create a tool (AMAG) that can be used to run arbitary KQL queries (with certain limitations) against a Log Analytics workspace (and even a resource in case of metrics). The resulting aggregation will then be saved as a metric value or a log value in a custom table inside Log Analytics.
+
+This allows me to schedule some aggregation jobs wherever I want, like an Azure Pipeline which save aggregated numbers each run. Then my alerts just compare the current status against those aggregates, making it easy to check how much error budget has been spent so far in the alerting logic.
+
+There are some prerequisites setting this up, but the repo will get you started.
+
+Check it out below! If you find any issues, create a issue in the GH repo, or even better, create a PR.
+
+[GitHub - DrBushyTop/amag: Azure Metrics Aggregator runs KQL queries and saves them as either custom metrics or logs in Azure Monitor](https://github.com/DrBushyTop/amag?ref=huuhka.net)
+
+Azure Metrics Aggregator runs KQL queries and saves them as either custom metrics or logs in Azure Monitor - DrBushyTop/amag

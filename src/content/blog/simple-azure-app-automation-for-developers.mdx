@@ -1,0 +1,359 @@
+---
+title: "Simple Azure app deployment automation for Developers"
+slug: "simple-azure-app-automation-for-developers"
+publishedAt: "2024-01-17T18:07:00.000+02:00"
+updatedAt: "2024-03-17T18:24:29.000+02:00"
+description: "A look into a simple approach to automating deployments to Azure
+  that can be run locally using powershell. Also includes thoughts on Azure
+  Developer CLI (azd)"
+tags:
+  - "App Service"
+  - "Azure"
+  - "DevOps"
+  - "PowerShell"
+tagSlugs:
+  - "app-service"
+  - "azure"
+  - "devops"
+  - "powershell"
+image: "/images/ghost/1544fa4da954945c863f.webp"
+imageAlt: ""
+imageCaption: "<span style=\"white-space: pre-wrap;\">Me on vacation after
+  writing a few lines of powershell</span>"
+draft: false
+featured: false
+series: []
+---
+
+I've recently heard multiple requests from colleagues to be able to deploy a fresh run of our internal templates. While I can understand this requirement, I don't necessarily see it being that useful after the first week of our project as we should have fully featured deployment pipelines up and running by then. In any case, this post will go through a simple implementation example of how one could approach this.
+
+There are of course multiple readymade tools to accomplish being able to build and deploy your app, depending on your technology stack of choice, but I've been hearing a bunch of hype around the [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) lately. The main idea behind the tool is that you can pick a template (custom or provided), run a single command (**azd init**) to handle Azure login etc. and lastly run **azd up** to deploy both your infra and code together.
+
+While that does seem pretty cool on paper, I have a few problems with it in it's current state:
+
+-   The tool [requires your whole project structure to match their expectations](https://learn.microsoft.com/azure/developer/azure-developer-cli/make-azd-compatible?tabs=use-code&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). This is of course reasonable, but our internal templates do not fit the bill here and would require quite a bit of work to do so.
+-   The documentation is still work in progress, and some things like adding bicep parameters, handling multi-stage Azure DevOps pipelines etc. are a bit difficult to figure out. Some things feel like "magic" that happens behind the scenes, and that's not a good thing when you're the one needing to troubleshoot failures in the future.
+-   While the tool works well for a POC scenario, as soon as you need to take things to production, the result does not really fit our requirements at the moment.
+
+Now I'm not saying that the tool won't be a great addition to toolsets in the future, but it just doesn't work for me right now.
+
+<a id="powershell-to-the-rescue" />
+
+### Powershell to the rescue
+
+I'm then left with two tools I'm familiar with, PowerShell and Makefiles. However, as our projects are often Dotnet most of our developers use Windows laptops, making the installation process of make a bit cumbersome. Thus I decided to go with PowerShell.
+
+My requirements:
+
+-   Deploy infrastructure defined in Bicep with a single command for the whole solution. Minimize number of arguments needed.
+-   Deploy Dotnet code to Azure Functions and Azure Web Apps with a single command. Minimize number of arguments needed.
+-   Allow these pieces to be done separately.
+
+I also expect that any resource information relevant to the solution will be output by Bicep deployments so I can easily use them.
+
+Next, let's walk through some of my implementation.
+
+<a id="basics" />
+
+### Basics
+
+For setting up our environment, I ended up hardcoding my "development" env details in my script. For any details I need to save during the deployments, I save them to a folder named "**.development**" that should be added to your .gitignore file.
+
+```powershell
+# Hardcoded variables
+$tenantId = "YOUR_TENANT_ID"
+$subscriptionId = "YOUR_SUBSCRIPTION_ID"
+$resourceGroupName = "YOUR_DEV_RESOURCE_GROUP_NAME" ## I often have this created before hand, so the script does not create it
+$gitRootDir = git rev-parse --show-toplevel
+$backendProjectRootPath = "$gitRootDir/My.BackendProject"
+$backendProjectPath = "$backendProjectRootPath/My.BackendProject.csproj"
+$functionProjectRootPath = "$gitRootDir/My.FunctionProject"
+$functionProjectPath = "$functionProjectRootPath/My.FunctionProject.csproj"
+```
+
+Paths don't often change, and neither do the resource group names etc. We can still later override these if needed.
+
+I also need to be able to update my tooling (or install it) as well as login to Azure
+
+```powershell
+function ProjectName-Update {
+  az upgrade -y
+  az bicep upgrade
+  Write-Output "Installing SqlServer module... You might already have it installed, so this might fail."
+  Install-Module -Name SqlServer -Force -AcceptLicense
+}
+
+function ProjectName-Login {
+  az login --tenant $tenantId
+  az account set --subscription $subscriptionId
+}
+```
+
+Lastly, I might need to generate some random passwords for my SQL database (this should be replaced with a AAD auth only solution)
+
+```powershell
+function GeneratePassword {
+  param(
+    [ValidateRange(12, 256)]
+    [int]
+    $length = 25
+  )
+
+  $symbols = '!@#$%^&*'.ToCharArray()
+  $characterList = 'a'..'z' + 'A'..'Z' + '0'..'9' + $symbols
+
+  do {
+    $password = -join (0..$length | ForEach-Object { $characterList | Get-Random })
+    [int]$hasLowerChar = $password -cmatch '[a-z]'
+    [int]$hasUpperChar = $password -cmatch '[A-Z]'
+    [int]$hasDigit = $password -match '[0-9]'
+    [int]$hasSymbol = $password.IndexOfAny($symbols) -ne -1
+
+  }
+  until (($hasLowerChar + $hasUpperChar + $hasDigit + $hasSymbol) -ge 3)
+
+  $password
+}
+```
+
+<a id="infrastructure" />
+
+### Infrastructure
+
+As I mentioned earlier, anything my Bicep files deploy, they should also output. For example:
+
+```bicep
+// main.bicep
+module datalake 'Modules/datalake.bicep' = {
+  name: 'datalake-${buildtag}'
+  params: {
+    dataLakeName: naming.datalake_storage
+    environment: global.environment
+    developerGroupObjectId: developerGroupObjectId
+    location: global.location
+    keyVaultResourceId: keyvault.outputs.keyVaultId
+  }
+}
+
+output dataLakeName string = datalake.outputs.dataLakeName
+output dataLakeResourceId string = datalake.outputs.dataLakeResourceId
+output dataLakeServiceUrl string = datalake.outputs.dataLakeServiceUrl
+```
+
+Now I can deploy the Bicep templates, as well as just get the outputs if I don't want to run the whole deployment flow later. **Note** the firewall openings and password generation, which should of course be conditional for other envs than Dev.
+
+```powershell
+function ProjectName-Infra {
+  param (
+    [string]$environment = "Development"
+  )
+
+  Write-Output "Creating development directory if it does not exist..."
+  mkdir $gitRootDir/.development
+
+  Write-Output "Getting your public IP address to allow SQL Server access..."
+  $ipAddress = Invoke-RestMethod -Uri "https://api.ipify.org?format=json" | Select-Object -ExpandProperty ip
+  Write-Output "Your external IP address is: $ipAddress"
+
+  Write-Output "Deploying infrastructure..."
+  az deployment group create `
+    -g $resourceGroupName `
+    --template-file $gitRootDir/Deployment/Bicep/main.bicep `
+    --parameters $gitRootDir/Deployment/Bicep/arm.$($environment).params.jsonc `
+    --parameters sqlAdministratorLoginPassword=$(GeneratePassword) `
+    --parameters sqlServerUserIpAddress=$ipAddress `
+    --query properties.outputs | Tee-Object -FilePath $gitRootDir/.development/envvars
+
+  if (-not $? -or $LASTEXITCODE -ne 0) {
+    throw "The command failed to execute successfully."
+  }
+
+  ProjectName-Set-SqlWebAppPermissions-All
+}
+
+function ProjectName-GetInfraOutputs {
+  mkdir $gitRootDir/.development
+
+  az deployment group show `
+    -g $resourceGroupName `
+    --name main `
+    --query properties.outputs | Tee-Object -FilePath $gitRootDir/.development/envvars
+}
+```
+
+My apps will be using Managed Identities to connect to the database, but the user will be running the database migrations. The user permissions are given through the Bicep, but we do need to set some permissions for the applications before I deploy the code itself.
+
+```powershell
+function ProjectName-Set-SqlWebAppPermissions-All {
+  $envVars = Get-Content .development/envvars | ConvertFrom-Json
+  $sqlServerFqdn = $envVars.sqlServerFQDN.value
+  $functionName = $envVars.functionName.value
+  $functionDatabaseName = $envVars.functionDatabaseName.value
+  $backendWebAppName = $envVars.BackendName.value
+  $backendDatabaseName = $envVars.backendDatabaseName.value
+
+  Write-Output "Setting SQL permissions for web apps..."
+  Set-SqlWebAppPermissions -webAppName $backendWebAppName -sqlServerFqdn $sqlServerFqdn -databaseName $backendDatabaseName
+  Set-SqlWebAppPermissions -webAppName $functionName -sqlServerFqdn $sqlServerFqdn -databaseName $functionDatabaseName
+}
+
+function Set-SqlWebAppPermissions {
+  param (
+    [string]$webAppName,
+    [string]$sqlServerFqdn,
+    [string]$databaseName
+  )
+
+  # Check if the user already exists
+  ## TODO: Does not work if you delete a single database and try to recreate it. The user is still there.
+  $access_token = az account get-access-token --scope "https://database.windows.net/.default" --query accessToken -o tsv
+  $userExistsQuery = "SELECT COUNT( * ) FROM sys.database_principals WHERE name = '$webAppName'"
+  $userExists = Invoke-Sqlcmd -ServerInstance $sqlServerFqdn -AccessToken $access_token -Database $databaseName -Query $userExistsQuery -QueryTimeout 120
+
+  if ($userExists -eq 0) {
+    Write-Output "Creating user $webAppName..."
+    # Create Managed Identity user and grant permissions
+    $query = "CREATE USER [$webAppName] FROM EXTERNAL PROVIDER; "
+    Invoke-Sqlcmd -ServerInstance $sqlServerFqdn -AccessToken $access_token -Database $databaseName -Query $query -QueryTimeout 120
+  }
+  else {
+    Write-Output "User $webAppName already exists."
+  }
+
+  Write-Output "Granting permissions to $webAppName..."
+  $query = "EXEC sp_addrolemember 'db_datareader', '$webAppName'; "
+  $query = $query + "EXEC sp_addrolemember 'db_datawriter', '$webAppName'; "
+  Invoke-Sqlcmd -ServerInstance $sqlServerFqdn -AccessToken $access_token -Database $databaseName -Query $query -QueryTimeout 120
+}
+```
+
+<a id="code-deployments" />
+
+### Code deployments
+
+Both our backend and the function in this example are Dotnet, but you can extend this to any language. With the backend I go through all the steps separately:
+
+```powershell
+function ProjectName-Deploy-Backend {
+  $envVars = Get-Content .development/envvars | ConvertFrom-Json
+  $funcName = $envVars.BackendName.value
+
+  $databaseName = $envVars.backendDatabaseName.value
+  $sqlServerFqdn = $envVars.sqlServerFQDN.value
+
+  Write-Output "Generating and Running Migration Script..."
+  $scriptPath = ProjectName-Generate-Migration-Script-Backend
+  $access_token = az account get-access-token --scope "https://database.windows.net/.default" --query accessToken -o tsv
+  Invoke-Sqlcmd -ServerInstance $sqlServerFqdn -AccessToken $access_token -Database $databaseName -InputFile $scriptPath
+  if (-not $? -or $LASTEXITCODE -ne 0) {
+    throw "The command failed to execute successfully."
+  }
+
+  Write-Output "Building backend..."
+  dotnet publish $backendProjectPath --configuration Release --output "$gitRootDir/.development/backend_publish"
+  if (-not $? -or $LASTEXITCODE -ne 0) {
+    throw "The command failed to execute successfully."
+  }
+  Compress-Archive -Path "$gitRootDir/.development/backend_publish/*" -DestinationPath "$gitRootDir/.development/backend_publish.zip" -Force
+  Write-Output "Deploying backend..."
+  az webapp deployment source config-zip `
+    -g $resourceGroupName `
+    -n $funcName `
+    --src $gitRootDir/.development/backend_publish.zip
+}
+```
+
+Whereas with the function I resort to using a single command from the functions core tools to handle it all. I ran into some issues with the az functionapp deployment source config-zip (runtime not detected on the zip for some reason), though your mileage may vary.
+
+```
+function ProjectName-Deploy-Function {
+  $envVars = Get-Content .development/envvars | ConvertFrom-Json
+  $funcName = $envVars.FunctionName.value
+  $databaseName = $envVars.functionDatabaseName.value
+  $sqlServerFqdn = $envVars.sqlServerFQDN.value
+
+  Write-Output "Generating and Running Migration Script..."
+  $scriptPath = ProjectName-Generate-Migration-Script-Function
+  $access_token = az account get-access-token --scope "https://database.windows.net/.default" --query accessToken -o tsv
+  Invoke-Sqlcmd -ServerInstance $sqlServerFqdn -AccessToken $access_token -Database $databaseName -InputFile $scriptPath
+  if (-not $? -or $LASTEXITCODE -ne 0) {
+    throw "The command failed to execute successfully."
+  }
+  Write-Output "Deploying function..."
+  Set-Location $functionProjectRootPath
+  func azure functionapp publish $funcName --dotnet-isolated
+  Set-Location $gitRootDir
+}
+```
+
+To generate the migrations, I use Entity Framework Core:
+
+```powershell
+function ProjectName-Generate-Migration-Script-Function {
+  $scriptPath = "$gitRootDir/.development/migration_script_function.sql"
+
+  dotnet ef migrations script -i -o $scriptPath -s "$functionProjectPath" -p "$gitRootDir/My.FuncSQL/My.FuncSQL.csproj"  | Out-Host
+  if (-not $? -or $LASTEXITCODE -ne 0) {
+    throw "The command failed to execute successfully."
+  }
+  # Return the script path
+  return $scriptPath
+}
+
+function ProjectName-Generate-Migration-Script-Backend {
+  $scriptPath = "$gitRootDir/.development/migration_script_backend.sql"
+
+  dotnet ef migrations script -i -o $scriptPath -s "$backendProjectPath" -p "$gitRootDir/My.BackendSql/My.BackendSql.csproj"  | Out-Host
+  if (-not $? -or $LASTEXITCODE -ne 0) {
+    throw "The command failed to execute successfully."
+  }
+  # Return the script path
+  return $scriptPath
+}
+```
+
+Lastly I just have a single command that runs the whole flow for both the apps:
+
+```powershell
+function ProjectName-Deploy {
+  ProjectName-Deploy-Backend
+  ProjectName-Deploy-Function
+}
+```
+
+<a id="end-result" />
+
+### End Result
+
+So now the only thing left to do is to tie it all together with a simple function:
+
+```powershell
+function ProjectName-Up {
+  param (
+    [string]$environment = "Development"
+  )
+  $ErrorActionPreference = "Stop"
+  ProjectName-Infra -environment $environment
+  ProjectName-Deploy
+}
+```
+
+In a generic situation, the developer would go through a flow something like this:
+
+```powershell
+## Dot-source the commands
+. ./deployments.ps1
+
+## Deploy the whole package
+ProjectName-Up
+
+## OR optionally just fetch the outputs
+ProjectName-GetInfraOutputs
+
+## Just update the code for the backend for example
+ProjectName-Deploy-Backend
+```
+
+It's definitely not perfect, but I would argue that writing and maintaining 200 lines of powershell for your project might be the right option if you don't want to turn the whole project structure around to fit a separate tool.
+
+[You can view the full code of my solution here.](https://github.com/DrBushyTop/blogExamples/blob/master/simpleAutomation/deployments.ps1?ref=huuhka.net)

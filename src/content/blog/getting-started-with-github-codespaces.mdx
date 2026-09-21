@@ -1,0 +1,183 @@
+---
+title: "Getting started with GitHub Codespaces"
+slug: "getting-started-with-github-codespaces"
+publishedAt: "2020-09-05T00:18:00.000+03:00"
+updatedAt: "2020-11-09T14:47:51.000+02:00"
+description: "Setting up development environments can be a bit of a pain. Find
+  out how to solve the issue using GitHub Codespaces with this series of posts!"
+tags:
+  - "Developer Tools"
+  - "Codespaces"
+  - "GitHub"
+tagSlugs:
+  - "developer-tools"
+  - "codespaces"
+  - "github"
+image: "/images/ghost/fd0023b12bf6b1245751.jpg"
+imageAlt: ""
+draft: false
+featured: true
+seoDescription: "Setting up development environments can be a bit of a pain.
+  Find out how to solve the issue using GitHub Codespaces with this series of
+  posts!"
+series: []
+---
+
+Setting up development environments can be a bit of a pain as it often depends on how up to date your documentation is, and especially on smaller teams the steps can be based entirely on undocumented knowledge. The more complex an environment gets, the more complicated the setup becomes and thus this can cause significant overhead in onboarding someone new to your project.
+
+I recently got access to [GitHub Codespaces](https://github.com/features/codespaces?ref=huuhka.net), their solution to fix the issues mentioned above and to empower developers to easily work from anywhere and pretty much from any device. While the product is still in beta at the time of writing, I think it shows great promise and is worth taking a closer look at. In the few next posts on the blog I will explore the following:
+
+-   [Getting started with Codespaces](/getting-started-with-github-codespaces/) (This post)
+-   [Personalizing your Codespace](/personalizing-your-github-codespaces/)
+-   Customizing Codespaces for your project
+
+* * *
+
+<a id="what-is-gh-codespaces" />
+
+## What is GH Codespaces?
+
+In the simplest of terms, Codespaces is a development environment in the cloud, to which you can connect from either a browser or from your local Visual Studio Code instance.
+
+It is tied to your GitHub account, and is presented to the user as a VS Code GUI running in a container with either a GitHub provided general purpose container image or with your own custom image and scripts. All the aspects of the VS Code configuration are also customizable, and syncing your local settings also works as expected.
+
+I can envision Codespaces to be utilized for plenty of different use cases, but the ones at the top of my mind in addition to easy environment setup for new developers in the team are educational environments like schools, labs, training courses etc as well as the capability to continue developing a legacy app in 20 years that no-one has touched since.
+
+It fits well into the thought process of having everything around the application code included in the repository as well: Infra as Code, Pipelines as Code and now also the Development Environment as Code.
+
+<a id="let-s-deploy-" />
+
+## Let's deploy!
+
+For this example I just set up a blank repository. This can be either a public or a private one you own, and the only restriction I've run into is the number of concurrent Codespaces instances you can have set up at once.
+
+You can view all of your Codespaces from the menu found in the top bar of GH, but I feel like the more clear way of using the product is by going to a repository, clicking "Code" and "Open in Codespaces".
+
+![](/images/ghost/9ee066b40a64dc177551.jpg)
+
+![](/images/ghost/80770e748c9af71aa60a.jpg)
+
+Here you can either create a new Codespace, enter an existing one or delete it. **If you do not have write permissions to the repository, GitHub will automatically fork it for you.** By clicking create, you are launched into a "loading" version of the VS Code UI as well as a GitHub Actions type flow on the right hand side showing the steps that are happening on the background.
+
+![](/images/ghost/7f0350e86dbd7f0f218c.png)
+
+<figcaption>
+
+Creation of a Codespace
+
+</figcaption>
+
+I've found the creation to often take about a minute, but a lot of this does depend on your setup, the amount of extensions required etc. Subsequent launches of the same instance are much quicker than that.
+
+The physical location of the Codespace cannot be decided by the user, but it is presumably placed in a data center closest to the user, as obviously it is very important for the user experience to be as close to the local equivalent as possible.
+
+And voilà, we have a running instance of VS Code with our logins already set and everything functional. In the next post I'll dive deeper into how you can customize this experience further.
+
+![](/images/ghost/0e79ab53b44aaad4fc3a.JPG)
+
+<figcaption>
+
+Familiar look, but it does burn my eyes
+
+</figcaption>
+
+<a id="local-connectivity" />
+
+### Local Connectivity
+
+If you want, you can also use this VS Code extension to connect to a pre-created Codespace from your local VS Code, but I've yet to find a very good reason to do so.
+
+All in all the experience is simple here as well. Just install the extension, go to the settings of the extension to log in with your GH account and then use the "Codespaces: Connect to Codespace" command as shown in the below image. A more comprehensive [tutorial can be found here](https://docs.github.com/en/github/developing-online-with-codespaces/connecting-to-your-codespace-from-visual-studio-code?ref=huuhka.net).
+
+![](/images/ghost/07e1e9788d6364a3ca54.PNG)
+
+<figcaption>
+
+Note that I've already connected to a Codespace in the example
+
+</figcaption>
+
+<a id="debugging-your-code" />
+
+## Debugging your code
+
+Debugging does work just as you would expect it to. I needed to disable HTTPS redirection from my dotnet template from both the launch settings as well as from the Startup.cs for the app to start, but other than that the process is very straight forward.
+
+When you start the application for the first time, you will need to create the normal .vscode/launch.json and tasks.json if they're not already included in your repository. Thankfully VS Code makes this just require a few clicks.
+
+What happens on the background of the run process is that your localhost:&lt;specified port in your configuration> will get forwarded to the unique instance of the application. This link is private and can not currently be accessed anyone other than yourself **unless you use [Visual Studio Live Share](https://marketplace.visualstudio.com/items?itemName=MS-vsliveshare.vsliveshare-pack&ref=huuhka.net) for example**.
+
+![](/images/ghost/6fb2895dbfc9ee0b0478.PNG)
+
+![](/images/ghost/f9445012fbc825fdf9b8.PNG)
+
+<figcaption>
+
+And we're running!
+
+</figcaption>
+
+Setting break points also works, so you pretty much have the full VS code experience at your fingertips.
+
+![](/images/ghost/6d9ca06cf737041013d9.PNG)
+
+<figcaption>
+
+Breakpoints work too
+
+</figcaption>
+
+<a id="the-fine-print" />
+
+## The fine print
+
+<a id="pricing" />
+
+### Pricing
+
+So what does this cost? As the product is still in beta, the prices have not yet been finalized. However, we can make some assumptions based on what we know about the functionality:
+
+-   It's containerized, not requiring much horsepower to use
+-   They say it's pay-as-you-go, and that the codespace will suspend itself after 30 minutes of inactivity
+-   [The retiring sibling product "Visual Studio Codespaces" has it's pricing details public](https://azure.microsoft.com/en-us/pricing/details/visual-studio-online/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+So one would assume that the pricing will be quite reasonable even for full time development.
+
+<a id="limitations" />
+
+### Limitations
+
+[GitHub lists the following limitations to be active during the beta](https://docs.github.com/en/github/developing-online-with-codespaces/troubleshooting-your-codespace?ref=huuhka.net). Presumably at least different sizing options will be available when the product goes live, as Visual Studio Codespaces already has that option built in.
+
+-   For the best experience with Codespaces, we recommend using a Chromium-based browser, like Google Chrome or Microsoft Edge.
+-   Only a single size of codespace is available.
+-   Only Linux containers are supported.
+-   A codespace is not fully resumable. Processes that were running at the time the codespace was stopped will not be restarted.
+
+<a id="how-do-i-get-in" />
+
+### How do I get in?
+
+The service is currently in a limited beta, so currently the only way to get in is to [get in the queue here](https://github.com/features/codespaces/signup?ref=huuhka.net).
+
+<a id="up-next" />
+
+## Up next
+
+In the next part of this series, we'll take a closer look at personalization of the environments you create. My eyes can't stand the default theme!
+
+<a id="links" />
+
+## Links
+
+[Codespaces](https://github.com/features/codespaces?ref=huuhka.net)
+
+Your instant dev environment
+
+[About Codespaces - GitHub Docs](https://docs.github.com/en/github/developing-online-with-codespaces/about-codespaces?ref=huuhka.net)
+
+Codespaces is an online development environment, hosted by GitHub and powered by Visual Studio Code, that allows you to develop entirely in the cloud.
+
+[Troubleshooting your codespace - GitHub Docs](https://docs.github.com/en/github/developing-online-with-codespaces/troubleshooting-your-codespace?ref=huuhka.net)
+
+You can troubleshoot problems with a codespace by checking for known issues in the microsoft/vscode repository.

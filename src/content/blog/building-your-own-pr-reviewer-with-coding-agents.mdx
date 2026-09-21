@@ -1,0 +1,370 @@
+---
+title: "Building your own PR reviewer with coding agents"
+slug: "building-your-own-pr-reviewer-with-coding-agents"
+publishedAt: "2026-03-11T22:28:00.000+02:00"
+updatedAt: "2026-06-28T21:05:37.000+03:00"
+description: "I've now built a couple versions of automated PR reviewers, and
+  the main thing that keeps standing out is that the AI part is surprisingly
+  small.
+
+  The model matters, of course. But the architecture matters more. "
+tags:
+  - "AI"
+  - "Artificial Intelligence"
+  - "GitHub Copilot"
+  - "OpenCode"
+tagSlugs:
+  - "ai"
+  - "artificial-intelligence"
+  - "github-copilot"
+  - "opencode"
+image: "/images/ghost/8646679fc3845554da55.png"
+imageAlt: ""
+draft: false
+featured: false
+series:
+  - "agentic-dev"
+---
+
+I've now built a couple versions of automated PR reviewers, and the main thing that keeps standing out is that the AI part is surprisingly small.
+
+That may sound odd for a post about AI review agents, but in practice most of the system is normal software engineering. You receive an event, decide whether to do anything, gather context, start an isolated run, call the model through a coding harness, parse the result, and post findings back to the source system.
+
+The model matters, of course. But the architecture matters more.
+
+This post is about that architecture. I'll use [GitHub Copilot SDK](https://github.com/github/copilot-sdk?ref=huuhka.net) in the examples for the LLM side, because it maps cleanly to this kind of coding-agent workflow. The overall pattern works just as well with other harnesses or plain CLIs.
+
+It builds on a few earlier posts, especially [A mental model for LLM tooling primitives](/a-mental-model-for-llm-tooling-primitives/) and [Primary vs Subagents in LLM harnesses](/primary-vs-subagents-in-llm-harnesses/).
+
+<a id="the-short-version" />
+
+### The short version  
+
+-   **Mostly control flow, not AI.** A PR bot is normal event-driven software with an LLM in one stage.
+-   **The agent reviews, it does not run the business process.** Everything around the review should be ordinary code.
+-   **Event-driven is the natural shape.** Receive the PR event, gather context, run a contained review, post structured results back.
+-   **Coding harnesses fit well** because they already know how to read files, inspect repositories, and run commands.
+-   **Structured output matters.** The model's findings should be easy for your code to validate before posting.
+-   **The same architecture generalizes.** Any AI automation with a clear start, process and end can use this shape. You could just as easily build on GitHub Actions, _(edit on 23.3.2026) or even the new_ [_Agentic Workflows_](https://github.github.com/gh-aw/?ref=huuhka.net) _to do the same._
+
+<a id="the-bot-itself-is-simple" />
+
+### The bot itself is simple
+
+At a high level, a PR reviewer is not a complicated product.
+
+Something happens in your source system. A pull request is created, updated, commented on, or explicitly flagged for review. Your system decides whether that event should trigger a review, gathers the repository context, runs the review logic, and posts the findings back.
+
+That sounds almost boring, and that is exactly the point. This is one of those cases where I strongly think the key to good LLM systems is making them as deterministic as possible. Do not let the agent decide what process it is in. Let code do that.
+
+The agent's job is to review the change. Everything around that should be ordinary software.
+
+<a id="triggering-the-review" />
+
+### Triggering the review
+
+There are a few obvious ways to start:
+
+-   **Always review on PR creation.** Simple and broad.
+-   **Review on creation and updates.** Covers iteration.
+-   **Only review on an explicit command.** Controls cost and noise.
+-   **Trigger from a UI action.** Product-specific entry point.
+
+This is mostly a product decision, not an AI decision. You can also mix approaches: a lightweight default review plus deeper specialist reviews on demand.
+
+The triggering event can be almost anything. I use PR events a lot, but this same architecture works for issue triage, ticket classification, bug reproduction, documentation generation, or anything else where a system event kicks off a bounded piece of work.
+
+<a id="ado-service-hooks-as-the-integration-point" />
+
+### ADO service hooks as the integration point
+
+In Azure DevOps, [service hooks](https://learn.microsoft.com/en-us/azure/devops/service-hooks/overview?view=azure-devops&ref=huuhka.net) are the natural fit. They are essentially an event subscription mechanism: a publisher emits an event, a subscription filters it, and a [webhooks consumer](https://learn.microsoft.com/en-us/azure/devops/service-hooks/services/webhooks?view=azure-devops&ref=huuhka.net) sends a JSON payload to your HTTPS endpoint.
+
+For PR automation, the interesting [events](https://learn.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops&ref=huuhka.net) are:
+
+-   pull request created
+-   pull request updated
+-   pull request commented on
+-   pull request merge attempted
+
+Azure DevOps lets you control how much resource detail goes into the webhook payload. I prefer smaller payloads and fetching the full PR details myself afterward. That keeps the webhook receiver simpler and forces context gathering into one consistent path.
+
+<a id="architecture-over-model" />
+
+### Architecture over model
+
+The shape I've been using is fairly simple:
+
+1\. A source system event arrives.
+
+2\. A manager layer classifies whether work should start.
+
+3\. The manager gathers enough context to create a review job.
+
+4\. The manager stores run state in a database.
+
+5\. The manager starts an isolated worker run.
+
+6\. The worker performs the LLM review and returns structured output.
+
+7\. The manager parses the result and posts comments or findings back to the source system.
+
+8\. The manager updates run state.
+
+Notice the LLM is only a small part of the whole pipeline, and that the logic is no rocket science.
+
+![](/images/ghost/d5b3d630fc745aaec5e9.png)
+
+My own implementation has used [Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-overview?ref=huuhka.net) as the management layer and [Azure Container Apps jobs](https://learn.microsoft.com/en-us/azure/container-apps/jobs?ref=huuhka.net) for the isolated execution. The function receives the Azure DevOps webhook and starts a container app job for each review. I like that shape because each review is contained. It has its own execution, logs, and failure boundary.
+
+The other option I find interesting is using a microVM-based sandbox. That starts to matter if you want easier session resumption later, or if you want nested container execution inside the sandbox. For simple review flows, a container job is usually enough. MicroVMs are definitely taking off in the industry, as many services serving quickly spawning isolated sandboxes are popping up everywhere. They're something I've been planning to build on ever since [reading this post by Ramp](https://builders.ramp.com/post/why-we-built-our-background-agent?ref=huuhka.net). The main benefit in my mind is the easy ability to also run the app in a container inside the microVM.
+
+For state, almost anything works. I've used table storage and that has been completely fine. If all you really need is run state, correlation IDs, status, and posted-result metadata, you do not need an especially fancy database.
+
+<a id="the-ai-is-one-stage" />
+
+### The AI is one stage
+
+The AI stage does not need to own the whole review process. It does not need to decide when jobs start, how retries work, where state lives, how comments are posted, or how webhook idempotency is handled. That is all normal application logic.
+
+The LLM's job is much smaller:
+
+-   **Inspect** the repository and PR context
+-   **Review** the change
+-   **Return** structured findings
+
+I think the healthiest mental model for these bounded automations is to treat the LLM like another API dependency. The smaller and more bounded the use case, the tighter the guardrails should be. If the task is wider and more exploratory, you can relax them.
+
+<a id="why-coding-harnesses-fit" />
+
+### Why coding harnesses fit
+
+PR review is one of the places where coding harnesses are a very natural fit. The model needs exactly the kind of capabilities those harnesses already provide: **Read files** and inspect diffs, **Search** the codebase and **Optionally run commands** like linting, type checking or project-specific validations.
+
+That is why this works best with a coding harness instead of a thin text-only wrapper around an LLM API.
+
+I've implemented this with both Copilot SDK and [OpenCode SDK](https://opencode.ai/docs/sdk/?ref=huuhka.net), and honestly even using the CLIs directly can work if your process is simple enough. The important bit is not the specific SDK. It is that the runtime already understands code-oriented tools.
+
+Depending on your trust model, you may also want to let the review agent run bash commands. That can improve review quality quite a bit, but obviously also pushes you toward stronger isolation and permission handling. Pure review type of work is probably fine without command execution, but if you want to get into fix suggestions and validation, it becomes more important.
+
+<a id="own-the-orchestration-not-the-control-flow" />
+
+### Own the orchestration, not the control flow
+
+Your code should decide:
+
+-   **When** a review starts and whether the event is eligible
+-   **What** repository or commit range to inspect
+-   **Which** agent setup to use
+-   **How** retries, deduplication, timeouts and result posting work
+
+The LLM should decide:
+
+-   **Whether** a change looks risky or a security issue exists
+-   **Whether** tests appear missing
+-   **How** findings should be summarized
+
+That separation makes the whole system easier to reason about and easier to trust.
+
+<a id="inside-the-llm-run" />
+
+### Inside the LLM run
+
+Inside the review run itself, I don't really like having one giant agent do everything.  
+What has worked better for me is a primary reviewer that fans out to specialists in parallel, then synthesizes their output:
+
+-   **One primary reviewer agent**
+-   **Several specialist subagents in parallel** (really just a single subagent that gets instructions on which skills to use - often one skill per specialist)
+-   **One final synthesis step** that produces structured review output
+
+![](/images/ghost/915daae513085ef9c766.png)
+
+This maps pretty directly to the primitives I wrote about earlier. The command contains instructions on what to do. The agents contain instructions on how to do it. The skills package reusable domain guidance for a specific specialist.
+
+In practice, the specialists might be for example an \*\***Architecture reviewer**\*\*, \*\***Testing reviewer**\*\*, \*\***Security reviewer**\*\*, \*\***Project-specific reviewer**\*\*, or whatever makes the most sense for your codebase and team. The point is to come at the problem from different perspectives.
+
+Arguably, you could go even further and remove the primary reviewer and push the review request to the specialists directly, and just synthesize their output afterward. That's what I'm doing in the later example, but both approaches work well.
+
+The exact number depends on the system. A tiny one-file change does not need a small army of subagents. If the review scope is narrow, one agent is often enough. If the review scope is broader and the work can run in parallel, multiple specialists make more sense. That parallelism usually helps latency more than it hurts, though of course it increases cost.
+
+<a id="copilot-sdk-example" />
+
+### Copilot SDK example
+
+The Copilot SDK is a good fit for this because it exposes the same runtime behind Copilot CLI through a programmatic interface. The SDK talks to the CLI over JSON-RPC, and you create sessions that can use built-in coding tools, custom agents, skills, MCP servers, and hooks.
+
+The useful part is not anything magical. You define the session once and then ask it to do exactly one bounded review task.
+
+Here is a very simplified (and somewhat incomplete) TypeScript example:
+
+```ts
+import { CopilotClient } from "@github/copilot-sdk";
+
+const client = new CopilotClient();
+await client.start();
+
+const outputShape = `
+{
+  "summary": "string",
+  "findings": [
+    {
+      "severity": "critical|high|medium|low",
+      "title": "string",
+      "path": "string",
+      "line": 123,
+      "body": "string"
+    }
+  ]
+}`;
+
+const reviewTask = `
+Review this pull request in the current repository checkout.
+
+Focus only on concrete issues in the changed code.
+Use repository tools as needed.
+Return JSON only in this shape:
+
+${outputShape}
+`;
+
+const customAgents = [
+  {
+    name: "architecture-reviewer",
+    description: "Reviews architecture and maintainability risks",
+    tools: ["grep", "glob", "view", "bash"],
+    prompt: `
+Review the pull request from an architecture perspective.
+
+Focus on boundaries, coupling, maintainability, layering, and long-term code health.
+
+${reviewTask}
+`,
+    infer: false,
+  },
+  {
+    name: "security-reviewer",
+    description: "Reviews security issues and dangerous patterns",
+    tools: ["grep", "glob", "view", "bash"],
+    prompt: `
+Review the pull request from a security perspective.
+
+Focus on authentication, authorization, secrets handling, injection, trust boundaries, and unsafe execution patterns.
+
+${reviewTask}
+`,
+    infer: false,
+  },
+];
+
+async function runReviewer(agent: string) {
+  const session = await client.createSession({
+    model: "gpt-4.1",
+    agent,
+    customAgents,
+    onPermissionRequest: async () => ({ kind: "approved" }),
+  });
+
+  try {
+    const response = await session.sendAndWait({ prompt: reviewTask });
+    return JSON.parse(response?.data.content ?? '{"summary":"","findings":[]}');
+  } finally {
+    await session.disconnect();
+  }
+}
+
+const specialistReviews = await Promise.all([
+  runReviewer("architecture-reviewer"),
+  runReviewer("security-reviewer"),
+]);
+
+const synthesis = await client.createSession({
+  model: "gpt-4.1",
+  onPermissionRequest: async () => ({ kind: "approved" }),
+});
+
+try {
+  const response = await synthesis.sendAndWait({
+    prompt: `
+You are the parent PR reviewer.
+
+Merge overlapping findings from these specialist reviews and return one final review.
+
+${JSON.stringify(specialistReviews, null, 2)}
+
+Return JSON only in this shape:
+
+${outputShape}
+`,
+  });
+
+  console.log(
+    JSON.stringify(
+      JSON.parse(response?.data.content ?? '{"summary":"","findings":[]}'),
+      null,
+      2,
+    ),
+  );
+} finally {
+  await synthesis.disconnect();
+  await client.stop();
+}
+```
+
+<a id="skills-agents-and-structured-output" />
+
+### Skills, agents and structured output
+
+I would not build this around a single giant system prompt. The split I like is:
+
+-   **Command or job instructions:** what the current run should do
+-   **Agent prompts:** what each specialist is responsible for
+-   **Skills:** reusable guidance for how that specialist should operate
+
+The Copilot SDK [custom agent support](https://docs.github.com/en/copilot/how-tos/copilot-sdk/use-copilot-sdk/custom-agents?ref=huuhka.net) and [skill loading](https://github.com/github/copilot-sdk/blob/main/docs/features/skills.md?ref=huuhka.net) fit that pattern well. But you can implement this any way that gets the content to the agents in a clear way. I like skills because they can be reused by the developers locally as well, especially the project specific skills are easily shared between the review agent and human developers.
+
+For any automation, the final output should be structured to be easily machine-readable for further processing.
+
+<a id="reviews-get-wordy" />
+
+### Reviews get wordy
+
+One thing I have definitely noticed is that review agents get verbose very quickly.  
+Current models produce useful output, but they also happily produce a lot of it. Without constraints on format and severity, you easily end up with comments that are technically fine but may be nitpicks or things not worth blocking a PR over.
+
+This can quickly turn into developer toil especially if you have set branch policies to require all comments be reviewed before completing the PR merge.
+
+That is why I increasingly prefer adding explicit severity levels. That will also allow you to filter out low-severity findings or even automatically post them as a comment on the PR without flagging them as a review issue, or maybe combining them into a single comment. Even better, maybe you can even start jobs to fix smaller issues automatically based on the severity ranking and complexity of the fix.
+
+The interesting question is: which classes of findings are safe enough to autofix?  
+This then turns from "review bot" into a more general automation system. For that to work well, the agent likely needs to edit code, run tests and validations, and verify that the fix actually worked. Very doable, but it does mean the isolation, permissions and verification side of the architecture matter even more.
+
+<a id="the-same-architecture-powers-a-fix-command" />
+
+### The same architecture powers a fix command
+
+I've also implemented a fix command with basically the same structure. The trigger and prompt are different, but the architecture is almost identical. The system receives an event or command (say, a comment with "/fix HOW TO FIX THIS"), gathers repo, PR and comment thread context, starts an isolated run, lets the coding agent perform a bounded task, and returns a structured result with a follow-up action like creating a PR or commit with the fix.
+
+Once you have the manager, state, isolated execution, and source-system callback flow working, you can reuse it for a lot of neighboring automations.
+
+<a id="local-and-remote-on-the-same-harness" />
+
+### Local and remote on the same harness
+
+One thing I think is genuinely valuable is building these automations on top of the same harness you use locally, like OpenCode for example. If the same agents, skills, instructions and tool configuration also work in local development, you get some nice properties: faster feedback before code ever reaches a PR, easier debugging of the automation itself, reusable review specialists as subagents during development, and less drift between local and server-side AI workflows.  
+That also creates tradeoffs. The structure ideal for local interactive use is not always identical to what you want for a remote webhook-driven automation. If you want both, you need to think about how to organize prompts, skills, state and configuration so they fit both cases.
+
+<a id="this-generalizes" />
+
+### This generalizes
+
+This pattern is not specific to PR review. It works well anywhere the automation has a clear triggering event, a bounded piece of reasoning work, and a structured result to return.
+
+That is why I increasingly think of these automations as normal event-driven systems with an LLM inside one stage of the pipeline. The more tightly scoped the task, the more deterministic everything around the model should be.
+
+<a id="wrap-up" />
+
+### Wrap up
+
+If I had to compress the whole thing: build it like a normal event-driven system and let code own the workflow. Let the model own the review judgment, not the process. Use a coding harness so the agent can inspect the real repo properly. Return structured findings, not just prose. And keep the task bounded and deterministic where possible.
+
+The most important design choice is often not which model you use. It is how much of the control flow you refuse to hand over.

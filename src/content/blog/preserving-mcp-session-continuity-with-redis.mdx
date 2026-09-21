@@ -1,0 +1,196 @@
+---
+title: "Preserving MCP session continuity with Redis"
+slug: "preserving-mcp-session-continuity-with-redis"
+publishedAt: "2026-02-10T20:44:00.000+02:00"
+updatedAt: "2026-04-19T16:36:04.000+03:00"
+description: "I ran into a fairly mundane MCP issue recently that only really
+  shows up once the server stops living on one process forever: Sessions."
+tags:
+  - "AI"
+  - "Azure"
+  - "Developer Tools"
+  - "OpenCode"
+  - "GitHub Copilot"
+tagSlugs:
+  - "ai"
+  - "azure"
+  - "developer-tools"
+  - "opencode"
+  - "github-copilot"
+image: "/images/ghost/b500f522d493c88d31b4.jpg"
+imageAlt: ""
+draft: false
+featured: false
+series:
+  - "secure-enterprise-ai-tooling-on-azure"
+---
+
+I ran into a fairly mundane MCP issue recently that only really shows up once the server stops living on one process forever.
+
+The tool looked fine. The server looked fine. But existing client sessions could still lose continuity after a restart or rollout because the session state lived in memory. My LLM sessions in OpenCode and GitHub Copilot would just lose tools mid-conversation with no errors or warnings, which was not a great experience. Even forcing reconnects from plugins could not recover, so the only fix was restarting the process. I could handle that, but my users would not be thrilled about it.
+
+The simple in-memory approach works right up until the process restarts, a new revision gets deployed, or traffic lands on another instance. The client still has the session ID and keeps using it. The new process no longer knows anything about that session. From the client's point of view the tool has just disappeared.
+
+I ended up solving this by just adding a tiny Redis-based session store to preserve the critical continuity state across process boundaries. The shape of the solution ended up being pretty simple, and the infrastructure was refreshingly plain. I thought it might be worth sharing the details since this is a problem that other people are likely to run into as well.
+
+<a id="setup" />
+
+### Setup
+
+The setup here is fairly simple:
+
+-   The client establishes an MCP session and keeps using the returned session ID
+-   The server framework stores session state in memory by default
+-   After a restart, rollout, or replica change, that in-memory state is gone
+-   The client is still behaving correctly, but the next process can no longer resolve the session
+
+That means the actual problem is not reconnecting the HTTP transport. It's preserving just enough session state outside process memory for the next instance to accept the session again.
+
+Before getting into the Redis part, it's worth quickly looking at how MCP sessions work over HTTP, because that is really where the problem starts.
+
+<a id="mcp-sessions-over-http" />
+
+### MCP sessions over HTTP
+
+In MCP, the client and server begin with an initialization phase where they negotiate protocol version and capabilities. After that, they move into normal operation. In the Streamable HTTP transport, the server may also assign an `Mcp-Session-Id` header during initialization, and if it does, the client is expected to send that session ID on subsequent requests.
+
+The official MCP transport spec is quite explicit here. Streamable HTTP sessions are optional, not mandatory. A server may assign a session ID during initialization, and if it does, later requests use that session ID. If the server later returns `404` for that session, the client is expected to reinitialize.
+
+Relevant references:
+
+-   [MCP Lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle?ref=huuhka.net)
+-   [MCP Streamable HTTP transport and session management](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports?ref=huuhka.net#session-management)
+
+That means there are really two broad shapes you can end up with on HTTP: a stateful server that keeps per-session state and expects requests to continue that session, or a stateless server that treats each request independently and avoids session tracking altogether.
+
+<a id="stateful-vs-stateless" />
+
+### Stateful vs stateless
+
+I built this server using the [Microsoft C# MCP SDK](https://github.com/modelcontextprotocol/csharp-sdk?ref=huuhka.net). In that SDK, HTTP transport is stateful by default. The SDK docs are also explicit that `Stateless` defaults to `false`, and that enabling stateless mode stops using `MCP-Session-Id` and creates a fresh server context for each request.
+
+Reference: [MCP C# SDK \`HttpServerTransportOptions](https://csharp.sdk.modelcontextprotocol.io/api/ModelContextProtocol.AspNetCore.HttpServerTransportOptions.html?ref=huuhka.net)\`
+
+That distinction matters quite a lot operationally. If you stay stateful, you get a more session-oriented model, but you also need to think about what happens when the process that originally held the session state disappears. If you go stateless, horizontal scaling and rollouts become much simpler, but you give up features that depend on durable server-side session state.
+
+In my case, I went into the implementation a bit too quickly and accepted the default stateful model. Looking back, part of this specific continuity problem could probably have been avoided if I had first asked whether the server really needed to be stateful at all.
+
+That is not to say the stateful route was wrong. It just means that Redis ended up solving a problem created partly by an earlier transport-mode choice.
+
+<a id="flow" />
+
+### Flow
+
+At a high level, the recovery path looks like this:
+
+1.  The client initializes a session and receives a session ID.
+2.  The server stores the continuity-critical initialize payload in Redis under that session ID.
+3.  A later request arrives at a different process, or after a restart.
+4.  If the session is missing locally, the server looks up the stored initialization state and restores enough context to continue.
+
+<a id="what-needs-to-survive" />
+
+### What needs to survive
+
+I think the most useful thing here is to keep the requirement narrow.  
+You usually don't need to make the whole server runtime durable. You just need to preserve enough state for the next instance to reconstruct the MCP session in a way the framework accepts.
+
+In the implementation I looked at, the important part was the original initialize payload. That's what got written into distributed cache against the session ID.
+
+That felt like the right level of persistence. Small JSON payloads with a TTL, not some attempt to recreate arbitrary process memory after a crash.
+
+Once you keep the scope that tight, the Redis part becomes very plain. On session initialization, serialize the initialize payload and write it to a namespaced cache key. On a migration attempt, look the session up by ID and hand the stored payload back to the framework.
+
+<a id="why-in-memory-sessions-are-not-enough" />
+
+### Why in-memory sessions are not enough
+
+This is obvious in hindsight, but it's easy not to care about until you see it happen.  
+An MCP client initializes a session and gets back a session ID. It keeps using that session ID for later requests. Then the server restarts. The client is still behaving perfectly reasonably, but the new process has no idea what that session ID means. If all session state is in memory, that behavior is expected.
+
+You notice it more once there are rolling deployments, multiple replicas, or just longer-lived coding sessions that don't fit the "connect, do one tiny thing, disconnect" model. Sticky sessions can make it less frequent, but they don't solve deployments. Once the old revision is gone, the in-memory session state is gone with it.
+
+That's the point where a tiny distributed session store starts making sense.  
+Of course, the other valid conclusion is that if your server does not need stateful MCP sessions in the first place, stateless mode may be the better answer. Redis is useful here, but it is still compensating for a stateful design choice.
+
+<a id="the-solution" />
+
+### The solution
+
+The shape I like here is very small. Save the initialize payload on session creation. Store it under a service-specific prefix plus the session key. Give it a sliding expiration and a slightly longer absolute ceiling. When a request arrives with a session that's missing locally, ask Redis whether the migration state exists.
+
+That can be expressed in a fairly compact helper:
+
+```ts
+type SessionInitPayload = {
+  protocolVersion: string;
+  clientInfo: { name: string; version: string };
+  capabilities?: Record<string, unknown>;
+};
+
+interface CacheClient {
+  set(key: string, value: string, ttlSeconds: number): Promise<void>;
+  get(key: string): Promise<string | null>;
+}
+
+class SessionMigrationStore {
+  constructor(
+    private readonly cache: CacheClient,
+    private readonly keyPrefix: string,
+    private readonly ttlHours: number,
+  ) {}
+
+  async save(sessionId: string, payload: SessionInitPayload): Promise<void> {
+    const ttlSeconds = Math.max(this.ttlHours, 1) * 60 * 60;
+    const key = `${this.keyPrefix}session:${sessionId}`;
+    await this.cache.set(key, JSON.stringify(payload), ttlSeconds);
+  }
+
+  async restore(sessionId: string): Promise<SessionInitPayload | null> {
+    const key = `${this.keyPrefix}session:${sessionId}`;
+    const raw = await this.cache.get(key);
+    return raw ? (JSON.parse(raw) as SessionInitPayload) : null;
+  }
+}
+```
+
+There are only a couple of details there that I think really matter. One is namespacing. If several MCP servers share the same Redis, they shouldn't all write to the same naked `session:<id>` shape. The other is keeping the TTL model explicit. In the implementation here the session state used sliding expiration with a slightly longer absolute bound, which felt about right for development-oriented session continuity without pretending sessions should live forever.
+
+<a id="configuration-and-failure-behavior" />
+
+### Configuration and failure behavior
+
+I'd definitely keep this behind configuration.
+
+If the Redis connection string is present, enable the distributed session migration path. If it's not, run the normal in-memory mode and accept that sessions die on restart. That's a perfectly fine split between simpler environments and deployed environments that actually need continuity.
+
+The failure behavior should stay straightforward too. If Redis doesn't have the session key anymore, the server shouldn't crash or wedge itself trying to be clever. It should log the miss, return the normal session-not-found behavior, and let the client reinitialize. That keeps session continuity as a best-effort resilience feature instead of making the whole service startup path depend on one cache lookup.
+
+I think that distinction matters quite a lot. There's a difference between "this service can preserve sessions across rollouts when the cache is available" and "this service cannot function unless the cache is healthy". I'd aim for the first one.
+
+<a id="infrastructure" />
+
+### Infrastructure
+
+The infrastructure shape was about as small as I'd want it to be. There's one small Redis instance with an LRU-style eviction policy. The connection string is stored in a secret store. The app reads that secret through managed identity. Local development can point at a local Redis if you want to exercise the feature outside Azure.
+
+That felt nicely proportional to the problem. The state is tiny and short-lived, so the cache doesn't need to be fancy. It just needs to exist outside process memory.  
+The one extra nuance here is that if you also care about stream resumability, the session migration store is only half of the story. You need the relevant stream state outside process memory as well. The pattern is the same though. The point is still to move the continuity-critical state out of the lifetime of one server process.
+
+<a id="what-this-solves" />
+
+### What this solves
+
+What it solves is the very mundane operational pain of existing MCP sessions dying every time the server is redeployed or restarted. It also helps when traffic lands on a different replica than the one that originally saw the session.
+
+What it doesn't solve is every other durability problem you could imagine. It doesn't make in-flight tool execution survive a hard process death. It doesn't make sessions immortal after TTL expiry or eviction. It doesn't smooth over auth changes that invalidate the restored caller context. And it definitely doesn't fix every reconnect quirk a client might have.
+
+<a id="wrap-up" />
+
+### Wrap up
+
+MCP sessions are stateful in a way that starts to matter operationally fairly quickly.
+
+If you want existing sessions to survive rollouts, the server needs somewhere outside process memory to remember them. In my case, the amount of state that actually needed to survive was surprisingly small. That's why Redis ended up being a good fit: the problem was small, stateful, and short-lived in exactly the way Redis tends to handle well.
+
+If I were adding a new internal MCP service today, I'd treat this as a first-class production concern from the start instead of waiting until the first rollout teaches the lesson for me.

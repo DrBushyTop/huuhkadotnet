@@ -1,0 +1,18 @@
+---
+import Base from '../../layouts/Base.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import {getPosts} from '../../lib/posts';
+import author from '../../data/author.json';
+const posts=await getPosts();
+---
+<Base title={`${author.name} | Huuhka.net`} description={author.bio} image={author.image}>
+  <main id="main" class="page-width collection-page">
+    <section class="author-profile">
+      <img src={author.image} width="88" height="88" alt={author.name} />
+      <div><h1>{author.name}</h1><p>{author.bio}</p><a class="back-link" href="/community-activities/">Community activities</a></div>
+    </section>
+    <h2>Articles by Pasi</h2>
+    <p class="collection-count">{posts.length} articles</p>
+    <div class="article-grid">{posts.map(post=><ArticleCard post={post} />)}</div>
+  </main>
+</Base>

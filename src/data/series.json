@@ -1,0 +1,33 @@
+[
+  {
+    "id": "agentic-dev",
+    "title": "Agentic Dev",
+    "posts": [
+      "a-mental-model-for-llm-tooling-primitives",
+      "research-plan-implement",
+      "primary-vs-subagents-in-llm-harnesses",
+      "how-i-currently-develop-with-llm-models-early-2026",
+      "building-your-own-pr-reviewer-with-coding-agents"
+    ]
+  },
+  {
+    "id": "ai-dev-platform",
+    "title": "AI Dev Platform",
+    "posts": [
+      "ai-dev-platform-fundamentals",
+      "practical-experiences-with-azure-apim-ai-gateway-and-imported-foundry-endpoints",
+      "designing-a-shared-opentelemetry-contract-for-ai-services-on-azure",
+      "connecting-opencode-with-microsoft-foundry-models"
+    ]
+  },
+  {
+    "id": "secure-enterprise-ai-tooling-on-azure",
+    "title": "Secure Enterprise AI Tooling On Azure",
+    "posts": [
+      "securing-remote-mcp-servers-with-entra-id-without-breaking-reconnects",
+      "preserving-mcp-session-continuity-with-redis",
+      "shipping-signed-config-updates-to-local-ai-tooling",
+      "designing-a-shared-opentelemetry-contract-for-ai-services-on-azure"
+    ]
+  }
+]

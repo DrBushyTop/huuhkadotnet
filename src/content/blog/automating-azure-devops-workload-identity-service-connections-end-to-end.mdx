@@ -1,0 +1,247 @@
+---
+title: "Automating Azure DevOps workload identity service connections end to end"
+slug: "automating-azure-devops-workload-identity-service-connections-end-to-end"
+publishedAt: "2026-01-13T20:28:00.000+02:00"
+updatedAt: "2026-04-14T20:30:22.000+03:00"
+description: "How to automate the whole flow and get rid of passwords at the same time"
+tags:
+  - "Bicep"
+  - "PowerShell"
+  - "DevOps"
+tagSlugs:
+  - "bicep"
+  - "powershell"
+  - "devops"
+image: "/images/ghost/654eae681893b1c336a4.jpg"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+One of the more annoying setup tasks in Azure DevOps has been service connections. It's not necessarily difficult, but the workload identity federation flow crosses Azure and Azure DevOps in exactly the wrong place.
+
+You can create the managed identity in Azure. You can create the service connection in Azure DevOps. But the awkward values you need in order to finish the federated credential only show up once Azure DevOps has done its part. So the whole thing ends up as a mildly clumsy roundtrip between two control planes. Sounds like a perfect candidate for automation.
+
+I have written before about using user-assigned managed identities behind Azure DevOps service connections in [User Assigned Managed Identities with Azure DevOps Service Connections](/user-assigned-managed-identities-with-azure-devops-service-connections/). That post was more about why I like that identity model and what the basic manual setup looks like. This post is really the follow-up to that. The interesting bit here is not the identity choice itself, but how to automate the whole roundtrip once the service connection starts generating federation details on the Azure DevOps side.
+
+If I'm bootstrapping a new workload, I want the identity, the service connection, the federation details and the follow-up permissions to come out of a rerunnable setup process. I don't want somebody clicking through a half-manual draft flow and pasting values around just because the platform boundary is inconvenient.
+
+<a id="manual-pain" />
+
+### Manual = Pain
+
+The manual version of this isn't exactly hard. It's just awkward enough to survive for far too long.
+
+If you want the basic setup flow, the earlier post covers it well enough and I won't repeat all of it here. The short version is that you create or pick a user-assigned managed identity, create the Azure Resource Manager service connection in Azure DevOps using workload identity federation, and then finish the trust relationship on the Azure side once you have the federation details. I still like user-assigned identities for this because they let you manage the lifecycle from the Azure side without having to depend on App Registration access in Entra ID, which is often a very real constraint in customer tenants.
+
+After that setup is complete, you still need to do the actual useful work: grant RBAC on the target resource groups, maybe grant some shared platform permissions, and save enough state that reruns don't become guesswork.  
+The other problem with the manual flow is partial state. It's very easy to end up with a managed identity that exists, a service connection that exists, and a missing federated credential in between. Nothing is fully broken, but the setup isn't actually finished either. Or as often happens, you're creating these for multiple environments at the same time, and you end up mixing up the federation details between them. The risk of human error is pretty high here.
+
+<a id="why-the-roundtrip-exists" />
+
+### Why the roundtrip exists
+
+The awkward bit is that the federated credential lives on the Azure side, but the values you need for it are effectively materialized by Azure DevOps once the service connection exists. That is the part that changes the character of the problem a bit compared to the earlier manual setup post. Previously it was possible to calculate these values in advance and avoid the roundtrip, but now the \`subject\` is opaque enough that you really want to read it from Azure DevOps instead of trying to outsmart the platform.
+
+You need one pass to create or resolve the managed identity, then a pass through Azure DevOps to create the service connection, then one more pass back into Azure to attach the federated credential using the `issuer` and `subject` that Azure DevOps exposes.
+
+The setup loop was basically this:
+
+Azure creates or resolves the identity. Azure DevOps creates the service connection that points at that identity. Azure DevOps refreshes the endpoint so the federation details are visible. Azure attaches the federated credential. Only after that do the permission-granting steps happen. Arguably you COULD do this in Bicep alone with deployment scripts, but those take forever to provision and tear down, so I wanted to keep the orchestration logic in PowerShell where it's more nimble (not to mention the pain if you're limited to network integrated resources only).
+
+I found it useful to keep those as separate concerns. Creating a usable service connection and granting that principal the permissions it needs are related, but they're not the same step. Splitting them made the rerun behavior easier to reason about too.
+
+<a id="the-azure-devops-part" />
+
+### The Azure DevOps part
+
+I ended up letting Azure DevOps create the endpoint first and then explicitly query it for the federation values.
+
+In practice that meant creating the service connection with the managed identity client ID, calling the endpoint refresh API, and then reading back the workload identity issuer and subject from the endpoint data. That was the slightly backwards part of the whole flow, but it's also the part that made the automation reliable.
+
+The core PowerShell shape isn't especially complicated. The create call is really just constructing the AzureRM endpoint payload with workload identity federation and the managed identity client ID:
+
+```powershell
+function New-AdoAzureRmFederatedServiceConnection {
+    param(
+        [string]$Organization,
+        [string]$Project,
+        [string]$ServiceConnectionName,
+        [string]$TenantId,
+        [string]$SubscriptionId,
+        [string]$SubscriptionName,
+        [string]$ManagedIdentityClientId,
+        [string]$AccessToken,
+        [string]$ProjectId = '00000000-0000-0000-0000-000000000000'
+    )
+
+    $body = @{
+        authorization = @{
+            scheme     = 'WorkloadIdentityFederation'
+            parameters = @{
+                serviceprincipalid = $ManagedIdentityClientId
+                tenantid           = $TenantId
+            }
+        }
+        data = @{
+            environment      = 'AzureCloud'
+            scopeLevel       = 'Subscription'
+            creationMode     = 'Manual'
+            subscriptionId   = $SubscriptionId
+            subscriptionName = $SubscriptionName
+        }
+        name        = $ServiceConnectionName
+        type        = 'AzureRM'
+        url         = 'https://management.azure.com/'
+        owner       = 'library'
+        isShared    = $false
+        isReady     = $false
+        serviceEndpointProjectReferences = @(
+            @{
+                name             = $ServiceConnectionName
+                projectReference = @{
+                    id   = $ProjectId
+                    name = $Project
+                }
+            }
+        )
+    }
+
+    Invoke-RestMethod -Method Post -Uri "https://dev.azure.com/$Organization/_apis/serviceendpoint/endpoints?api-version=7.1-preview.4" -Headers @{
+        Authorization = "Bearer $AccessToken"
+    } -ContentType 'application/json' -Body ($body | ConvertTo-Json -Depth 20)
+}
+```
+
+```powershell
+function Get-AdoServiceConnectionFederationDetails {
+    param(
+        [string]$Organization,
+        [string]$Project,
+        [string]$ServiceConnectionId,
+        [string]$AccessToken
+    )
+
+    $refreshBody = @(
+        @{
+            endpointId             = $ServiceConnectionId
+            tokenValidityInMinutes = 5
+        }
+    )
+
+    $result = Invoke-RestMethod -Method Post -Uri "https://dev.azure.com/$Organization/$Project/_apis/serviceendpoint/endpoints?endpointIds=$ServiceConnectionId&api-version=7.1" -Headers @{
+        Authorization = "Bearer $AccessToken"
+    } -ContentType 'application/json' -Body ($refreshBody | ConvertTo-Json -Depth 10)
+
+    $endpoint = @($result.value)[0]
+
+    return [ordered]@{
+        issuer  = [string]$endpoint.authorization.parameters.workloadIdentityFederationIssuer
+        subject = [string]$endpoint.authorization.parameters.workloadIdentityFederationSubject
+    }
+}
+
+$endpoint = New-AdoAzureRmFederatedServiceConnection `
+    -Organization 'example-org' `
+    -Project 'example-project' `
+    -ServiceConnectionName 'example-release-dev' `
+    -TenantId $tenantId `
+    -SubscriptionId $subscriptionId `
+    -SubscriptionName $subscriptionName `
+    -ManagedIdentityClientId $managedIdentityClientId `
+    -AccessToken $adoToken
+
+$federation = Get-AdoServiceConnectionFederationDetails `
+    -Organization 'example-org' `
+    -Project 'example-project' `
+    -ServiceConnectionId $endpoint.id `
+    -AccessToken $adoToken
+```
+
+The sequencing is the important part. I would've happily avoided the refresh step if the platform had made the values available earlier, but once you accept the roundtrip, the flow is stable enough.
+
+<a id="the-azure-side" />
+
+### The Azure side
+
+On the Bicep side I wanted one module that could support both passes.  
+The first run needs to be able to create or resolve the user-assigned managed identity without requiring federation values yet. The second run needs to take the same identity and attach the federated credential once `issuer` and `subject` are known.
+
+That meant the module needed to support both creating a new identity and targeting an existing one. The practical shape I liked was to make the federated credential conditional on both `issuer` and `subject` being present, and then attach it either to the newly created identity or to an existing one.
+
+```bicep
+param location string
+param identityName string
+param createIdentity bool = true
+param issuer string = ''
+param subject string = ''
+
+var shouldAttachFederation = !empty(issuer) && !empty(subject)
+
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (createIdentity) {
+  name: identityName
+  location: location
+}
+
+resource existingIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!createIdentity) {
+  name: identityName
+}
+
+resource federatedCredentialForNewIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = if (createIdentity && shouldAttachFederation) {
+  parent: identity
+  name: 'AzureDevOps'
+  properties: {
+    issuer: issuer
+    subject: subject
+    audiences: [
+      'api://AzureADTokenExchange'
+    ]
+  }
+}
+
+resource federatedCredentialForExistingIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = if (!createIdentity && shouldAttachFederation) {
+  parent: existingIdentity
+  name: 'AzureDevOps'
+  properties: {
+    issuer: issuer
+    subject: subject
+    audiences: [
+      'api://AzureADTokenExchange'
+    ]
+  }
+}
+```
+
+That audience value is not especially interesting, but it is one of those details that I prefer to keep explicit in the module rather than relying on people to remember it later.
+
+This kept the orchestration simple. The PowerShell can run the same module twice with different inputs instead of having to reason about two different deployment shapes.
+
+<a id="safety-checks" />
+
+### Safety Checks
+
+Once the full loop was automated, the more important question became how strict the automation should be. For me the main danger wasn't reuse by itself. Reuse is often exactly what you want. The dangerous case is when a service connection with the expected name already exists but points to a different managed identity than the one your automation just created or resolved.
+
+So the behavior I wanted was simple. If the service connection doesn't exist, create it. If it exists and points at the expected managed identity, reuse it. If it exists and points somewhere else, stop immediately.
+
+The other practical thing that mattered was checkpointing outputs after each successful environment. If \`dev\` succeeded and \`prod\` failed, I wanted to keep the saved client ID, principal ID, service connection ID, issuer and subject from the successful side. That made reruns much less irritating. In fact, I currently do this state management for many of our platform services, as it makes idempotency much easier to achieve.
+
+<a id="end-result" />
+
+### End result
+
+The obvious improvement is that there are fewer clicks, but that's honestly the least interesting part. What actually got better was that the setup became deterministic. The trust relationship no longer depended on somebody manually copying values between Azure DevOps and Azure. The naming stayed consistent. The outputs were saved. The follow-up permission steps had stable inputs. And when something failed, the failure mode was much easier to understand.
+
+It also forced a cleaner mental model. There's a service connection creation loop, and there's a permission grant loop. They feed into each other, but they're not the same thing.
+
+<a id="closing-thoughts" />
+
+### Closing thoughts
+
+Workload identity federation for Azure DevOps service connections isn't hard in the normal sense. It's just awkward at the point where product boundaries meet.  
+Once I stopped fighting that and explicitly automated the roundtrip, the whole thing became much more boring — which is exactly what I wanted.
+
+The setup now creates or resolves the identity, creates or reuses the service connection, reads the federation details back from Azure DevOps, finishes the federated credential on the Azure side, and only then continues to the authorization work.
+
+Pretty simple and practical, just the way I like it.

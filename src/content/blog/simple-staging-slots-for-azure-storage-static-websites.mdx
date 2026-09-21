@@ -1,0 +1,129 @@
+---
+title: "Simple staging slots for Azure Storage Static Websites"
+slug: "simple-staging-slots-for-azure-storage-static-websites"
+publishedAt: "2020-05-22T20:41:00.000+03:00"
+updatedAt: "2020-11-09T14:33:24.000+02:00"
+description: "For our static frontend hosted in Azure Storage, there is no slot
+  swap functionality out of the box. Here's a short walkthrough on how we solved
+  this."
+tags:
+  - "DevOps"
+  - "Static Websites"
+  - "PowerShell"
+tagSlugs:
+  - "devops"
+  - "static-websites"
+  - "powershell"
+image: "/images/ghost/2cdd977284677291bdd0.png"
+imageAlt: ""
+draft: false
+featured: false
+seoDescription: "While most of our deployments tend to use Azure App Service
+  staging slots for easy swapping of new and old versions of code in our
+  backend, there has been a lack of similar functionality for our static
+  frontend hosted in Azure Storage. Here's a short walkthrough on how we solved
+  this."
+series: []
+---
+
+While most of our deployments tend to use Azure App Service staging slots for easy swapping of new and old versions of code in our backend, there has been a lack of similar functionality for our static frontend hosted in Azure Storage. Here's a short walkthrough on how we solved this.
+
+Note that with the upcoming [Azure Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) this method may become obsolete, but should still be more than enough until then.
+
+<a id="background-options" />
+
+## Background & Options
+
+We often use a combination of Azure Storage and a Function Proxy for this, because of the great scalability of both services as well as the ability to add a custom domain with HTTPS, which would not be possible with only a storage account. The other option to accomplish this would be a Azure CDN solution, but we've ended up with the functions as everyone is pretty familiar with their configuration, and the deployment flow is identical to the normal App Services.
+
+The function app proxy does now have the capability to do deployment slots, but as the actual content of the SPA is hosted on a separate resource (the storage account), the swap would not accomplish anything with this setup. All the roads end up in the need to create a secondary storage account in the very least.
+
+The options I have seen people suggest are:
+
+-   Use Azure Traffic Manager to handle the swap, [with the weighted routing method](https://docs.microsoft.com/en-us/azure/traffic-manager/traffic-manager-routing-methods?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#weighted)
+-   Have logic in your deployment pipeline that somehow knows to which storage account out of your two possibilities it should deploy this time, then change the proxy configuration during the swap step.
+
+I did not want to introduce a new service in Traffic Manager just to handle this issue. I've not used it in a bit either, but last time I checked it out there was no way of having two endpoints in the same region, though this might have changed.
+
+Also creating the logic in your pipeline could definitely be done by writing to Azure DevOps pipeline variables for example, and getting the value from last run to a specific environment, but this felt a bit too complex of a solution.
+
+Then my colleague mentioned just renaming the index file during the swap step, which sounded simple and quick! However, it would not be quite as easy to test does your staging slot actually work, so I went a bit further with it. What if we could rename the whole storage container?
+
+<a id="my-solution" />
+
+## My solution
+
+After searching for a way to do the container rename, [it seemed that the only way to do this](https://stackoverflow.com/questions/12370656/how-to-rename-the-container-name-in-windows-azure?ref=huuhka.net) would be to copy the contents of a container to a new location and remove the old one. That is what I ended up doing with **[a simple PowerShell script](https://github.com/DrBushyTop/ARMTemplates/blob/master/General/Swap-StorageSlots.ps1?ref=huuhka.net)** I'm running in my pipelines.
+
+So first of all, create a secondary staging storage account in your ARM templates. This is where your deployment will copy your SPA files in the **$web folder** to serve the staging. When this has been set up on the CI/CD pipeline, let's take a look at the script itself.
+
+The only things we take in are just the staging and production storage account names, and get their contexts. Storage account names are globally unique, so we don't need to worry about where they are located.
+
+```powershell
+param(
+    [string] $productionAccount = $(throw "-productionAccount is required (production storage account name)"),
+    [string] $stagingAccount = $(throw "-stagingAccount is required (staging storage account name)")
+)
+
+$ErrorActionPreference = 'Stop'
+
+$productionContext = (Get-AzStorageAccount | Where-Object -Property StorageAccountName -eq $productionAccount).Context
+$stagingContext = (Get-AzStorageAccount | Where-Object -Property StorageAccountName -eq $stagingAccount).Context
+```
+
+Next, we make sure that the containers we are using exist. I just have a temporary container to store stuff while I juggle things around. If a container exists, this cmdlet gives out an error, so I'm just handling that with the -ErrorAction SilentlyContinue.
+
+```powershell
+if (!(Get-AzStorageContainer 'temp' -Context $stagingContext -ErrorAction SilentlyContinue)) {New-AzStorageContainer -name 'temp' -Context $stagingContext} 
+if (!(Get-AzStorageContainer '$web' -Context $stagingContext -ErrorAction SilentlyContinue)) {New-AzStorageContainer -name '$web' -Context $stagingContext} 
+if (!(Get-AzStorageContainer '$web' -Context $productionContext -ErrorAction SilentlyContinue)) {New-AzStorageContainer -name '$web' -Context $productionContext}
+```
+
+And last, we repeat the following logic:
+
+-   Clean up anything that's in the container we will move stuff into
+-   Get the contents of our source container and start the copy process to the destination with [Start-AzStorageBlobCopy](https://docs.microsoft.com/en-us/powershell/module/az.storage/start-azstorageblobcopy?view=azps-5.0.0&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net). This just puts the copy process into a hidden queue and does not happen instantly.
+-   Get the copy status of the destination blobs and verify the copy process has completed before we move onwards.
+
+```powershell
+# Clean staging temp & copy current prod there
+
+(Get-AzStorageBlob -Container 'temp' -Context $stagingContext | Remove-AzStorageBlob -Force) 1> $null
+(Get-AzStorageBlob -Container '$web' -Context $productionContext | Start-AzStorageBlobCopy -DestContainer 'temp' -DestContext $stagingContext) 1> $null
+(Get-AzStorageBlob -Container 'temp' -Context $stagingContext | Get-AzStorageBlobCopyState -WaitForComplete) 1> $null
+
+# Clean prod before copy and then copy staging version to production
+
+(Get-AzStorageBlob -Container '$web' -Context $productionContext | Remove-AzStorageBlob -Force) 1> $null
+(Get-AzStorageBlob -Container '$web' -Context $stagingContext | Start-AzStorageBlobCopy -DestContainer '$web' -DestContext $productionContext) 1> $null
+(Get-AzStorageBlob -Container '$web' -Context $productionContext | Get-AzStorageBlobCopyState -WaitForComplete) 1> $null
+
+# Clean staging before copy and then copy old prod version there.
+
+(Get-AzStorageBlob -Container '$web' -Context $stagingContext | Remove-AzStorageBlob -Force) 1> $null
+(Get-AzStorageBlob -Container 'temp' -Context $stagingContext | Start-AzStorageBlobCopy -DestContainer '$web' -DestContext $stagingContext) 1> $null
+(Get-AzStorageBlob -Container 'temp' -Context $stagingContext | Get-AzStorageBlobCopyState -WaitForComplete) 1> $null
+```
+
+All of the commands also send stdout to null, as I don't really need to log this stuff anywhere. Otherwise you would get output for the filenames removed, copied etc. Stderr will still get printed in the logs, allowing for possible troubleshooting.
+
+And that's about it! This method is both simple and a bit crude, but it does work just fine and gets the job done.
+
+<a id="things-to-remember-for-this-config-to-work" />
+
+### Things to remember for this config to work
+
+-   Your service principal needs to have access to both storage accounts
+-   If you are using Azure AD app registrations, remember to add the reply urls for your staging too.
+-   Add the required CORS settings to your backend for this staging account
+-   Storage account static websites don't have app settings to my knowledge, and we are just building multiple versions of our code for each environment. Thus the script provided here **points to the prod slot backend from both the main and staging storage accounts**.
+-   You might want to think about modifying the **ConcurrentTaskCount** and **ServerTimeoutPerRequest** parameters for the **Start-AzStorageBlobCopy** cmdlet, but the defaults have worked for our needs just fine.
+
+<a id="references" />
+
+## References
+
+[Source Code for this post](https://github.com/DrBushyTop/ARMTemplates/blob/master/General/Swap-StorageSlots.ps1?ref=huuhka.net)  
+[Static Web Site hosting in Azure Storage](https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)  
+[Start-AzStorageBlobCopy](https://docs.microsoft.com/en-us/powershell/module/az.storage/start-azstorageblobcopy?view=azps-5.0.0&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)  
+[Get-AzStorageBlobCopyState](https://docs.microsoft.com/en-us/powershell/module/az.storage/get-azstorageblobcopystate?view=azps-5.0.0&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)

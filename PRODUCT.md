@@ -8,60 +8,42 @@ web
 
 ## Stack
 
-Astro with MDX content collections. This repository contains the new application.
+Astro with Git-backed MDX content collections and local static assets.
 
 ## Users
 
 Developers finding and reading Pasi Huuhka's hands-on Azure, DevOps, and AI engineering articles.
 
-## Product Purpose
+## Product purpose
 
-A personal technical publication. Articles come first, with a small author profile. Readers should be able to find a relevant post and comfortably read explanations, code, and architecture diagrams.
+A personal technical publication. Readers should be able to find a relevant post and read explanations, code, and architecture diagrams. The author profile stays secondary to the writing.
 
-## Capabilities and Constraints
+## Capabilities and constraints
 
-- Preserve published content, exact post slugs, timestamps, tags, images, and explicit SEO metadata during migration from Ghost.
-- Keep root-level post URLs, tag archives, the author page, RSS, and redirects.
-- Store content in Git as MDX. Keep author information global.
-- Carry existing Google Analytics into phase 1. Analytics replacement and optional editors are outside current scope.
-- Final hosting belongs in Microsoft Azure Sponsorship, subscription `ede0939c-80c4-4dfe-bf3d-84521f3f6d1f`.
-- Current work is a redesign before migration and deployment.
+- Preserve published article content, exact root-level slugs, timestamps, tags, images, captions, and explicit SEO metadata imported from Ghost.
+- Keep local article routes, tag archives, the author page, community activities, RSS, and sitemap. Author information remains global.
+- The September 21, 2026 public snapshot contains 55 posts, one community page, 36 tags, and one author. All 94 source sitemap URLs have local routes.
+- Search covers the complete post collection. The homepage initially shows 12 posts and loads 12 more at a time; without JavaScript every post is visible.
+- Builds use committed MDX and assets, not a live Ghost dependency. The public import is not a backup of unpublished Ghost data.
+- Current work is local only. Do not deploy, change DNS, or modify production Ghost or Azure resources. Keep analytics off, `noindex, nofollow`, and the blocking robots file.
+- Eventual hosting belongs in Microsoft Azure Sponsorship, subscription `ede0939c-80c4-4dfe-bf3d-84521f3f6d1f`. The hosting adapter and DNS provider remain open decisions.
 
-## Brand Commitments
+## Brand commitments
 
-Keep huuhka.net and Pasi Huuhka as the publication and author identities. The new design should be cleaner than the supplied Ghost screenshots. Existing colors and theme styling are not binding. Use clean sans-serif fonts and a small real portrait of Pasi. The user rejected the first three mockups and supplied Boris Tane home, article, and bespoke-post screenshots as guidance for clarity and directness. Latest direction: return to image-led, squared article cards inspired by the current huuhka.net and Encore blog, while keeping publication dates prominent. Excerpts are not needed in the next exploration. The front page needs a compact top bar with some color. Capitalize names and explore a distinct clean header font. Keep room for individual posts with custom visuals and externally hosted articles.
+Keep huuhka.net and Pasi Huuhka as the publication and author identities, with the real portrait and published article imagery. Preserve the approved compact, light header and image-led homepage. Use Geist Sans headings and wordmark, Source Sans 3 body copy, Geist Mono navigation and metadata, and SauceCodePro Nerd Font Mono code. DESIGN.md records the visual rules; page briefs record composition.
 
-## Evidence on Hand
+The three popular selections are provisional, not measured rankings. Keep room for bespoke article visuals and explicitly external destinations without redesigning the shared index.
 
-- `../huuhka-net-ghost-to-astro-migration-plan.md` defines migration requirements.
-- User supplied home page and article screenshots.
-- Published articles at https://www.huuhka.net/ provide real titles and subject matter.
-- The Astro repository contains a preliminary homepage. Content migration is separate.
+## Reading and series navigation
 
-## Product Principles
+Keep desktop article content centered independently of the compact reading rail. On narrow screens, native series and contents disclosures sit before the body. Contents tracks the section being read; series navigation starts collapsed.
 
-- Make finding and reading articles the primary experience.
-- Preserve the author's content and its technical meaning.
-- Give diagrams and code enough room to remain legible.
-- Keep the author profile secondary to the writing.
+`src/data/series.json` defines Agentic Dev, AI Dev Platform, and Secure Enterprise AI Tooling On Azure as ordered post groups. Frontmatter `series` arrays support overlapping membership. Move only explicit theme-navigation callouts out of article bodies; preserve warnings, updates, and other author notes. The bottom link follows the first matching series when a next member exists, otherwise the older article. Keep metadata beside the title and the footer compact.
 
-## Open decisions
+## Migration authority and limits
 
-Round-four A is approved as the preliminary homepage composition. Geist Sans is
-selected for headings and the wordmark, Geist Mono for navigation and metadata,
-and SauceCodePro Nerd Font Mono for code. DNS provider is not yet confirmed.
+`docs/migration.md` records the implemented public Content API import, converter provenance, reimport commands, content handling, and validation scope. It supersedes the original plan's database-export approach for this local migration. `migration/inventory.json` is a comparison snapshot, not the application content source.
 
-## Latest design feedback
+Before production, confirm the host's HTTP redirects and RSS content type, decide whether older paginated archive URLs need redirects, and verify canonical URLs and indexing at cutover. The live homepage contained only legacy Universal Analytics ID `UA-152228894-1`, not a GA4 measurement ID. A working analytics property remains deferred. Optional editors remain deferred.
 
-The pastel navigation bar felt like Bootstrap. Explore an original small logo, clear Encore-like navigation typography, and LinkedIn, GitHub, RSS icons at the far right. Keep the header light with restrained color. Add a popular-articles section and replace tag filters with fuzzy search. Popular selections in mockups are sample content, not verified analytics rankings.
-
-The user selected A and requested more prominent compact rectangular popular
-cards, following the Encore reference. Show at least twelve articles before a
-loading control. The preliminary implementation uses a Load more button rather
-than automatic infinite scrolling.
-
-Subsequent refinements use a compact single-row phone header with a navigation
-menu, padded archive cards with topic tags, and smaller, lighter titles.
-The user removed the visible sample-selection label, though the three popular
-picks are still provisional. Keep section spacing compact without removing
-the padding inside article cards. See DESIGN.md for the implemented values.
+Browser spot checks are not a whole-site keyboard or screen-reader certification. External link destinations and embedded playback are not exhaustively verified.

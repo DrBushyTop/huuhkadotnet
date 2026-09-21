@@ -1,0 +1,113 @@
+---
+title: "Wrapping your head around Azure AI Foundry resources"
+slug: "wrapping-your-head-around-azure-ai-foundry"
+publishedAt: "2025-03-01T12:12:00.000+02:00"
+updatedAt: "2025-09-28T22:55:18.000+03:00"
+description: "A while back, Microsoft had a huge hype cycle around the rename of
+  Azure AI Studio to Azure AI Foundry. I've had a while to get to know the
+  product and in this post will try to open up how it all works from a Azure
+  resource perspective. "
+tags:
+  - "DevOps"
+  - "Developer Tools"
+  - "Azure"
+  - "AI"
+  - "Bicep"
+tagSlugs:
+  - "devops"
+  - "developer-tools"
+  - "azure"
+  - "ai"
+  - "bicep"
+image: "/images/ghost/8dbe050e471a038cec8a.png"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+> ⚠️
+> 
+> The content of this post is now out of date. Take a look at [the new project model](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/migrate-project?tabs=azure-ai-foundry&ref=huuhka.net#overview), which gets rid of the Hub concept completely.
+
+A while back, Microsoft had a huge hype cycle around the rename of Azure AI Studio to Azure AI Foundry. I've had a while to get to know the product and in this post will try to open up how it all works from a Azure resource perspective. Note that I still don't consider myself an expert on the subject, though.
+
+Here's how Microsoft themselves describe the service:
+
+> 💡
+> 
+> [Azure AI Foundry](https://ai.azure.com/?ref=huuhka.net) provides a unified platform for enterprise AI operations, model builders, and application development. This foundation combines production-grade infrastructure with friendly interfaces, ensuring organizations can build and operate AI applications with confidence.
+
+So in short, they want this product to be able to do everything one needs for AI work, and while that might be true, I'm always somewhat cautious with tools that hide away major parts of the software lifecycle behind UIs. They are often good for Proof of Concept type of work, but fall apart when things need to go to production in a controlled way.
+
+But let's say that you are an admin that needs to set a Azure AI Foundry instance up for your company, here's how I would go about it.
+
+<a id="concepts" />
+
+## Concepts
+
+First, let's recap some of the concepts and resources related to AI Foundry. It turns out that from a resource perspective it's just not just one Azure resource, but a combination of many building blocks.
+
+-   **AI Foundry Hub:** This is the "core" of AI Foundry, for which all Projects inherit resources from. Most of the other supporting resources discussed below are connected to the Hub, and you can also connect your own external data sources, models etc. here. From a deployment perspective you could in theory have a single Hub resource for your organization and connect a data platform there.
+    -   Hubs and Projects have the "Management Portal" view where new services are connected and permissions are managed.
+    -   Hubs have a system assigned managed identity created behind the scenes, which you can use for authentication to external resources
+    -   You can give permissions at either the Hub or Project level. This uses Azure RBAC
+-   **AI Foundry Project:** Projects are logical containers for teams/projects to organize specific AI solutions — e.g., customer support copilots, document summarization. You can also attach services to Projects if you do not want to share them between the whole Hub
+    -   These are actually the same resource type as the Hub, with a different "kind" property. Hubs link to Projects and projects have pointers to Hubs
+    -   Project is the most important resource from a developer's perspective.
+-   **Connections:** A link between a Hub / Project and an external service. These define the way to authenticate with the service, a connection type and a target. Some resources only support API key connections, whereas others allow you to use the Hub / Project Managed Identity directly. API Keys are stored in the Hub / Project linked Key Vault.
+
+```bicep
+resource search 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
+  name: 'someSearch'
+}
+
+resource hub 'Microsoft.MachineLearningServices/workspaces@2024-10-01' existing = {
+  name: 'someHubOrProject'
+}
+
+resource connection 'Microsoft.MachineLearningServices/workspaces/connections@2024-10-01-preview' = {
+  name: 'searchconnection'
+  parent: hub
+  properties: {
+    authType: 'AAD'
+    category: 'CognitiveSearch'
+    isSharedToAll: true
+    target: 'https://${search.name}.search.windows.net/'
+    metadata: {
+      type: 'azure_ai_search'
+      ApiType: 'Azure'
+      ResourceId: search.id
+    }
+  }
+}
+```
+
+-   **Storage Accounts:** Stores all details of Prompt Flows, Agents, datasets etc for users. Uses the Files endpoint for these.
+-   **Azure Key Vault:** Stores API keys for Connected resources. If you create this alongside the Hub via the portal it still seems to use the older Access Policies permission model.
+-   **Log Analytics & Application Insights:** Stores for logs and traces from your AI model runs. The Project resource Developer view also has an UI to explore these.
+-   **Azure AI Services:** A Cognitive Services resource that has endpoints for all the Microsoft and OpenAI based AI stuff, like Document Intelligence, Speech etc. I'm still not very familiar with how this can be used to control some of the more model specific pricing options, but it does simplify things a bit from the deployment perspective.
+    -   Commonly used AI models are as "Deployments" under this resource. [Read more here on the best cases for deploying them.](https://learn.microsoft.com/azure/ai-foundry/concepts/deployments-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#deploying-models)
+-   **Machine Learning Endpoints:** AI Foundry portal can be used to deploy almost 2000 different models, and while some of them can run in the managed Azure AI Services resource as deployments, some require an additional Machine Learning Endpoint resource to be run. Basically it's just a VM / container running the model behind the scenes.
+-   **AI Foundry Managed Compute:** You can create managed VMs inside the AI Foundry portal. These are not visible as Azure resources and are needed for using Prompt Flow, creating indexes and opening VS Code in the AI foundry portal. They are not shared and can only be used by a single user. The word "managed" here is pretty weak, as no image updates etc. are done by Microsoft. [Read more here.](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/create-manage-compute?ref=huuhka.net)
+-   **Azure Container Registry:** [Required for Prompt Flow custom environments](https://learn.microsoft.com/azure/machine-learning/prompt-flow/how-to-customize-session-base-image?view=azureml-api-2&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   **Azure AI Search:** Optional but often used database service for Retrieval Augmented Generation (RAG) workflows in applications. One of the most common Connected Services
+-   **Virtual Networks and Private Endpoints:** The Hub can be integrated into VNETs like other services. It requires a delegated subnet and does support Private Endpoints for inbound connectivity. I've not yet worked with a Foundry that was network limited, so no real experience with this one yet. I'd assume you run into the same issues as with any networked implementation: DNS
+
+<a id="attack-plan" />
+
+## Attack Plan
+
+So now that we have some context, here's a simple step list I would start exploring the service with on a company context. This list is not exhaustive, but would get you started.
+
+1.  Determine if VNET integration is required. [Read more about it from here](https://learn.microsoft.com/azure/ai-foundry/how-to/configure-managed-network?tabs=portal&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net).
+2.  Deploy the Hub resource from the Azure Portal and evaluate the template the deployment uses behind the scenes to understand the different resources. I've not yet managed these via Bicep myself, and while it seems doable, some of the APIs and resource connections are a bit difficult to grasp.
+    1.  I would treat this as a "development" Hub that might be completely redeployed once you have learned more about the service
+3.  With a pilot developer team, try to understand what types of supporting resources would they need and how that could be generalized to a common AI project. Deploy and connect them at the Hub level.
+4.  Create a Project for the pilot developer team. [Grant them permissions](https://learn.microsoft.com/azure/ai-foundry/concepts/rbac-ai-foundry?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) to the Project and ask them to try to create a simple POC application. This allows you to understand what is missing, and if your permission setup has some gaps.
+    1.  There will definitely be cases where the developers are missing some RBAC permissions to the supporting resources that might cause errors that take some troubleshooting. For example, if you deploy the hub with Identity-based storage access, you need to give individual users (or groups) the Blob and File storage specific RBAC roles.
+5.  Learn how the model sharing works in your context. Quotas for models are set on the Azure Subscription levels, and each deployment requires some Quota to be allocated. It's important to understand the requirements of each project from both processing power and data sovereignty perspectives.
+    1.  There also needs to be some monitoring on how much quota is used and when do you need to request more
+6.  Create policies for Managed Compute usage. Should they be deleted every month? What are your requirements for auto shutdown etc.
+7.  Move Project (and supporting resource) creation to Bicep as preparation for Developer self service.
+8.  Document what's needed for Foundry Projects to go from **POC to production**, like security reviews, responsible AI etc. This is not really exclusive to AI Foundry as a service.

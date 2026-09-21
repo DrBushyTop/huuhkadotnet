@@ -1,0 +1,212 @@
+---
+title: "Enabling Custom (Bicep) Language Server support in OpenCode"
+slug: "enabling-bicep-language-server-support-in-opencode"
+publishedAt: "2026-03-01T15:29:36.000+02:00"
+updatedAt: "2026-03-09T12:42:28.000+02:00"
+description: "I wanted Bicep diagnostics to show up in OpenCode with a custom
+  LSP setup, as I noticed the models making a bunch of mistakes without it.
+  Here's how to do it."
+tags:
+  - "AI"
+  - "Azure"
+  - "DevOps"
+  - "OpenCode"
+  - "Bicep"
+tagSlugs:
+  - "ai"
+  - "azure"
+  - "devops"
+  - "opencode"
+  - "bicep"
+image: "/images/ghost/c6c64cc86f6e5cc455d7.png"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+I wanted Bicep diagnostics to show up in OpenCode with a custom LSP setup, as I noticed the models making a bunch of mistakes without it. [OpenCode supports multiple LSP servers out of the box](https://opencode.ai/docs/lsp/?ref=huuhka.net), as well as configuring custom ones.
+
+> ❗
+> 
+> This requires [anomalyco/opencode#15570](https://github.com/anomalyco/opencode/pull/15570?ref=huuhka.net) to be merged before functioning correctly
+
+<a id="why-bother-with-lsps-in-opencode" />
+
+### Why bother with LSPs in OpenCode?
+
+The main benefit is fast feedback in the place you already work:
+
+-   Catch Bicep errors while editing, not during deployment.
+-   Catch issues when the file is read/analyzed by tooling workflows in opencode.
+-   Get proper diagnostics (for example BCP007) instead of waiting for az deployment to fail later.
+-   [OpenCode also supports experimental navigation tools through the LSP.](https://opencode.ai/docs/tools/?ref=huuhka.net#lsp-experimental)
+
+In practice, this shifts mistakes left: less context switching, less failed pipeline runs, faster fixes.
+
+So how do you actually get this running?
+
+<a id="option-1-install-bicep-language-server-manually" />
+
+## Option 1: Install Bicep Language Server manually
+
+If you want a stable path independent from editor updates, install the language server under your own folder (for example `~/.opencode-lsp/bicep-langserver`) and point OpenCode there.
+
+```pwsh
+# Install script
+function Install-BicepLangServer {
+    param([Parameter(Mandatory = $true)][string]$DestinationPath)
+    $releaseUrl = 'https://github.com/Azure/bicep/releases/latest/download/bicep-langserver.zip'
+    $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) 'bicep-langserver.zip'
+    $dllPath = Join-Path $DestinationPath 'Bicep.LangServer.dll'
+    # Check if already installed
+    if (Test-Path $dllPath) {
+        $updateChoice = Read-Host 'Bicep Language Server already installed. Update? [y/N]'
+        if ($updateChoice.Trim().ToUpperInvariant() -ne 'Y') {
+            Write-Info 'Skipping Bicep Language Server update.'
+            return $true
+        }
+    }
+    Write-Info 'Downloading Bicep Language Server...'
+    try {
+        Invoke-WebRequest -Uri $releaseUrl -OutFile $tempZip -UseBasicParsing
+        if (Test-Path $DestinationPath) {
+            Remove-Item -Recurse -Force $DestinationPath
+        }
+        New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+        Expand-Archive -Path $tempZip -DestinationPath $DestinationPath -Force
+        Remove-Item $tempZip -ErrorAction SilentlyContinue
+        Write-Success "Bicep Language Server installed to: $DestinationPath"
+        return $true
+    }
+    catch {
+        Write-Warn "Failed to install Bicep Language Server: $($_.Exception.Message)"
+        Remove-Item $tempZip -ErrorAction SilentlyContinue
+        return $false
+    }
+}
+
+# Adding LSP config to opencode config JSON
+function Add-LspConfigToOpenCodeConfig {
+    param(
+        [Parameter(Mandatory = $true)][string]$ConfigJson,
+        [Parameter(Mandatory = $true)][string]$LspBasePath,
+        [Parameter(Mandatory = $true)][bool]$BicepInstalled,
+        [Parameter(Mandatory = $true)][bool]$PsesInstalled
+    )
+    $configObj = $ConfigJson | ConvertFrom-Json
+    # Use forward slashes for cross-platform compatibility in JSON
+    $lspBasePathNormalized = $LspBasePath -replace '\\', '/'
+    $lspConfig = @{}
+    if ($BicepInstalled) {
+        $lspConfig['bicep'] = @{
+            command    = @('dotnet', "$lspBasePathNormalized/bicep-langserver/Bicep.LangServer.dll")
+            extensions = @('.bicep', '.bicepparam')
+        }
+    }
+    if ($PsesInstalled) {
+        $psesStartScript = "$lspBasePathNormalized/pses/PowerShellEditorServices/Start-EditorServices.ps1"
+        $psesModulesPath = "$lspBasePathNormalized/pses"
+        $psesLogsPath = "$lspBasePathNormalized/pses/logs"
+        $lspConfig['powershell'] = @{
+            command    = @(
+                'pwsh',
+                '-NoLogo',
+                '-NoProfile',
+                '-Command',
+                "& '$psesStartScript' -Stdio -HostName OpenCode -HostVersion 1.0.0 -BundledModulesPath '$psesModulesPath' -LogPath '$psesLogsPath' -LogLevel Normal"
+            )
+            extensions = @('.ps1')
+        }
+    }
+    if ($lspConfig.Count -gt 0) {
+        $configObj | Add-Member -NotePropertyName 'lsp' -NotePropertyValue $lspConfig -Force
+    }
+    return ($configObj | ConvertTo-Json -Depth 10)
+}
+```
+
+The resulting config:
+
+```json
+{
+  $schema: https://opencode.ai/config.json,
+  lsp: {
+    bicep: {
+      extensions: [
+        .bicep,
+        .bicepparam
+      ],
+      command: [
+        dotnet,
+        /Users/pasi/.opencode-lsp/bicep-langserver/Bicep.LangServer.dll
+      ]
+    }
+  }
+}
+```
+
+<a id="option-2-reuse-the-vs-code-extensions-language-server" />
+
+## Option 2: Reuse the VS Code extension's language server
+
+If you already have Bicep extension installed in VS Code/Insiders, you can point OpenCode to that DLL instead of installing another copy.
+
+Example locations on macOS:
+
+-   `/Users/pasi/.vscode-insiders/extensions/ms-azuretools.vscode-bicep-VERSION/bicepLanguageServer/Bicep.LangServer.dll`
+-   `/Users/pasi/.vscode/extensions/ms-azuretools.vscode-bicep-VERSION/bicepLanguageServer/Bicep.LangServer.dll`
+
+Helper script to resolve latest installed extension DLL
+
+```pwsh
+function Get-VSCodeBicepLangServerPath {
+    [CmdletBinding()]
+    param(
+        [ValidateSet('insiders', 'stable')]
+        [string]$Channel = 'insiders'
+    )
+    $home = $HOME
+    $basePath = if ($Channel -eq 'insiders') {
+        Join-Path $home '.vscode-insiders/extensions'
+    } else {
+        Join-Path $home '.vscode/extensions'
+    }
+    if (-not (Test-Path $basePath)) {
+        return $null
+    }
+    $candidate = Get-ChildItem -Path $basePath -Directory -Filter 'ms-azuretools.vscode-bicep-*' |
+        Sort-Object Name -Descending |
+        ForEach-Object {
+            Join-Path $_.FullName 'bicepLanguageServer/Bicep.LangServer.dll'
+        } |
+        Where-Object { Test-Path $_ } |
+        Select-Object -First 1
+    return $candidate
+}
+```
+
+Then use that resolved path in the same lsp.bicep.command array.
+
+<a id="the-caveat-with-vs-code-paths" />
+
+### The caveat with VS Code paths
+
+The extension folder has a version in its name, so the path changes when the extension updates. That means one of:
+
+-   update opencode.json after extension updates,
+-   script the path resolution and regenerate config, maybe updating via opencode plugin?
+-   or keep the manual install path for stability.
+
+For quick setup, VS Code reuse is convenient. For long-term predictability, manual install usually wins. I've been sticking with the manual version for now, and updating it now and then myself.
+
+<a id="quick-verification" />
+
+## Quick verification
+
+After setting config, run LSP diagnostics against an invalid .bicep file and verify you get Bicep diagnostic codes (for example BCP007).  
+That confirms both the language-ID mapping and language server wiring are working.
+
+![](/images/ghost/26c1c3bb43c9fdc80fde.png)
+
+![](/images/ghost/7e495cecaf32cbae4115.png)

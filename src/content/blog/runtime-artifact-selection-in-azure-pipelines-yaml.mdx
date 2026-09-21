@@ -1,0 +1,287 @@
+---
+title: "Runtime Artifact selection in Azure Pipelines YAML"
+slug: "runtime-artifact-selection-in-azure-pipelines-yaml"
+publishedAt: "2020-03-28T19:28:44.000+02:00"
+updatedAt: "2022-03-04T20:29:44.000+02:00"
+description: "I've been using Azure Pipelines YAML schema for quite a while now,
+  but the difficulty of selecting specific artifacts has been bothering me.
+  Check out how I've overcome the issue."
+tags:
+  - "Azure DevOps"
+  - "Azure Pipelines"
+  - "DevOps"
+  - "YAML"
+tagSlugs:
+  - "azure-devops"
+  - "azure-pipelines"
+  - "devops"
+  - "yaml"
+image: "/images/ghost/df7fb10d739e09ad6514.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoTitle: "Runtime Artifact selection in Azure Pipelines YAML - Tutorial"
+seoDescription: "I've been using Azure Pipelines YAML schema for quite a while
+  now, but the difficulty of selecting specific artifacts has been bothering me.
+  Check out how I've overcome the issue."
+series: []
+---
+
+**UPDATE 4.3.2022:** This implementation is still valid, but has a feature that might bite you later. If the default value is \`latest\`, it means latest at the time of the **current** pipeline run. So if you end up rerunning a previous pipeline (for rollbacks etc.), and there have been newer artifacts built in the same branch, you will end up with different versions from the initial run. This differs from the Azure DevOps standard implementation.
+
+The only workaround I've used here is to specify packages used by the build id when doing a rollback in a new release run rather than rerunning a previous one.
+
+* * *
+
+I've been using [Azure Pipelines YAML schema](https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema?view=azure-devops&tabs=schema%2Cparameter-schema&ref=huuhka.net#download?WT.mc_id=AZ-MVP-5003781) for quite a while now, and while it's been a rocky road to get here in terms of user experience, documentation and somewhat tricky troubleshooting, I feel that it's finally production ready to use in releases as well.
+
+However, a problem I've faced with the new schema has been the absence of specific manual artifact selection options during queue-time. The classic Release pipelines have this cool UI for dropdown selections, whereas if I'm running a release from the YAML side,  out of the box I pretty much can only select a branch to take the pipeline logic from and stages to run.
+
+![](/images/ghost/db6ba75abf5dd2f6944b.jpg)
+
+<figcaption>
+
+Classic vs YAML user interface
+
+</figcaption>
+
+Now with the newly implemented [Runtime Parameters](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/runtime-parameters?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net), creating functionality that provides a somewhat similar experience can be done fairly easily. Let's take a look at how I've overcome the issue.
+
+<a id="requirements-for-my-use-case" />
+
+## Requirements for my use case
+
+My use case is fairly simple. I have X number of builds (here 2), that are specified as [pipeline resources](https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema?view=azure-devops&tabs=schema%2Cparameter-schema&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#pipeline-resource) in my release pipeline.
+
+```YAML
+# Disable triggering from code updates to repo
+trigger: none
+
+# Set up build pipeline to trigger release on completion
+resources:
+  pipelines:
+  - pipeline: build_1
+    source: My-Build-YAML
+    trigger:
+      branches:
+      - master
+      - release*
+  - pipeline: build_2
+    source: PH-Test
+    trigger:
+      branches:
+      - master
+      - release*
+```
+
+**Then, I want my users to be able to do three things with the release:**
+
+-   Have the release trigger from their build completion automatically, using specific packages from that build, and the latest packages from other builds from the triggering branch.
+-   Have the capability to run the release manually, without specifying any parameters. This will then default to latest artifacts built from the source branch chosen (or default).
+-   Have the capability to run the release manually, by specifying either a source branch to take the latest artifacts from, or specify the exact builds to take packages from.
+
+<a id="the-solution" />
+
+## The Solution
+
+<a id="parameters" />
+
+### Parameters
+
+To tackle this, I first started by creating the runtime parameters that I will for certain be needing. While this does not provide a dropdown UI, the user can still fill these in as required.
+
+```YAML
+parameters:
+- name : artifactBranch
+  displayName: Artifact Branch (e.g. feature/myfeature)
+  type: string
+  default: $(Build.SourceBranch)
+- name : artifactBuildId
+  displayName: Artifact Build Id (e.g. run Id for the build to download). Overrides Artifact Branch if not "latest".
+  type: string
+  default: latest
+  
+  ## Copy these for each build
+```
+
+The **artifactBranch** is the **$(Build.SourceBranch)** [predefined variable](https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#build-variables) by default, so if we do not specify anything, we always try to get packages from the branch of the release YAML file first and fail the release if those do not exist. This is also the case for a Pipeline triggered release.
+
+We also get the ability to replace the $(Build.SourceBranch) value to use the YAML file from branch A and artifacts from branch B.
+
+If the **artifactBuildId** is specified, we do not need to know anything else as the build IDs are unique within your Azure DevOps Organization.
+
+<a id="downloading-artifacts" />
+
+### Downloading Artifacts
+
+Then, the only thing we need to figure out is how to actually download the artifacts. I often have a stage of it's own for the artifact downloads in my pipeline, and then rather than using the **["download"-keyword](https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema?view=azure-devops&tabs=schema%2Cparameter-schema?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#download)**, I have the full specification of the **[DownloadPipelineArtifact@2](https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/download-pipeline-artifact?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)** task.
+
+Do note that **the artifacts need to be downloaded for every job individually**, so this does result in quite a bit of boilerplate code. If you're using deployment jobs, the default packages it downloads do not automatically follow the first download in next jobs / stages, but they can be overridden by the way shown in this post. Check out [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/deployment-jobs?view=azure-devops&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#descriptions-of-lifecycle-hooks) for more info on deployment jobs.
+
+```YAML
+stages:
+- stage: 'deploy_stuff'
+  pool:
+    name: Azure Pipelines
+    vmImage: windows-2019
+  jobs: 
+  - job: deploy_stuff
+    steps:
+    - checkout: none # Don't check out any git repos
+    - task: DownloadPipelineArtifact@2
+      displayName: Download Pipeline Artifacts
+      inputs:
+        buildType: 'specific'
+        project: '$(resources.pipeline.build_1.projectID)'
+        definition: '$(resources.pipeline.build_1.pipelineID)'
+        preferTriggeringPipeline: true
+        ${{ if eq(parameters.artifactBuildId, 'latest') }}:
+          buildVersionToDownload: 'latestFromBranch'
+        ${{ if ne(parameters.artifactBuildId, 'latest') }}:
+          buildVersionToDownload: 'specific'
+          runId: '${{ parameters.artifactBuildId }}'
+        # Check for artifactBranch variable. Defaults to latest pipeline completion branch.
+        ${{ if eq(parameters.artifactBranch, '$(Build.SourceBranch)') }}:
+          branchName: '$(Build.SourceBranch)'
+        ${{ if ne(parameters.artifactBranch, '$(Build.SourceBranch)') }}:
+          branchName: 'refs/heads/${{ parameters.artifactBranch }}'
+        targetPath: '$(Pipeline.Workspace)'
+        
+    ## Copy the DownloadPipelineArtifact@2 task for each pipeline resource
+```
+
+First, I specify "**checkout: none**" to skip checking out the repository. We do not need anything from there, as we are only using the build artifacts.
+
+Then for the DownloadPipelineArtifact@2 I set the **buildType** (or source) to be of a specific pipeline, instead of "_current_", which would mean that the release pipeline I'm running has produced the artifacts. Setting this to "specific" means that I then need to tell the task from which **project** and **definition** I want to download from. These use the [pipeline resource metadata predefined variables](https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema?view=azure-devops&tabs=schema%2Cparameter-schema?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#the-pipeline-resource-metadata-as-predefined-variables).
+
+To make sure that the triggering pipeline artifacts are downloaded, I set the **preferTriggeringPipeline** value to true.
+
+If a specific build ID is given, I change my **buildVersionToDownload** from the "_latestFromBranch_" to "_specific_" and add a new **runID** parameter to take in the specific build ID.
+
+Lastly, we check if the default value of the **artifactBranch** parameter, $(Build.SourceBranch) has been changed. The **branchName** param for the task requires the value to be given as a **[Git Reference ID](https://git-scm.com/book/en/v2/Git-Internals-Git-References?ref=huuhka.net)**, so "_refs/heads/master_" for example. Thankfully the value for $(Build.SourceBranch) is already in that format. If the branchName is given by the user, we make it easy for them not to have to specify the "_refs/heads/_" beginning, and just do some string concatenation at that point in the pipeline.
+
+<a id="the-end-result" />
+
+## The End result
+
+We end up with a finished pipeline:
+
+```YAML
+# Runtime parameters to select artifacts
+parameters:
+- name : artifactBranch
+  displayName: Artifact Branch (e.g. feature/myfeature)
+  type: string
+  default: $(Build.SourceBranch)
+- name : artifactBuildId
+  displayName: Artifact Build Id (e.g. run Id for the build to download). Overrides Artifact Branch if not "latest".
+  type: string
+  default: latest
+- name : artifact2Branch
+  displayName: Artifact 2 Branch (e.g. feature/myfeature)
+  type: string
+  default: $(Build.SourceBranch)
+- name : artifact2BuildId
+  displayName: Artifact 2 Build Id (e.g. run Id for the build to download). Overrides Artifact Branch if not "latest".
+  type: string
+  default: latest
+
+# Disable triggering from code updates to repo
+trigger: none
+
+# Set up build pipeline to trigger release on completion
+resources:
+  pipelines:
+  - pipeline: build_1
+    source: My-Build-YAML
+    trigger:
+      branches:
+      - release*
+      - master
+
+  - pipeline: build_2
+    source: PH-Test
+    trigger:
+      branches:
+      - master
+      - release*
+
+stages:
+- stage: 'deploy_stuff'
+  pool:
+    name: Azure Pipelines
+    vmImage: windows-2019
+  jobs: 
+  - job: deploy_stuff
+    steps:
+    ## Artifacts need to be downloaded for EACH JOB
+    - checkout: none
+    - task: DownloadPipelineArtifact@2
+      displayName: Download Pipeline Artifacts
+      inputs:
+        buildType: 'specific'
+        project: '$(resources.pipeline.build_1.projectID)'
+        definition: '$(resources.pipeline.build_1.pipelineID)'
+        preferTriggeringPipeline: true
+        ${{ if eq(parameters.artifactBuildId, 'latest') }}:
+          buildVersionToDownload: 'latestFromBranch'
+        ${{ if ne(parameters.artifactBuildId, 'latest') }}:
+          buildVersionToDownload: 'specific'
+          runId: '${{ parameters.artifactBuildId }}'
+        ${{ if eq(parameters.artifactBranch, '$(Build.SourceBranch)') }}:
+          branchName: '$(Build.SourceBranch)'
+        ${{ if ne(parameters.artifactBranch, '$(Build.SourceBranch)') }}:
+          branchName: 'refs/heads/${{ parameters.artifactBranch }}'
+        targetPath: '$(Pipeline.Workspace)'
+
+
+    - task: DownloadPipelineArtifact@2
+      displayName: Download Pipeline 2 artifacts
+      inputs:
+        buildType: 'specific'
+        project: '$(resources.pipeline.build_2.projectID)'
+        definition: '$(resources.pipeline.build_2.pipelineID)'
+        preferTriggeringPipeline: true
+        ${{ if eq(parameters.artifact2BuildId, 'latest') }}:
+          buildVersionToDownload: 'latestFromBranch'
+        ${{ if ne(parameters.artifact2BuildId, 'latest') }}:
+          buildVersionToDownload: 'specific'
+          runId: '${{ parameters.artifact2BuildId }}'
+        ${{ if eq(parameters.artifact2Branch, '$(Build.SourceBranch)') }}:
+          branchName: '$(Build.SourceBranch)'
+        ${{ if ne(parameters.artifact2Branch, '$(Build.SourceBranch)') }}:
+          branchName: 'refs/heads/${{ parameters.artifact2Branch }}'
+        targetPath: '$(Pipeline.Workspace)'
+        
+##  Task 3...n with your deployment logic.
+```
+
+When a user runs this release, they get pretty easy to understand selections to fill in, or just run the release with defaults.
+
+![](/images/ghost/8821c7d694ec147f2683.JPG)
+
+The RunID value can be easily checked from the Address bar when looking at a specific build.
+
+![](/images/ghost/460e67cbb8f792ba67f0.jpg)
+
+<figcaption>
+
+BuildId location for builds
+
+</figcaption>
+
+<a id="wrap-up" />
+
+## Wrap Up
+
+As shown, it is finally possible to create a totally parameterized template. Nothing is preventing you from utilizing the same techniques to anything that benefits from runtime customization.
+
+This was the last step in my mind that could have prevented the use of YAML releases in production, and encourage you to use them as the first option when creating new pipelines. The benefits in the long run are immense!
+
+Source code can also be found [here](https://github.com/DrBushyTop/AzDO_YAML/blob/master/Pipelines/artifactSelection.yaml?ref=huuhka.net).
+
+If you spot any issues with my pipeline logic, or anything else, shoot me a message via twitter or leave a comment below.
+
+[Pasi Huuhka (@DrBushyTop) | Twitter](https://twitter.com/DrBushyTop?ref=huuhka.net)
+
+De nieuwste Tweets van Pasi Huuhka (@DrBushyTop). DevOps Architect @ZureLtd. Doing things with Azure PaaS

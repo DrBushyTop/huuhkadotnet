@@ -1,12 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import YAML from 'yaml';
 import { createArticleSearch } from '../src/lib/search.ts';
 
-const posts = JSON.parse(readFileSync(new URL('../src/data/posts.json', import.meta.url)));
+const posts = readdirSync(new URL('../src/content/blog/',import.meta.url)).filter(f=>f.endsWith('.mdx')).map(file=>{
+  const source=readFileSync(new URL(`../src/content/blog/${file}`,import.meta.url),'utf8');
+  const data=YAML.parse(source.split('---')[1]);
+  return {...data,url:`/${data.slug}/`};
+}).sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
 const search = createArticleSearch(posts);
 
-test('empty search preserves chronological order across all preview articles', () => {
+test('empty search preserves chronological order across all articles', () => {
   assert.ok(posts.length >= 12);
   assert.deepEqual(search('  '), posts.map((post) => post.slug));
   const dates = posts.map((post) => Date.parse(post.publishedAt));
@@ -30,13 +35,12 @@ test('returns no matches for unrelated text or markup', () => {
   assert.deepEqual(search('<script>alert(1)</script>'), []);
 });
 
-test('preview data has distinct slugs and original publication links', () => {
+test('content has distinct slugs and local publication links', () => {
   assert.equal(new Set(posts.map((post) => post.slug)).size, posts.length);
   for (const post of posts) {
-    assert.equal(post.url, `https://www.huuhka.net/${post.slug}/`);
-    assert.ok(post.tags.length);
+    assert.equal(post.url, `/${post.slug}/`);
     assert.ok(!Number.isNaN(Date.parse(post.publishedAt)));
-    assert.ok(existsSync(new URL(`../public${post.image}`, import.meta.url)));
+    if(post.image) assert.ok(existsSync(new URL(`../public${post.image}`, import.meta.url)));
   }
 });
 

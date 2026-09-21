@@ -1,7 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
-import posts from '../data/posts.json';
+import {getPosts, cardPost} from '../lib/posts';
+const posts = (await getPosts()).map(cardPost);
 
 const popular = posts.slice(0, 3);
 const dateFormat = new Intl.DateTimeFormat('en-GB', {
@@ -25,7 +26,7 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
       <div class="popular-grid">
         {popular.map((post) => (
           <a class="popular-card" href={post.url}>
-            <img src={post.image} width="72" height="72" alt="" decoding="async" />
+            <img src={post.image || "/images/pasi.webp"} width="72" height="72" alt="" decoding="async" />
             <h3>{post.title}</h3>
             <span class="popular-arrow"><Icon name="external" size={17} /></span>
           </a>
@@ -49,7 +50,7 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
           <article class="article-card" data-slug={post.slug}>
             <a href={post.url} aria-labelledby={`title-${post.slug}`}>
               <div class="article-image">
-                <img src={post.image} alt="" width="960" height="504" loading={index < 3 ? 'eager' : 'lazy'} decoding="async" />
+                <img src={post.image || "/images/pasi.webp"} alt="" width="960" height="504" loading={index < 3 ? 'eager' : 'lazy'} decoding="async" />
               </div>
               <div class="article-content">
                 <ul class="article-tags" aria-label="Topics">
@@ -81,8 +82,10 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
   </main>
 </Base>
 
+<script id="search-data" type="application/json" set:html={JSON.stringify(posts.map(({slug,title,tags}) => ({slug,title,tags}))).replaceAll("<", "\\u003c")} />
+
 <script>
-  import posts from '../data/posts.json';
+  const posts = JSON.parse(document.querySelector('#search-data')!.textContent!);
   import { createArticleSearch } from '../lib/search';
 
   const form = document.querySelector<HTMLFormElement>('.search-form')!;

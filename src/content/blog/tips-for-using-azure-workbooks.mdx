@@ -1,0 +1,181 @@
+---
+title: "Tips for using Azure Workbooks - Part 1"
+slug: "tips-for-using-azure-workbooks"
+publishedAt: "2023-02-19T20:12:22.000+02:00"
+updatedAt: "2024-03-04T13:53:15.000+02:00"
+description: "Here are some of my tips for beginners and intermediate users
+  thinking of getting started with Azure Workbooks."
+tags:
+  - "Azure"
+  - "Getting Started"
+  - "Telemetry"
+tagSlugs:
+  - "azure"
+  - "getting-started"
+  - "telemetry"
+image: "/images/ghost/27e63284e91189417095.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoTitle: "Tips for using Azure Workbooks - Part 1"
+seoDescription: "Here are some of my tips for beginners and intermediate users
+  thinking of getting started with Azure Workbooks."
+series: []
+---
+
+I've been doing some work on visualizing Log Analytics data in the last year. When deciding on a Azure native way of doing that, I see people often default to Azure Dashboards, but frankly I feel they provide only very limited capabilities on a very user unfriendly interface.
+
+I decided to implement my requirements with Azure Workbooks instead, as they can produce pretty nifty looking output as long as you know what you would want to see. (Often the most difficult thing to decide). The editing experience isn't that bad either!
+
+Here are some of my tips for beginners and intermediate users thinking of getting started with Azure Workbooks.
+
+<a id="start-with-a-ready-made-template" />
+
+### Start with a ready-made template
+
+The editing experience and functionality has a bit of a learning curve. On top of learning KQL, you will need to find your way around a bunch of Azure Portal-like menus to configure everything.
+
+Thankfully Microsoft provides a bunch of examples that are already deployed as part of your Application Insights instance. There are also a few repositories in GitHub with use-case specific workbooks you can use.
+
+Here are a few repos:
+
+[GitHub - microsoft/Application-Insights-Workbooks: Templates for Azure Monitor Workbooks](https://github.com/microsoft/Application-Insights-Workbooks?ref=huuhka.net)
+
+Templates for Azure Monitor Workbooks. Contribute to microsoft/Application-Insights-Workbooks development by creating an account on GitHub.
+
+[GitHub - azure-ad-b2c/siem: The repository contains artifacts to create and publish reports, alerts, and dashboards based on Azure AD B2C logs. These artifacts can also be used for Security Information & Event Management (SIEM) related tasks.](https://github.com/azure-ad-b2c/siem?ref=huuhka.net)
+
+The repository contains artifacts to create and publish reports, alerts, and dashboards based on Azure AD B2C logs. These artifacts can also be used for Security Information &amp; Event Management ...
+
+Here's how you use them:
+
+-   Open up a workbook from your App Insights Workbooks-tab
+
+![](/images/ghost/4733165328508897ed34.png)
+
+<figcaption>
+
+App Insights has a lot of templates
+
+</figcaption>
+
+-   Click edit in the top bar -> Save as, and save it with your desired name.
+-   Go back to the editing experience of your new workbook. If you're happy with the template you selected, continue editing there. If you took code from GitHub, you can go to the "Advanced Editor" button to paste it in. Be sure to be in the "Gallery Template" page. This is also where you can export your code to a repo for example.
+
+![](/images/ghost/df9bded70a41e91f13b3.png)
+
+<figcaption>
+
+Finding the Advanced Editor
+
+</figcaption>
+
+<a id="dividing-information-in-pages" />
+
+### Dividing information in pages
+
+The biggest problem I face when creating dashboards is how to show enough, but not too much information. For helping with this, Workbooks provide a nifty way of paginating the information with a toggle parameter.
+
+Here's an example from the Downtimes & Outages built-in workbook:
+
+![](/images/ghost/4a54172a4dade86db34e.png)
+
+The implementation is pretty simple
+
+-   Decide a parameter. This can be hidden, or not defined in the workbook directly at all. The example shows this as "Tab", but can be anything.
+-   Define a links-block, configure the links to use the "set parameter value" function
+
+![](/images/ghost/e4ba9bd0adfd05531471.png)
+
+-   In your KQL code or built in block config, create logic to show / not show certain information based on the value
+
+![](/images/ghost/7768684c47fde43bed1e.png)
+
+<figcaption>
+
+Making items conditionally visible based on your parameter
+
+</figcaption>
+
+A code example can be seen in the JSON chapter below.
+
+<a id="passing-values-down" />
+
+### Passing values down
+
+Parameter values can change when you're travelling down the workbook, but the changes only affect content below the changing point. Just like with the links we used with creation our pages, we can change parameter values from specific tables resulting from KQL queries. Let's see how to do that next.
+
+My use case is the following: I have a KQL query that returns rows of data, different API operation performances in this case. I want to select a row, and have all my content further down show details for just that API operation.
+
+-   First, in the KQL query Advanced Settings, set "When items are selected, export parameters". In the image I've set this to export all the fields to the "Operation" parameter
+
+![](/images/ghost/26595bede685c0509d30.png)
+
+-   Next in your content below, take in the exported row and extract the parts you need. Here I'm just taking out the operation name.
+
+```kusto
+let row = dynamic({Operation});
+let operation = tostring(row.Operation);
+```
+
+-   (Optional) Lastly, if you need to have a markdown field representing the name of the operation for example, I found that doing the parsing of the correct values from the row in a hidden parameter worked well. I just show the SelectedOperation text in the markdown.
+
+![](/images/ghost/a5c1af22b7a27deb58c6.png)
+
+<figcaption>
+
+Parsing other values from your exported row parameter
+
+</figcaption>
+
+Now when you clic one of the rows in your query, the content below should update accordingly.
+
+<a id="using-colors-in-tables" />
+
+### Using colors in tables
+
+Color is especially important when you want to quickly see if everything is OK. That's why you should definitely incorporate it into your most important metrics in the dashboard.
+
+My use case is monitoring Service Level Objectives (SLOs) from Service Level Indicators (SLIs). In this case I have latency and availability SLIs calculated from my data as percentage values. I need to show green if everything is good, yellow if we're missing the mark and red if we're looking real bad. Here's how to do the visualization part of that flow:
+
+-   First, open up the "Column settings" in your query.
+
+![](/images/ghost/7ef9af359e36abff23f5.png)
+
+<figcaption>
+
+Finding Column Settings
+
+</figcaption>
+
+-   Then select your desired column from the list and configure the "Threshold Settings" to be "Colors". Here you can simply set the default values and operators for your data. I have simply set that under 0.85 we show red, at 0.9 we start showing yellow, and anything above that is green. The text field should work with just &#123;0&#125;.
+
+![](/images/ghost/58961d6883419ce03295.png)
+
+<figcaption>
+
+Setting operators and Color.
+
+</figcaption>
+
+-   Here in the same view you can also set custom formatting and custom tooltips. Useful for limiting significant digits in percentages etc.
+
+![](/images/ghost/cdffe5a0fddf58669720.png)
+
+-   Then when you apply, your result should show something like this
+
+![](/images/ghost/ae01074fed0be4e99090.png)
+
+<a id="wrap-up" />
+
+## Wrap-Up
+
+Hopefully you found these basics helpful!
+
+In the next parts, I'll be looking at slightly more advanced parts like:
+
+-   Providing samples and links for specific events
+-   Storing complex configuration as hidden JSON
+-   Deployment and editing flow
+
+[Here's Part 2!](/tips-for-using-azure-workbooks-part-2/)

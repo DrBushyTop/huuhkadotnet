@@ -1,0 +1,110 @@
+---
+title: "User Assigned Managed Identities with Azure DevOps Service Connections"
+slug: "user-assigned-managed-identities-with-azure-devops-service-connections"
+publishedAt: "2024-03-12T19:37:00.000+02:00"
+updatedAt: "2024-03-17T20:52:41.000+02:00"
+description: "This post will show you how to use User Assigned Identities to
+  back Azure DevOps service connections to Azure"
+tags:
+  - "Bicep"
+  - "DevOps"
+  - "PowerShell"
+  - "Security"
+  - "Azure DevOps"
+  - "Azure Pipelines"
+tagSlugs:
+  - "bicep"
+  - "devops"
+  - "powershell"
+  - "security"
+  - "azure-devops"
+  - "azure-pipelines"
+image: "/images/ghost/c88bfd1384db098422dd.webp"
+imageAlt: ""
+draft: false
+featured: true
+series: []
+---
+
+So late last year Microsoft has started to drastically reduce the lifetimes of the default client secrets behind the service connections in Azure DevOps. Of course this is not a problem as you can just create your own secrets for them through the Entra ID portal. However, anything with a client secret can leak, and if this happens with a service connection (which usually have elevated permissions) you might be in big trouble.
+
+Thankfully Microsoft has also implemented the support for [Workload Identity Federation in Azure DevOps](https://devblogs.microsoft.com/devops/workload-identity-federation-for-azure-deployments-is-now-generally-available/?ref=huuhka.net). This in practice allows us to remove all passwords from our service connections with very few downsides. There are still a few kinks to work out here, as not all Azure DevOps tasks yet support the access tokens, or lack the capability to refresh them before expiration, but I've not yet had anything come up that would prevent me from using them.
+
+I decided to take things one step further and use a User Assigned Managed identity to back the service connection instead of a normal Entra ID App Registration. While the difference is minimal in the actual implementation, the benefit is that as a developer I no longer necessarily need to visit the Entra ID portal to do any operations on the App Registration itself. Often working as a consultant we do not even have read permissions to the portal, so this reduces friction in getting things to work without too much customer assistance.
+
+<a id="azure-devops-service-connections" />
+
+### Azure DevOps Service Connections
+
+If you happen to have pre-existing service connections created in your Azure DevOps that still utilize secrets, there is a button in the UI you can use to convert them.
+
+![](/images/ghost/7fd53d66c4318709f7c4.png)
+
+![](/images/ghost/0f787e98a075660c403e.png)
+
+And you can also roll back if needed.
+
+![](/images/ghost/75be89c3c3e0893e9915.png)
+
+To create a new one, you can use these two options. **Note that the automated creation still requires you to have permissions to create App Registrations in Entra ID.**
+
+![](/images/ghost/374ab09ad29ead8a6136.png)
+
+I'm using the manual creation, and save the connection as a draft for now. We will need to save the values of **Issuer** and **Subject Identifier** for later. We will fill the rest later.
+
+![](/images/ghost/5df3f65643bb2fff0ec5.png)
+
+<a id="set-up-the-managed-identity-in-azure" />
+
+### Set up the Managed Identity in Azure
+
+Next, we'll need to create the User Assigned Managed Identity. [Here's a short Bicep file you can use.](https://github.com/DrBushyTop/blogExamples/blob/master/azureDevOpsFederated/uai.bicep?ref=huuhka.net)
+
+```bicep
+param uaiName string = 'DevOpsServiceConnectionUAI'
+param location string = 'westeurope'
+param issuer string
+param subjectIdentifier string
+
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
+  name: uaiName
+  location: location
+}
+
+resource federation 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-07-31-preview' = {
+  name: 'AzureDevOpsFederation'
+  parent: userAssignedIdentity
+  properties: {
+    subject: subjectIdentifier
+    issuer: issuer
+    audiences: [
+      'api://AzureADTokenExchange'
+    ]
+  }
+}
+
+output tenantId string = subscription().tenantId
+output clientId string = userAssignedIdentity.properties.clientId
+output subscriptionId string = subscription().subscriptionId
+output subscriptionName string = subscription().displayName
+```
+
+You can deploy with:
+
+```powershell
+## Create RG
+New-AzResourceGroup -Name 'YourRgName' -Location 'westeurope'
+
+## Create identity
+New-AzResourceGroupDeployment -ResourceGroupName 'yourRGName' -TemplateFile uai.bicep -issuer "YourIssuer" -subjectIdentifier "YourSubjectIdentifier"
+```
+
+As you can see from the outputs, we get all the required items printed out. If you wanted to, you could automate this addition of the data to the draft too. The service connection expects the clientId in the "Service Principal Id" field. The others are self explanatory.
+
+**All that's left to do:**
+
+-   Grant permissions to a specific resource or a resource group(s) for the User Assigned Identity. The verify will not work before it can read something in the subscription. **NOTE** that a subscription level service principal can only target a single subscription at a time (though you can change the context via scripts). I often create multiple service connections backed by the same identity.
+-   Fill in the details output by the Bicep file to the Service Connection in Azure DevOps and save it.
+-   Use the service connection in your pipelines just like before, no changes here
+
+And that's it! Test out your pipelines to verify they still work. There can be issues, but as mentioned I've yet faced anything major.

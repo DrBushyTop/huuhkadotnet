@@ -1,0 +1,276 @@
+---
+title: "Testing Cloudflare's Code Mode on Azure DevOps MCP"
+slug: "testing-cloudflares-code-mode-on-azure-devops-mcp"
+publishedAt: "2026-03-07T23:37:00.000+02:00"
+updatedAt: "2026-03-09T19:12:55.000+02:00"
+description: "I recently spent some time testing Cloudflare's Code Mode in
+  implementing the Azure DevOps MCP server in a more lightweight manner. This
+  post goes through some of my experiences."
+tags:
+  - "AI"
+  - "Azure DevOps"
+  - "GitHub Copilot"
+  - "OpenCode"
+tagSlugs:
+  - "ai"
+  - "azure-devops"
+  - "github-copilot"
+  - "opencode"
+image: "/images/ghost/a2c85883c062f664b9ce.png"
+imageAlt: ""
+draft: false
+featured: true
+series: []
+---
+
+I recently spent some time testing [Cloudflare's Code Mode](https://github.com/cloudflare/agents/tree/main/packages/codemode?ref=huuhka.net) in implementing the Azure DevOps MCP server in a more lightweight manner.
+
+[Azure DevOps MCP](https://github.com/microsoft/azure-devops-mcp?ref=huuhka.net) exposes [a lot of tools](https://github.com/microsoft/azure-devops-mcp/blob/main/docs/TOOLSET.md?ref=huuhka.net) by default. In my environment that surface was around 80 tools. That is already enough that normal tool calling starts to feel awkward. You spend a lot of tokens just describing the tools, the model has to select from a broad surface, and once you need multiple calls in sequence the whole thing can get noisy very quickly.
+
+So the pitch of Code Mode made immediate sense to me: Instead of forcing the model to pick one tool at a time, let it write a small program that does the orchestration itself.
+
+That is also very much in line with where the broader ecosystem seems to be moving. Anthropic now has both [tool search](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool?ref=huuhka.net) and [programmatic tool calling](https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling?ref=huuhka.net). OpenAI has [tool search](https://developers.openai.com/api/docs/guides/tools-tool-search/?ref=huuhka.net) as well. Anthropic's own writeup on this direction is worth reading too: [Introducing advanced tool use on the Claude Developer Platform](https://www.anthropic.com/engineering/advanced-tool-use?ref=huuhka.net).
+
+So this post is not really about whether the idea is good. I think it is. It is about what happened when I actually tried to make it work on a real tool surface that looked like an obvious candidate.
+
+<a id="what-code-mode-is-in-the-simplest-form" />
+
+### What Code Mode is, in the simplest form
+
+[Cloudflare's own README](https://github.com/cloudflare/agents/tree/main/packages/codemode?ref=huuhka.net#readme) gives a very small example of the pattern:
+
+```ts
+
+import { createCodeTool } from "@cloudflare/codemode/ai";
+import { DynamicWorkerExecutor } from "@cloudflare/codemode";
+import { streamText, tool } from "ai";
+import { z } from "zod";
+
+// Create the tools
+const tools = {
+  getWeather: tool({
+    description: "Get weather for a location",
+    inputSchema: z.object({ location: z.string() }),
+    execute: async ({ location }) => `Weather in ${location}: 72°F, sunny`
+  }),
+  sendEmail: tool({
+    description: "Send an email",
+    inputSchema: z.object({
+      to: z.string(),
+      subject: z.string(),
+      body: z.string()
+    }),
+    execute: async ({ to, subject, body }) => `Email sent to ${to}`
+  })
+};
+
+// Create a secure execution sandbox
+const executor = new DynamicWorkerExecutor({
+  loader: env.LOADER
+});
+
+// Wrap them in code mode
+const codemode = createCodeTool({ tools, executor });
+
+// Pass them to your agent...
+```
+
+And then the model writes something like:
+
+```ts
+async () => {
+  const weather = await codemode.getWeather({ location: "London" });
+  if (weather.includes("sunny")) {
+    await codemode.sendEmail({
+      to: "team@example.com",
+      subject: "Nice day!",
+      body: `It's ${weather}`
+    });
+  }
+  return { weather, notified: true };
+};
+```
+
+The model is a very appealing. If the tool surface is big enough, or the task requires a few dependent calls, this starts to look much nicer than repeatedly asking the model what the next tool call should be. [Cloudflare also has their own presentation on the topic here](https://www.youtube.com/watch?v=-ZikRWR1Gb4&ref=huuhka.net)
+
+<a id="why-azure-devops-looked-like-a-perfect-test-case" />
+
+### Why Azure DevOps looked like a perfect test case
+
+Azure DevOps MCP is exactly the kind of thing that makes you start looking at alternatives to plain tool calling.
+
+-   the tool surface is big- many tools are adjacent or partially overlapping- descriptions and schemas add a lot of tokens
+-   workflows often require multiple calls in sequence
+
+So on paper the fit looked great. I initially thought I could more or less just:
+
+1\. put a `search` tool in front of the MCP surface  
+2\. put an `execute` tool behind it  
+3\. let the model search the Azure DevOps tools it needs  
+4\. let it write one small program to do the actual work
+
+That was the first version of this experiment. [It is still preserved here for reference](https://github.com/DrBushyTop/ado-codemode-mcp/tree/feat/mcp-wrap?ref=huuhka.net)
+
+[The current implementation is here](https://github.com/DrBushyTop/ado-codemode-mcp/tree/master?ref=huuhka.net).
+
+<a id="the-first-lesson-this-was-not-nearly-as-plug-and-play-as-i-expected" />
+
+### The first lesson: this was not nearly as plug-and-play as I expected
+
+The basic wrapper part is easy. The hard part is getting good model behavior. That turns out to depend much more on the quality of the underlying tool contract than I first expected.
+
+My main takeaway from the whole experiment is this:
+
+> Code Mode works best when the model can plan data flow, not just function calls.
+
+That sounds obvious in hindsight, but it really changed how I think about wrapping MCP servers. If the model sees a list of tools and their input schemas, but it does not have a reliable idea of what those tools return, then longer chains get shaky very quickly. And once that happens, the model starts probing.
+
+That probing shows up as extra search and execute calls, retries with slightly different arguments and fallback behavior outside the intended path. In practice it meant that my test agents started using az cli and reading the repo for clues.
+
+At that point, a lot of the benefit of Code Mode starts to disappear, and the target I was chasing was something like 1 search call and 1-2 execute calls to accomplish what's needed.
+
+<a id="wrapping-the-mcp-was-the-wrong-abstraction-for-this-case" />
+
+### Wrapping the MCP was the wrong abstraction for this case
+
+This was the main practical problem.
+
+Wrapping an MCP tool surface is not enough on its own if the wrapped tools do not expose what they actually return in a useful way. With Azure DevOps MCP, the model often had enough information to discover what to call next, but not enough information to confidently reason about what each call would return. That created a bad pattern:
+
+-   the model could find a tool
+-   it could often call the tool correctly, but then it had to guess the output shape, and that made multi-step orchestration inside a single execute call unreliable
+
+So instead of getting the elegant “one search, one execute” flow I was aiming for, I initially got a lot more churn than expected.
+
+That is not really a knock on Code Mode itself. It is more a statement about the dependency chain underneath it.
+
+> If the model is supposed to write a small program, it needs the same kind of confidence about function outputs that we as developers would want if we were wiring together a new client.
+
+<a id="the-major-issues-i-ran-into" />
+
+### The major issues I ran into
+
+**The wrapped MCP surface did not expose enough output information**
+
+This was the biggest one. The model could see inputs much more reliably than outputs. That meant it could discover and call tools, but not confidently build longer chains inside a single execute call.
+
+This was the point where I started feeling that “wrapping MCP servers with Code Mode” may not be the best idea in general unless the wrapped surface also presents good return contracts.
+
+**Search and execute shape matter a lot**
+
+I went through a few iterations on this. If discovery leaks too much into execute, the model keeps rediscovering tools inside the program. If search returns too much, the model can get stuck doing search loops. If search returns too little, the model misses one supporting operation and has to search again.
+
+This is one of those things that looks simple in a diagram and then turns out to be quite sensitive in practice. Practically just iterated on the search tool prompting and tried to steer the model with better examples on how to get the correct data.
+
+**Secure execution is a real engineering problem outside Dynamic Workers**
+
+If you use [Cloudflare's Dynamic Workers](https://developers.cloudflare.com/workers/runtime-apis/bindings/worker-loader/?ref=huuhka.net), the sandboxing story is much cleaner.  
+If you do not, you need to think through how you are executing untrusted model-generated code. That was not impossible, but it definitely was not plug-and-play either.
+
+I ended up building a local sandbox executor around container isolation, `runsc` , a narrow callback surface and no general network egress from the sandbox. It was not that difficult in the end, but still needs you to run a docker / podman container which is not very suitable for non technical users. I've been thinking of moving this to run on [Kata containers on AKS](https://docs.azure.cn/en-us/aks/use-pod-sandboxing?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) in the future, but that adds another layer of complexity.
+
+In practice, plenty of people are already effectively YOLO-running code through tools like OpenCode or Claude Code anyway, so the ecosystem clearly has a pretty large gap here. That makes this whole area fertile ground for credential leaks and other preventable issues. I don't think this is the main blocker to adoption, but I do think it is something to think about closely before taking code mode in use.
+
+<a id="the-solution-a-direct-rest-contract" />
+
+### The solution: a direct REST contract
+
+It became pretty clear that I was spending more and more effort compensating for the quality of the wrapped tool surface. That made me step back and ask a simpler question: Could I just work from the Azure DevOps REST contract directly?
+
+It turns out the answer is **yes**.
+
+Microsoft publishes the Azure DevOps REST specs in [MicrosoftDocs/vsts-rest-api-specs](https://github.com/MicrosoftDocs/vsts-rest-api-specs?ref=huuhka.net). They are split by area and version rather than shipped as one giant contract, but they are good enough to build a searchable operation catalog from. That changed the whole shape of the system.
+
+Instead of wrapping Azure DevOps MCP and trying to enrich its tool metadata- trying to infer output behavior from MCP responses, I switched to `search` over a static Azure DevOps REST operation catalog and `execute` over one helper that calls Azure DevOps by `operationId`
+
+That ended up looking much more like the Cloudflare pattern, just on top of the Azure DevOps REST contract instead of an MCP surface.
+
+The direct REST catalog version worked better for a simple reason: the model could see enough of the contract to actually reason through the chain.
+
+It now had access to:
+
+-   operation IDs
+-   path/query/body inputs
+-   request body shape
+-   **response schema**
+
+That was the missing piece. Once the output side of the contract became visible enough, the model behavior improved a lot.
+
+The current implementation ended up with a pattern much closer to what I originally wanted. Far less fallback churn. It's still not perfect, but it is a completely different quality level from the original wrapped MCP version.
+
+Example of a call:
+
+![](/images/ghost/4e59997b0e46f761342e.png)
+
+![](/images/ghost/f63bca819a2cfc3e1851.png)
+
+<a id="current-implementation-flow" />
+
+### Current implementation flow
+
+This is roughly what the current version does
+
+![](/images/ghost/2a32b6b9f6226f60f7e4.png)
+
+<figcaption>
+
+Whole flow
+
+</figcaption>
+
+![](/images/ghost/c74ce89f3ac02c9af8e0.png)
+
+<figcaption>
+
+Search Path
+
+</figcaption>
+
+![](/images/ghost/0cf769c4587118eeb873.png)
+
+<figcaption>
+
+Execute Path
+
+</figcaption>
+
+![](/images/ghost/4f04a77597b4b570033e.png)
+
+<figcaption>
+
+Trust Boundary
+
+</figcaption>
+
+<a id="conclusions" />
+
+### Conclusions
+
+I still think Code Mode is a strong idea. But it's clear that Cloudflare's own use case is just much more naturally aligned with it than “wrap a random MCP server and hope the contract is good enough”.
+
+-   They control the API surface and tool contract
+-   They can surface both inputs and outputs well
+-   The contract is broad enough that code-based orchestration really pays off
+
+That is a very different situation from trying to wrap an existing third-party MCP server whose output side may be inconsistent or under-described.
+
+> Code Mode is a very good fit for large, contract-rich tool surfaces. It is a much worse fit for tool surfaces where the model can call things but cannot confidently reason about what comes back.
+
+It is clearly part of a broader direction that Anthropic and OpenAI are moving toward as well.
+
+For Azure DevOps specifically, I got much better results by moving one level lower and working from the REST contract directly instead of treating the existing MCP server as the final abstraction. That does not mean wrapping MCP is always wrong, it just means I would now ask a much stricter question before doing it:
+
+**Does this tool surface tell the model enough about both what goes in and what comes out?** If the answer is no, I would be cautious.
+
+<a id="repos-and-references" />
+
+### Repos and references
+
+-   [Current implementation](https://www.github.com/DrBushyTop/ado-codemode-mcp/tree/master?ref=huuhka.net)
+-   [Earlier wrapped MCP experiment](https://www.github.com/DrBushyTop/ado-codemode-mcp/tree/feat/mcp-wrap?ref=huuhka.net)
+-   [Cloudflare's Code Mode Repo](https://www.github.com/cloudflare/agents/tree/main/packages/codemode?ref=huuhka.net)
+-   [Cloudflare's presentation](https://www.youtube.com/watch?v=-ZikRWR1Gb4&ref=huuhka.net)
+-   [OpenAI tool search](https://developers.openai.com/api/docs/guides/tools-tool-search/?ref=huuhka.net)
+-   [Claude tool search](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool?ref=huuhka.net)
+-   [Claude programmatic tool calling](https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling?ref=huuhka.net)
+-   [Anthropic advanced tool use post](https://www.anthropic.com/engineering/advanced-tool-use?ref=huuhka.net)

@@ -1,0 +1,111 @@
+---
+title: "Troubleshooting Azure Data Factory v2 Git integration"
+slug: "troubleshooting-azure-data-factory-v2-publish"
+publishedAt: "2020-03-14T00:27:47.000+02:00"
+updatedAt: "2020-11-09T14:38:11.000+02:00"
+description: "We recently changed some of our application resource structures.
+  During this change, we ran into an error message \"The publish branch is out
+  of sync with the collaboration branch. This is likely due to publishing
+  outside of Git mode.\" during our publish. Here's how we solved the issue."
+tags:
+  - "Azure"
+  - "Data Factory"
+tagSlugs:
+  - "azure"
+  - "data-factory"
+image: "/images/ghost/16b0595bcc38b544a539.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoDescription: "During a change, we ran into a ADF error message \"The publish
+  branch is out of sync with the collaboration branch. This is likely due to
+  publishing outside of Git mode.\" during our publish. Here's how we solved the
+  issue."
+series: []
+---
+
+We recently changed some of our application resource structures and thus created a new data factory resource. During this change, we ran into an error message "The publish branch is out of sync with the collaboration branch. This is likely due to publishing outside of Git mode." during our publish in dev. Here's how we solved the issue.
+
+<a id="what-does-the-message-actually-say" />
+
+### What does the message actually say?
+
+As is evident by the error message, we are using the Microsoft-recommended git-integration with Azure Data Factory v2. How this actually works in the background is that when you set it up, three major things happen in your data factory instance:
+
+-   You get a secondary "mode" in the Author view for the integration. For example named "Azure DevOps Git"
+
+![](/images/ghost/4a1def73b1e78bb1e60b.png)
+
+-   The primary mode in Author view "Data Factory" can no longer publish changes to the instance
+
+![](/images/ghost/a6842ba6a4b3b7c63d98.png)
+
+-   The git integration view **does NOT** show the current status of your ADF, but instead shows the status of the git. To make the changes live you will need to make a publish from the "collaboration branch".
+
+![](/images/ghost/591887e7bfe377423a2b.png)
+
+The data factory actually generates ARM templates for the contents automatically when you hit publish from the git view. It also generates a publish branch in the git, which contains those templates. [Read more about that in my previous post here](/devops-flow-in-azure-data-factory-v2/).
+
+So the collaboration branch should be the source of truth, but chances are that someone could have for example deployed some old ARM version of the contents, causing the desynchronization of the branch and the ADF config.
+
+<a id="how-microsoft-advises-you-fix-this" />
+
+## How Microsoft advises you fix this
+
+In the [official documentation](https://docs.microsoft.com/en-us/azure/data-factory/source-control?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#troubleshooting-git-integration), the troubleshooting steps for the git integration are pretty much just "remove and redo". There is a decent idea behind this because when you are first enabling the integration, you get the option to import the current setup of the ADF instance as a new branch in your repository. After you create a PR towards your collaboration branch and publishing again, in theory you should have the desynched state included in your master configuration.
+
+![](/images/ghost/9f97bacea00065ee5ff3.png)
+
+<figcaption>
+
+Notice the import option
+
+</figcaption>
+
+Well, unfortunately this did not fix the issue for us. And judging from multiple github issues found by googling, many others are facing similar results.
+
+<a id="the-solution-for-us" />
+
+## The solution for us
+
+After following the official instructions (which already is almost the **nuclear option**) without luck, we decided to just delete our data factory instance completely. Not necessarily a problem considering all of your logic should already be in the Git repo instead of tied to the factory at all.
+
+Turns out this did not work either. As soon as we clicked publish, some resources were deployed inside the ADF, but we ended up with the same error message. How can the states be desynchronized if there is no initial state on the factory?
+
+I had to think about this for a while, but then I figured out where to start: ARM template deployments should always leave a deployment history log! So what do you know, we had some clearly identifiable logs in the resource group.
+
+![](/images/ghost/8217b0a016f550128399.png)
+
+<figcaption>
+
+Deployment History
+
+</figcaption>
+
+It seems that ADF creates the deployment, and you can see it in the history view while it runs, but if it succeeds it also gets deleted directly after.. As our deployment ended up in a failure, ADF did not reach the step it tries to delete the logs in.
+
+Looking into the error message itself, we find something quite interesting:
+
+![](/images/ghost/6bfc6a3951b751ab730f.png)
+
+**And there we finally had the culprit.** I verified this exact reference resource in the ADF portal with the "test connection" button, and it indeed was broken. Somehow the configuration for a storage account linked service had changed to an invalid state, and when a dataset dependent on that linked service was tried to be created by the ARM provider, the failure happened.
+
+I proceeded to correct the storage account link in our git and voilà, everything started working.
+
+<a id="takeaways" />
+
+## Takeaways
+
+Just like with any other troubleshooting situation, it often is very beneficial to **think from the perspective of what is actually happening in the service under the hood**. In this case if you knew that ARM has the history view, and that ADF uses ARM on the backend, you had a good idea where to start looking.
+
+**The portal error message had very little clues to what was really the main problem**. In the end, the issue had almost nothing to do with the Git integration.
+
+**You should always utilize the Git integration with ADF and base all your environments on Infra as Code practices.** The troubleshooting was much easier when I had the freedom to delete the resources without fear of losing any of our other people's changes as they were in Git. I also had to only run our pipeline again to get back to the same state I was in before.
+
+<a id="resources" />
+
+## Resources
+
+-   [DevOps with Azure Data Factory V2](/devops-flow-in-azure-data-factory-v2/)
+-   [ADF Git integration documentation](https://docs.microsoft.com/en-us/azure/data-factory/source-control?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#troubleshooting-git-integration)
+-   [View ARM template Deployment History](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-history?tabs=azure-portal?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)

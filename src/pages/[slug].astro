@@ -1,0 +1,73 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ReadingRail from '../components/ReadingRail.astro';
+import Icon from '../components/Icon.astro';
+import { getPosts, dateFormat } from '../lib/posts';
+import author from '../data/author.json';
+import seriesGroups from '../data/series.json';
+
+export async function getStaticPaths() {
+  return [...await getPosts(), ...await getCollection('pages', ({data}) => !data.draft)]
+    .map(post => ({params: {slug: post.data.slug}, props: {post}}));
+}
+const { post } = Astro.props;
+const { data } = post;
+const { Content, headings } = await render(post);
+const contentsDepth = Math.min(...headings.filter(heading => heading.depth >= 2).map(heading => heading.depth));
+const contents = headings.filter(heading => heading.depth === contentsDepth);
+const posts = await getPosts();
+const bySlug = new Map(posts.map(post => [post.data.slug, post.data]));
+const series = seriesGroups.filter(group => data.series.includes(group.id)).map(group => ({
+  ...group,
+  posts: group.posts.flatMap(slug => {
+    const entry = bySlug.get(slug);
+    return entry ? [{slug, title: entry.title}] : [];
+  }),
+}));
+const primarySeries = series[0];
+const seriesIndex = primarySeries?.posts.findIndex(post => post.slug === data.slug) ?? -1;
+const nextInSeries = seriesIndex >= 0 ? primarySeries.posts[seriesIndex + 1] : undefined;
+const index = posts.findIndex(post => post.data.slug === data.slug);
+const older = index >= 0 ? posts[index + 1]?.data : undefined;
+const next = nextInSeries || older;
+const nextLabel = nextInSeries ? `Next in ${primarySeries.title}` : 'Older article';
+const updated = new Date(data.updatedAt).toDateString() !== new Date(data.publishedAt).toDateString();
+const structured = {
+  '@context': 'https://schema.org', '@type': post.collection === 'blog' ? 'BlogPosting' : 'WebPage',
+  headline: data.title, description: data.description, datePublished: data.publishedAt, dateModified: data.updatedAt,
+  author: {'@type': 'Person', name: author.name, url: new URL('/author/pasi/', Astro.site).href},
+  image: data.image ? new URL(data.image, Astro.site).href : undefined,
+  mainEntityOfPage: data.canonicalUrl || new URL(`/${data.slug}/`, Astro.site).href,
+};
+---
+<Base title={data.seoTitle || `${data.title} | Huuhka.net`} description={data.seoDescription || data.description} canonicalUrl={data.canonicalUrl} image={data.ogImage || data.image} ogTitle={data.ogTitle || data.title} ogDescription={data.ogDescription} twitterTitle={data.twitterTitle} twitterDescription={data.twitterDescription} twitterImage={data.twitterImage} publishedAt={data.publishedAt} updatedAt={data.updatedAt} reading>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(structured).replaceAll('<','\u003c')} />
+  <main id="main" class="reading-page">
+    <article class="reading-grid">
+      <header class="article-header">
+        <a class="back-link" href="/">All articles</a>
+        <h1>{data.title}</h1>
+        <div class="reading-meta">
+          <a href="/author/pasi/">{author.name}</a>
+          <time datetime={data.publishedAt}>{dateFormat.format(new Date(data.publishedAt))}</time>
+          {updated && <span class="updated-date">Updated <time datetime={data.updatedAt}>{dateFormat.format(new Date(data.updatedAt))}</time></span>}
+        </div>
+        <ul class="article-tags reading-tags" aria-label="Topics">
+          {data.tags.map((tag, i) => <li><a href={`/tag/${data.tagSlugs[i]}/`}>{tag}</a></li>)}
+        </ul>
+      </header>
+      {(series.length > 0 || contents.length > 1) && <ReadingRail contents={contents} series={series} currentSlug={data.slug} />}
+      <div class="article-body">
+        {data.image && <figure class="feature-image"><img src={data.image} alt={data.imageAlt} fetchpriority="high" />{data.imageCaption && <figcaption set:html={data.imageCaption} />}</figure>}
+        <div class="article-prose"><Content /></div>
+        {next && <nav class="article-end" aria-label="Continue reading">
+          <a class="next-article" href={`/${next.slug}/`}>
+            <span><span class="next-label">{nextLabel}</span><span class="next-title">{next.title}</span></span>
+            <Icon name="arrow" size={22} />
+          </a>
+        </nav>}
+      </div>
+    </article>
+  </main>
+</Base>

@@ -1,0 +1,136 @@
+---
+title: "Updating ARM schema & apiVersion values"
+slug: "updating-arm-schema-and-apiv"
+publishedAt: "2020-02-13T01:24:10.000+02:00"
+updatedAt: "2020-11-09T14:42:31.000+02:00"
+description: "A short look into what the process is like, what benefits there
+  are and what might go wrong."
+tags:
+  - "ARM Templates"
+  - "Azure"
+  - "DevOps"
+tagSlugs:
+  - "arm-templates"
+  - "azure"
+  - "devops"
+image: "/images/ghost/c0c9296aaf451c7e1fa7.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoDescription: "A short look into what the process is like, what benefits there
+  are and what might go wrong."
+series: []
+---
+
+A short look into what the process is like, what benefits there are and what might go wrong.
+
+Today I had the opportunity to check out [this great Ignite presentation](https://www.youtube.com/watch?v=3D-JIKShrws&ref=huuhka.net) from last year by [Alex Frankel](https://twitter.com/adotfrank?ref=huuhka.net) and [Brian Moore](https://github.com/bmoore-msft?ref=huuhka.net) from Microsoft. After watching the whole thing I decided  that I should probably do a little pre-spring spring cleaning on some of my ARM templates. The main tasks on my agenda were:
+
+-   Updating the $schema values to the newest ones to make the wonderful [Azure Resource Manager Tools for Visual Studio Code extension](https://github.com/microsoft/vscode-azurearmtools?ref=huuhka.net) even better. (And finally make it stop complaining about the issue)
+-   Updating all apiVersion values to the newest ones available, making the necessary changes to the resource syntaxes
+-   Working out some YAML pipeline optimizations (though this was enough of a headache to warrant another post in the future)
+
+<a id="updating-schema-values" />
+
+## Updating $schema values
+
+I had not been paying enough attention to this before, even though I had noticed the extension warning about this for quite some time. However, the templates did work without any issues, so I had just been delaying this task for some cliche reason like "don't touch it if it works".
+
+![](/images/ghost/9b5fe5b75421e6ee4e93.JPG)
+
+<figcaption>
+
+Not sure why, but this warning scares me!
+
+</figcaption>
+
+Encouraged by seeing someone actually click the "Use latest" button, I went ahead and followed the lead on all of my current templates. I also broke nothing in the process, great!
+
+<a id="so-why-did-we-do-this-in-the-first-place" />
+
+### So why did we do this in the first place?
+
+In a nutshell, [the schemas](https://github.com/Azure/azure-resource-manager-schemas?ref=huuhka.net) you specify in your ARM templates tell the template which version of the template language will be used. This affects the capability of different tools like the VS code extension to validate the template functionality and syntax on the fly.  So in a nutshell, you get less warnings for things that are actually correct.
+
+While the schemas might function with older versions for a long time, there are times when significant functionality is unavailable if you do not update. The primary example for this would be [subscription level resource deployments](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-to-subscription?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net), (and also [management group level ones](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-to-management-group?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)) where you need to change your schema to a completely different format:
+
+```
+From:
+https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#
+and
+https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#
+
+To: 
+https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#
+and
+https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentParameters.json#
+```
+
+While most of the resource deployment needs that I personally have are on a resource group level, these is a very useful tools for the enterprises and anyone who is doing any governance-related automation for Azure.
+
+In my case, the main reason of doing this was the validation capability. Strangely enough, the warnings I had on the templates did not go anywhere, but in some larger template files I did see a noticeable speed increase on how quickly the automatic validation of the VS code extension gave me feedback. Not bad for such a quick fix!
+
+I did also update my parameter files to follow a newer schema, but by comparing the [2015 version](https://raw.githubusercontent.com/Azure/azure-resource-manager-schemas/master/schemas/2015-01-01/deploymentParameters.json?ref=huuhka.net) to the [2019 version](https://raw.githubusercontent.com/Azure/azure-resource-manager-schemas/master/schemas/2019-04-01/deploymentParameters.json?ref=huuhka.net), I do not see any changes there. If you happen to know what this affects, I'd be keen to know.
+
+<a id="updating-apiversions" />
+
+## Updating apiVersions
+
+Next up, we had the task of going through my linked templates for any apiVersion updates. Some of these were from 2016, so I was expecting to have to do at least some refactoring on the syntax of my resources.
+
+As described on [my previous post](/figuring-out-undocumented-arm/), anything you do on the Azure Portal calls the ARM APIs on the backend, and pretty much the exact same thing happens behind the scenes when you deploy an ARM template.
+
+Similar to the schemas, updating to a newer apiVersion provides you the capability to deploy newer functionality provided by the services, configure things in a more logical way in your code, and probably even make things a bit more quick when you deploy them (though this is just a hunch on my part).
+
+[Reading the documentation](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-syntax?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) I learned something new, there's actually a way to specify an overarching apiVersion for all the resource types in one parameter, "[apiProfile](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-syntax?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)"! I've never seen this used, but I can see this being useful for centrally controlling your updates to not break anything.
+
+I remember reading somewhere (though I cannot find a source for this, so take this with a pile of salt) that the plan for most apiVersions would be that they are supported for at least 5 years from release. No matter if this is true or not, if you think about how much Azure in general has evolved in the last 5 years, I don't see how updating from a 5 year old API would be a bad idea. Microsoft also [does announce](https://azure.microsoft.com/en-us/updates/mysql-preview-api-deprecation/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) deprecations of apiVersions every now and then on the [Azure updates page](https://azure.microsoft.com/en-us/updates/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) and [blog](https://azure.microsoft.com/en-us/blog/?ref=huuhka.net).
+
+<a id="my-update-process" />
+
+### My update process
+
+While the VS code extension Intellisense is helpful here, for some resources the options did not include the newest versions. I do however know, that Microsoft is working on updating the extension with all the schemas to get this fixed. Be sure to [create an issue here](https://github.com/azure/azure-resource-manager-schemas/issues?ref=huuhka.net) if you spot these missing.
+
+![extension intellisense](/images/ghost/58de2094a47c77f8a85d.gif)
+
+So what I ended up doing was going to the [ARM reference pages](https://docs.microsoft.com/en-us/azure/templates/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net), and one by one looking at the provider "All resources" pages. That was the fastest way to find out what the newest versions actually were.
+
+![](/images/ghost/846960c3c36db64683a0.JPG)
+
+<figcaption>
+
+Finding the newest apiVersion
+
+</figcaption>
+
+I went through each of my linked template files one by one, and testing the deployment after each. **To a great surprise, there was actually no need to do any changes to the syntax**, but this might have something to do with me deploying to an existing resource group with all the same resources included. I suppose we'll see for sure the next time we deploy to a new RG.
+
+<a id="unforeseen-issues" />
+
+### Unforeseen issues
+
+I decided to go a bit further, and check on the providers once more to see if I could make some syntax changes to make the deployment clearer. The oldest apiVersion I had previously, was on the [storageAccounts 2015-06-15](https://docs.microsoft.com/en-us/azure/templates/microsoft.storage/2015-06-15/storageaccounts?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) and while the update to that did work without changing anything, the older version syntax was quite different and had the ability to specify the "kind" property (which is still marked as Required -  Yes in the documentation).
+
+I was working on my own branch and deploying in our dev environment and decided to add the kind-property with a value StorageV2. Everything worked well, but I did not quite think about what I had done to the storage account. I left for the day without completing my PR.
+
+Then in the evening, a colleague messaged me that the ARM templates were broken in master. How could this happen? Well, turns out that as the old version of the storageAccount api did not support the kind-parameter. The only option it had was to deploy a V1 storage account. My deployment had upgraded the storage account to V2 and of course there is no way of undoing that. This meant that I had inadvertently broken the environment so that:
+
+-   Master no longer could deploy to the RG
+-   Running previously successful deployments in Azure DevOps no longer could fix the situation
+
+On paper those can seem like quite grave consequences, but thankfully this environment is rarely used for anything, so there was no damage done. Things like these are definitely something you should think about before committing to them. On the other hand, I can't think of too many other resources off the top of my head that have had this irreversible version upgrade done to them.
+
+My work on the templates was already done on the branch, so the only thing needed was to get the changes approved to master. In this case, the version of the storage account did not matter much, though there are cases where you would want to keep a V1 going.
+
+<a id="recap" />
+
+## Recap
+
+After today's adventures in the ARM world, I'd advise you to
+
+-   Use the ARM extension for VS code
+-   Update your schema and think about if you need the subscription / management group level deployments
+-   Check on your apiVersions, but use a bit more caution than I did. At the very least, don't deploy to production without testing :D
+-   If you notice issues with the Extension missing apiVersions, [be sure to create an issue here](https://github.com/azure/azure-resource-manager-schemas/issues?ref=huuhka.net)
+-   Check out [these](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/template-tutorial-create-first-template?tabs=azure-powershell?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) [two](https://azurecitadel.com/automation/arm/?ref=huuhka.net) ARM template tutorials to level up your template game!

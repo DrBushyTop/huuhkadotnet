@@ -1,0 +1,314 @@
+---
+title: "Using Azure AI Speech SDK with Go"
+slug: "using-azure-ai-speech-sdk-go"
+publishedAt: "2024-03-03T16:27:55.000+02:00"
+updatedAt: "2024-03-04T13:52:52.000+02:00"
+description: "In this blog post I'll provide some examples and observations on
+  how to set up and use the Azure AI Speech service from a Go application."
+tags:
+  - "Azure"
+  - "Artificial Intelligence"
+tagSlugs:
+  - "azure"
+  - "artificial-intelligence"
+image: "/images/ghost/7a38db39475db1f9000e.webp"
+imageAlt: ""
+draft: false
+featured: false
+twitterImage: "/images/ghost/2faf3c09642359f8508c.webp"
+series: []
+---
+
+A few months back I was playing around with a hobby project that required me to translate speech to text and pass it further to Azure OpenAI for analysis. Working with Azure daily, using the Azure AI Speech service seemed like a good tool for the job. In this blog post I'll provide some examples and observations on how to set up and use the service from a Go application.
+
+**Note** that at the time of me playing around with the solution, I did not yet have access to the OpenAI Whisper model in Azure. Since then I've gotten some experience with it too, and would recommend you looking into that as an option as well. For this specific use case it might even be better as I feel it does a little bit of a better job in detecting the Finnish language correctly and as you'll see later in this post, the setup might not be quite as complex on the Go side. [Microsoft has provided a decent recommendation checklist on which model to choose for your use case here](https://learn.microsoft.com/azure/ai-services/speech-service/whisper-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#whisper-model-via-azure-ai-speech-models).
+
+<a id="setting-up-the-azure-ai-speech-service-with-bicep" />
+
+## Setting up the Azure AI Speech service with Bicep
+
+The Azure AI Speech service is based on the Microsoft.CognitiveServices/accounts resource and just requires a tiny bit of configuration to get working. If you're interested in the full examples, see the files [here](https://github.com/huuhka/t-pain/blob/master/deployment/bicep/speechService.bicep?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net).
+
+```bicep
+resource account 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: speechServiceName
+  location: location
+  kind: 'SpeechServices'
+  sku: {
+    name: 'S0'
+  }
+  properties: {}
+}
+```
+
+I'm also using a Azure Key Vault to store some of the secrets my application needs. You can also go to the portal to get these values from the created resource if you want to skip this part. I like to do the secret creation in the same Bicep module as the resource.
+
+```bicep
+resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+  name: keyVaultName
+}
+
+resource speechKey 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'speechKey'
+  properties: {
+    value: account.listKeys().key1
+  }
+}
+
+resource speechRegion 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'speechRegion'
+  properties: {
+    value: account.location
+  }
+}
+
+resource speechEndpoint 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: 'speechEndpoint'
+  properties: {
+    value: account.properties.endpoint
+  }
+}
+```
+
+Then the only thing left to do is to deploy the resources. I prefer the Az modules in PowerShell.
+
+```powershell
+# Just an example
+New-AzResourceGroupDeployment -ResourceGroupName "myrg" -TemplateFile ./deployment/bicep/main.bicep
+```
+
+You can get the endpoint and keys from the portal later as well:
+
+![](/images/ghost/25ac33d2c85863bcf9b9.png)
+
+<a id="installing-the-speech-sdk-for-go" />
+
+## Installing the Speech SDK for Go
+
+This is where things get a bit iffy: The SDK has a C++ library it depends on, and thus CGO is also required to run it. This was personally my first time of running anything with CGO and the setup definitely took some tinkering to get working. Add on top that the [official documentation](https://learn.microsoft.com/azure/ai-services/speech-service/quickstarts/setup-platform?pivots=programming-language-go&tabs=windows%2Cubuntu%2Cdotnetcli%2Cdotnet%2Cjre%2Cmaven%2Cbrowser%2Cmac%2Cpypi&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#platform-requirements) does not give any guidance on installing on a Mac. Some of the instructions however can be found [here](https://github.com/Azure-Samples/cognitive-services-speech-sdk/blob/master/quickstart/cpp/macos/from-microphone/README.md?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net).
+
+**Download the Speech SDK**
+
+```bash
+export SPEECHSDK_ROOT="/your/path" //for me thsi was /Users/pasi/speechsdk
+mkdir -p "$SPEECHSDK_ROOT"
+wget -O MicrosoftCognitiveServicesSpeech.xcframework.zip https://aka.ms/csspeech/macosbinary
+unzip MicrosoftCognitiveServicesSpeech.xcframework.zip -d "$SPEECHSDK_ROOT"
+```
+
+**Set Environment Variables required by CGO**
+
+```bash
+// I added these in my Go project's build configs
+CGO_CFLAGS=-I/Users/pasi/speechsdk/MicrosoftCognitiveServicesSpeech.xcframework/macos-arm64_x86_64/MicrosoftCognitiveServicesSpeech.framework/Headers;
+
+CGO_LDFLAGS=-Wl,-rpath,/Users/pasi/speechsdk/MicrosoftCognitiveServicesSpeech.xcframework/macos-arm64_x86_64 -F/Users/pasi/speechsdk/MicrosoftCognitiveServicesSpeech.xcframework/macos-arm64_x86_64 -framework MicrosoftCognitiveServicesSpeech
+```
+
+**If you're on Debian/Ubuntu, you will need to install OpenSSL 1.x too**
+
+```bash
+wget -O - https://www.openssl.org/source/openssl-1.1.1u.tar.gz | tar zxf -
+cd openssl-1.1.1u
+./config --prefix=/usr/local
+make -j $(nproc)
+sudo make install_sw install_ssldirs
+sudo ldconfig -v
+export SSL_CERT_DIR=/etc/ssl/certs
+
+// As well as set the LD_LIBRARY_PATH correctly
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+```
+
+You can check my installation steps for the container my app runs on from the [Dockerfile here](https://github.com/huuhka/t-pain/blob/master/Dockerfile?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net).
+
+Lastly we still need to install the Go packages:
+
+```bash
+go get -u github.com/Microsoft/cognitive-services-speech-sdk-go
+```
+
+<a id="using-the-speech-service-in-your-code-for-speech-to-text" />
+
+## Using the speech service in your code for speech-to-text
+
+I found the [quickstart](https://learn.microsoft.com/azure/ai-services/speech-service/get-started-speech-to-text?tabs=windows%2Cterminal&pivots=programming-language-go&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) of using the service somewhat difficult to parse. Thankfully the examples had a ready-made [wrapper](https://github.com/microsoft/cognitive-services-speech-sdk-go/blob/v1.29.0/samples/recognizer/wrapper.go?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) I could augment.
+
+[You can find all my code for the package here.](https://github.com/huuhka/t-pain/tree/master/pkg/speechtotext?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+You can also find the [Go package documentation here](https://pkg.go.dev/github.com/Microsoft/cognitive-services-speech-sdk-go?ref=huuhka.net).
+
+My use case was to take in an URL from a Telegram bot and convert the audio from that to text. Let's walk through some of the code.
+
+For making testing a bit easier I implemented an interface for the Wrapper. You might not need it.
+
+```go
+type Writer interface {
+	Write(p []byte) (err error)
+}
+
+type Wrapper interface {
+	StartContinuous(handler func(event *SDKWrapperEvent)) error
+	StopContinuous() error
+	Writer
+}
+```
+
+In the NewWrapper constructor, I'm also setting the autodetection of the language of the speech to Finnish. I first tested this with having multiple options, but Finnish sometimes got confused for the other languages causing problems. I ended up just commenting the others out as my users speak Finnish.
+
+```go
+autodetect, err := speech.NewAutoDetectSourceLanguageConfigFromLanguages([]string{
+    // TODO: Add to config instead
+    //"en-US",
+    //"en-GB",
+    "fi-FI",
+})
+```
+
+To create a new wrapper we need the key and the region of the Speech service, and then we can call the function to process our file found at an URL:
+
+```go
+recognizer, err := speechtotext.NewWrapper("mykey", "westeurope")
+
+text, err = speechtotext.HandleAudioLink("someURL", recognizer)
+```
+
+**All the rest of the logic is from the [HandleAudioLink function](https://github.com/huuhka/t-pain/blob/b2fb4d4de6383f07a7cbeb5d76bd096b2f766baa/pkg/speechtotext/speechtotext.go?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#L16)**
+
+First I download a file to disk, and defer it's deletion as cleanup:
+
+```go
+wavFile, err := handleAudioFileSetup(url)
+if err != nil {
+    return "", err
+}
+defer deleteFromDisk(wavFile)
+```
+
+Then I will also set up a goroutine to pump the contents of the file to a stream the speech SDK will read
+
+```go
+stop := make(chan int)
+ready := make(chan struct{})
+go PumpFileToStream(stop, wavFile, wrapper)
+
+// The actual implementation in the wrapper
+func PumpFileToStream(stop chan int, filename string, writer Writer) {
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println("Error opening file: ", err)
+		return
+	}
+	defer file.Close()
+	reader := bufio.NewReader(file)
+	buffer := make([]byte, 3200)
+	for {
+		select {
+		case <-stop:
+			fmt.Println("Stopping pump...")
+			return
+		case <-time.After(1 * time.Millisecond):
+		}
+		n, err := reader.Read(buffer)
+		if err == io.EOF {
+			err = writer.Write(buffer[0:n])
+			if err != nil {
+				fmt.Println("Error writing last data chunk to the stream")
+			}
+			return
+		}
+		if err != nil {
+			fmt.Println("Error reading file: ", err)
+			break
+		}
+		err = writer.Write(buffer[0:n])
+		if err != nil {
+			fmt.Println("Error writing to the stream")
+		}
+	}
+}
+```
+
+Next we need to tell the SDK what should happen when the SDK produces events during reading. In my case I mostly want to concat the results in a slice of strings. I also have a bug still in the code, so your mileage may vary.
+
+```go
+var resultText []string
+
+log.Println("Starting continuous recognition")
+err = wrapper.StartContinuous(func(event *SDKWrapperEvent) {
+    defer event.Close()
+    switch event.EventType {
+    case Recognized:
+        log.Println("Got a recognized event")
+        resultText = append(resultText, event.Recognized.Result.Text)
+    case Recognizing:
+    case Cancellation:
+        log.Println("Got a cancellation event. Reason: ", event.Cancellation.Reason)
+        close(ready)
+        if event.Cancellation.Reason.String() == "Error" {
+            log.Println("ErrorCode:" + event.Cancellation.ErrorCode.String() + " ErrorDetails: " + event.Cancellation.ErrorDetails)
+        }
+        // TODO: If we receive an error here, the writing to the stream should be stopped. Currently that does not seem to happen.
+    }
+})
+
+// The only thing the StartContinous does is basically call your functions
+func (wrapper *SDKWrapper) StartContinuous(callback func(*SDKWrapperEvent)) error {
+	if atomic.SwapInt32(&wrapper.started, 1) == 1 {
+		return nil
+	}
+	wrapper.recognizer.Recognized(func(event speech.SpeechRecognitionEventArgs) {
+		wrapperEvent := new(SDKWrapperEvent)
+		wrapperEvent.EventType = Recognized
+		wrapperEvent.Recognized = &event
+		callback(wrapperEvent)
+	})
+	wrapper.recognizer.Recognizing(func(event speech.SpeechRecognitionEventArgs) {
+		wrapperEvent := new(SDKWrapperEvent)
+		wrapperEvent.EventType = Recognizing
+		wrapperEvent.Recognizing = &event
+		callback(wrapperEvent)
+	})
+	wrapper.recognizer.Canceled(func(event speech.SpeechRecognitionCanceledEventArgs) {
+		wrapperEvent := new(SDKWrapperEvent)
+		wrapperEvent.EventType = Cancellation
+		wrapperEvent.Cancellation = &event
+		callback(wrapperEvent)
+	})
+	return <-wrapper.recognizer.StartContinuousRecognitionAsync()
+}
+```
+
+Lastly, we check errors and need to stop the continuous reading once we have either read the whole file, or after an arbitary timeout. I set this to two minutes, but you should change for your use case.
+
+```go
+if err != nil {
+    return "", err
+}
+
+select {
+case <-ready:
+    err := wrapper.StopContinuous()
+    if err != nil {
+        log.Println("Error stopping continuous: ", err)
+    }
+case <-time.After(120 * time.Second):
+    close(stop)
+    _ = wrapper.StopContinuous()
+    return "", fmt.Errorf("timeout")
+}
+defer wrapper.StopContinuous()
+
+if len(resultText) == 0 {
+    return "", fmt.Errorf("only got empty results")
+}
+
+return strings.Join(resultText, " "), nil
+```
+
+You can also use the SDK for reading non-continuously, but I did not look further into that.
+
+And that's about it for my use case. I think that the newer Whisper model from the Azure OpenAI service could have been a better fit, but I think the AI Speech service is also a good option.

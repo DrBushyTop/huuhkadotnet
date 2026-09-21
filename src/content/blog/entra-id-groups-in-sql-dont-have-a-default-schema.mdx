@@ -1,0 +1,134 @@
+---
+title: "Entra ID Groups in Azure SQL don't have a default schema"
+slug: "entra-id-groups-in-sql-dont-have-a-default-schema"
+publishedAt: "2025-01-12T21:01:00.000+02:00"
+updatedAt: "2025-02-11T21:09:07.000+02:00"
+description: "In this post, we'll see how to fix the following error during your
+  migration runs:
+
+  \"<GUID>@<GUID>\" either does not exist or you do not have permission to use
+  it.\n"
+tags:
+  - "Bicep"
+  - "Data"
+  - "Entity Framework"
+  - "DevOps"
+  - "Migration"
+  - "SQL"
+tagSlugs:
+  - "bicep"
+  - "data"
+  - "entity-framework"
+  - "devops"
+  - "migration"
+  - "sql"
+image: "/images/ghost/7460a20d1e5676b25c61.webp"
+imageAlt: ""
+draft: false
+featured: false
+series: []
+---
+
+In this post, we'll see how to fix the following error during your migration runs:
+
+`"<GUID>@<GUID>" either does not exist or you do not have permission to use it.`
+
+<a id="background" />
+
+### Background
+
+In my projects the first database I generally lean to is the trusty Azure SQL Database. It's Platform as a Service, it's fairly cheap and gets the job done. At Zure, my current employer we've built our project startup templates to include a Azure SQL DB by default as it's so often an integral part of a generic project we work on.
+
+Usually we own the whole environment, and have thus also automated the whole process of setting up the infrastructure, building migration scripts, giving permissions and running the migrations on every run in an idempotent way. In these cases it makes sense to use the default "[Entra ID Administrator](https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-configure?view=azuresql&tabs=azure-portal&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)" functionality of the service to give our pipeline's identity (often a user assigned managed identity) the admin permissions on the server level. This can only be done by adding the identity in a group, and assigning the permissions to that group. You'd often want to include the developers in the group as well.
+
+In Bicep, it would look something like this (though this implementation won't support changing the admin group):
+
+```bicep
+resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
+  name: sqlServerName
+  location: location
+  properties: {
+    administrators: {
+      administratorType: 'ActiveDirectory'
+      azureADOnlyAuthentication: true
+      login: loginName
+      principalType: 'Group'
+      sid: sqlAdministratorGroupObjectId
+      tenantId: subscription().tenantId
+    }
+  }
+  tags: tags
+}
+```
+
+With this, the pipeline can do everything it wants, as it has server admin. It does, however place a burden on securing the access to your pipelines, but that is something you should have covered anyway.
+
+We use Entity Framework in our projects, and the applications themselves connect via managed identity credentials which require the `CREATE USER FROM EXTERNAL PROVIDER` clause to be run. Our current way of running this requires the pipeline identity to also have Directory Reader permissions in Entra ID. [More info on that here.](https://learn.microsoft.com/azure/app-service/tutorial-connect-msi-sql-database?tabs=windowsclient%2Cefcore%2Cdotnet&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#grant-permissions-to-managed-identity)
+
+<a id="non-standard-cases" />
+
+### Non-standard cases
+
+So it happens that a project I was working on had a peculiar requirement of group X having to handle all databases in the environment. _I don't really see the point in doing that, as tools like Azure Policies could handle any governance and security requirements without the hurdles of tickets and needing to ask for a database from someone._ _Nevertheless, that's the mess we were in and needed to live with it._
+
+As you might imagine, needing the Server Admin credentials for our pipeline was a no-go, so we needed to think of something else. When distilled down, the pipeline only needs to act inside a single database, so the [db\_owner](https://learn.microsoft.com/sql/relational-databases/security/authentication-access/database-level-roles?view=sql-server-ver16&WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#fixed-database-roles) role should be enough for our needs.
+
+So we created a group, gave it Directory Reader, added the pipeline identity there, and the customer admins then gave that group the required permissions in the database (_after about a month of waiting for tickets, mind you_). All good so far.
+
+<a id="things-did-not-work-after-all" />
+
+### Things did not work after all
+
+So when we finally were able to test things out, running our migrations we got a strange looking error I had not seen before: `"<GUID>@<GUID>" either does not exist or you do not have permission to use it. Msg 2760, Level 16, State 1, Procedure , Line 3.`
+
+All worked in our temporary shadow database (_can't be blocked for a month..._) so I thought it must be something with the customer's setup, that permission were missing. But I was wrong.
+
+The line was pointing to the `__EFMigrationsHistory` table, which was conspicuously missing the default `dbo` schema I'm used to. Why did this work in the other environment?
+
+Well, as the title says, **groups (added from external providers?) do not have a default schema specified**. I couldn't find any documentation on this other than [the remarks here](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-user-transact-sql?view=sql-server-ver16&utm_source=chatgpt.com&WT.mc_id=AZ-MVP-5003781#remarks).
+
+<a id="ways-to-fix-the-issue" />
+
+### Ways to fix the issue?
+
+There are a couple of ways to fix the issue. We could set the group default schema using the `ALTER USER` command. Something like `ALTER USER [YourGroupName] WITH DEFAULT_SCHEMA = [YourSchemaName];` should work, but this depends on the admin of the server always setting this up. This setup is of course also not visible in your repo (outside of some documentation no-one will find), so while it works, it's not the way I wanted to go with.
+
+The real root cause lies with our migration scripts. We need to make sure that within our setup of Entity Framework we explicitly set a default schema for the tables of our application AND the migrations history table. There are two different knobs to get these both correct.
+
+In our AddSqlServer extension we set the `sqlServerOptions.MigrationsHistoryTable` values as follows:
+
+```cs
+public static void AddSqlServer(this IServiceCollection services, IConfiguration configuration)
+{
+    var connectionString = configuration.GetSection("Sql:ConnectionString").Get<string>();
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new ArgumentOutOfRangeException(nameof(configuration), $"{nameof(connectionString)} is required");
+    }
+
+    services.AddDbContext<Context>((_, options) => options.UseSqlServer(connectionString, sqlServerOptions =>
+    {
+        sqlServerOptions.MigrationsHistoryTable(
+            tableName: "__EFMigrationsHistory",
+            schema: "dbo"
+        );
+
+        sqlServerOptions.EnableRetryOnFailure();
+    }));
+}
+```
+
+And for the tables themselves, we need to configure the default schema in the DbContext OnModelCreating method:
+
+```cs
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    modelBuilder.HasDefaultSchema("dbo");
+    modelBuilder.ApplyConfiguration(new UserDeviceDbModelConfiguration());
+    base.OnModelCreating(modelBuilder);
+}
+```
+
+You can of course also set these on the tables separately, but I wouldn't recommend that.
+
+And there we go, another problem solved! Now our migration script (created by `dotnet ef migration script -i` has all the default schemas included.)

@@ -1,0 +1,252 @@
+---
+title: "How I currently develop with LLM models (Early 2026)"
+slug: "how-i-currently-develop-with-llm-models-early-2026"
+publishedAt: "2026-02-25T19:15:00.000+02:00"
+updatedAt: "2026-04-19T16:46:40.000+03:00"
+description: "I've been experimenting with a lot of different agent setups,
+  harnesses and model combinations over the last months, and I've ended up
+  settling on a workflow that is fairly simple in structure even if the tooling
+  around it is changing quickly."
+tags:
+  - "Developer Tools"
+  - "AI"
+  - "GitHub Copilot"
+  - "OpenCode"
+tagSlugs:
+  - "developer-tools"
+  - "ai"
+  - "github-copilot"
+  - "opencode"
+image: "/images/ghost/1a62957ff52d878e22b4.png"
+imageAlt: ""
+draft: false
+featured: false
+series:
+  - "agentic-dev"
+---
+
+I've been experimenting with a lot of different agent setups, harnesses and model combinations over the last months, and I've ended up settling on a workflow that is fairly simple in structure even if the tooling around it is changing quickly.
+
+This post is not really meant as a "this is the correct way" type of thing. It's just the current version of what has worked best for me in actual development work.
+
+It also builds on a few earlier posts of mine, especially [Research - Plan - Implement](/research-plan-implement/), [Primary vs Subagents in LLM harnesses](/primary-vs-subagents-in-llm-harnesses/) and [A mental model for LLM tooling primitives](/a-mental-model-for-llm-tooling-primitives/).
+
+**The short version**
+
+-   I have centralized most of my LLM-assisted development into [OpenCode](https://opencode.ai/?ref=huuhka.net), though all the other stuff does work on any harness, like Github Copilot.
+-   I still mostly work with the Research - Plan - Implement pattern, but I scale the ceremony up and down depending on the task.
+-   In practice, plan + implement is often enough.- I read the plans carefully and go back and forth with the planning agent until the open questions are actually resolved.
+-   I tested looped implementation with Ralph loops, and it does work, but it hasn't really become my default.
+-   For larger tasks, I now prefer splitting work into parallel streams and handing those to orchestrators.
+-   I'm mostly using GPT-5.4, with some Opus 4.6 mixed in where it helps.
+
+<a id="standardizing-on-opencode-as-the-main-harness" />
+
+### Standardizing on OpenCode as the main harness
+
+The main thing I wanted was standardization.
+
+At this point I have models available from multiple places: customer environments, GitHub Copilot, and my own subscriptions. I don't really want my workflow to completely change based on where the model happens to live. OpenCode has worked well for me here because I can keep the same harness, the same commands, the same agents and roughly the same habits while switching the model underneath.
+
+Sure, you can argue that the provider's own harness is always going to be the ideal place to use their model. In some very specific cases that may well be true. But for my day-to-day work, the convenience of having one interface and one working style has been more valuable than whatever marginal gains I might get by constantly moving between native tools.
+
+And if I ever want to replace my UI in the future, I can still do that without having to change the whole workflow as OpenCode is built on a Client-Server model. I'm still mostly on the normal OpenCode TUI though, and testing the new-ish desktop client here and there.
+
+For me, that standardization matters more in my daily work than chasing theoretical best-case setups.
+
+<a id="rpi-is-still-the-backbone" />
+
+### RPI is still the backbone
+
+I wrote earlier about [Research - Plan - Implement](/research-plan-implement/), and that is still basically the backbone of how I work.
+
+What has changed a bit is mostly how often I use the full ceremony.
+
+-   For small tasks, I often just talk directly with the coding agent.
+-   For medium tasks, plan + implement is usually enough.
+-   For larger, messier or riskier work, I still want the full research -> plan -> implement flow.
+
+The important part for me is not the ritual itself. The point is to keep context under control and reduce ambiguity before implementation starts.
+
+If a task does not need three separate phases, I don't force it. That flexibility and simplicity are the reasons why the pattern has kept working for me.
+
+I'm still not in agreement with myself on whether the plan / research artifacts should be committed in the repo or not. Often it feels like the codebase moves so fast that old plans and research files get stale pretty quickly, and that the main value of those files is in the moment when they are created and discussed, not as a long-term reference. But on the other hand, having a record of the thinking process can sometimes be useful for future reference or for other team members.
+
+<a id="the-plan-is-where-i-do-most-of-the-thinking" />
+
+### The plan is where I do most of the thinking
+
+One thing I don't do is generate a plan and then treat it as a decorative artifact.  
+I read the plans. I discuss them with the planning agent. I answer the open questions. If I notice missing angles, I ask it to expand the plan. If something looks too handwavy, I push it to be more concrete.
+
+This is probably the cheapest point in the whole process to catch misunderstandings, and there have been numerous cases where reading the plan actually makes me change the initial approach I had in mind completely, or I understand that some very important feature or edge case is missing from my mental model.
+
+Once implementation starts, every missing assumption gets more expensive. So I would much rather spend the extra few minutes in the planning stage than later do a half-implementation, realize the feature shape was wrong, and start steering it back.
+
+In that sense, the plan is not just a handoff file. It's also the point where I clarify the task for myself and the team I'm working with.
+
+<a id="i-tested-looping-implementations-with-ralph-loops" />
+
+### I tested looping implementations with Ralph loops
+
+I have also spent some time testing a more loop-oriented way of working. By that I mean taking the plan and then repeatedly running implementation steps in a loop, or even having the loop continue until some completion promise is hit. This did actually work reasonably well. (Often there was no promise, just a list of tasks and YOLO)
+
+[My script](https://github.com/DrBushyTop/humanlayer-opencode/blob/master/.opencode/scripts/ralph-loop.sh?ref=huuhka.net) for this was intentionally very simple:
+
+```bash
+ralph-loop.sh PROMPT.md --agent Implementer --max 30
+```
+
+That simplicity is also part of the appeal. You don't necessarily need a huge framework around the idea to test if it fits your workflow.
+
+That said, I don't have an infinite request budget, so this has not really felt like the best default for me. When I was testing this more actively, Opus 4.5 and Opus 4.6 were also only available to me through GitHub Copilot's smaller context window, which meant compaction happened fairly quickly even with the loop. At that point the whole thing starts to feel a bit less attractive.
+
+So my current view is not that looping is bad. More that if you have the budget and the patience to optimize around it, it is definitely worth exploring. I just haven't felt that simple looping, by itself, is where I get the best tradeoff.
+
+What changed for me here is that GPT-5.4's own compaction has generally felt good enough for the type of work I do. OpenCode's own compaction has also felt solid. Of course, native compaction is a bit of a black box. You don't really know in exact terms what the model decided to compress and how. But in practical terms, the result has been good enough often enough that I no longer feel a big need to build a loop around everything. If the default context management is already holding up, I would rather keep the workflow simpler.
+
+<a id="for-bigger-work-i-split-plans-into-parallel-streams-instead" />
+
+### For bigger work, I split plans into parallel streams instead
+
+The bigger change in my own workflow has been here.
+
+Instead of trying to keep one long implementation thread running forever, I now often ask the planning agent to split the implementation into multiple workstreams that could be handled in parallel. This has worked surprisingly well, even in larger codebases.
+
+The reason I like this is fairly close to what I wrote earlier in [Primary vs Subagents in LLM harnesses](/primary-vs-subagents-in-llm-harnesses/). If a split actually reduces context pressure and gives you cleaner handoffs, it's useful. If it doesn't, then it's mostly just ceremony.
+
+The plan file becomes a real handoff artifact here. It tells each stream what it is responsible for, what is already known, and what done should look like.  
+A simplified example could look something like this:
+
+```md
+## Parallel Streams (very rough example)
+
+### Stream A - API contract changes
+
+- [ ] Add endpoint contract
+- [ ] Add validation and tests
+
+### Stream B - UI flow changes
+
+- [ ] Add new settings UI
+- [ ] Add loading and error states
+
+### Stream C - Verification
+
+- [ ] Add integration coverage
+- [ ] Run browser validation
+```
+
+That kind of structure has been much more useful for me than trying to just keep one giant thread alive for as long as possible.
+
+Once I have the workstreams, I build an orchestrator instructions file for the task.  
+This file contains the operational rules for the orchestrator: how it should delegate work to subagents, how it should update the plan, how it should verify the implementation, how it should test, and what kind of review it should do before calling the work complete. Then I start one orchestrator per workstream and let them go.
+
+Here's an example of orchestrator instructions
+
+```md
+## Orchestrator Instructions
+
+These instructions are for the orchestrator agent coordinating the work.
+
+- Tooling & verification
+  - Use `bun` for all installs, builds and tests.
+  - A dev server is ALREADY RUNNING. DO NOT START NEW SERVERS unless it has crashed.
+  - Use the Chrome DevTools MCP for all browser-based verification.
+  - When using Chrome DevTools MCP screenshots:
+    - Save each screenshot file into the `screenshots/` folder at repo root.
+    - Only after saving, read or reference the screenshot file as needed.
+  - The orchestrator must be the only agent using the MCP server (subagents should not talk to it directly).
+
+- Workflow & delegation
+  - The orchestrator is responsible for verifying each change end-to-end (tests, manual checks via Chrome MCP, quick code review).
+  - The orchestrator should not write application code directly.
+    - Delegate implementation work to `subagents/code/coder-agent`.
+  - For each implementation task, instruct the coder subagent to:
+    - Read the implementation plan to understand the whole workstream (link the file to them)
+    - First use `subagents/research/codebase-locator` and `subagents/research/codebase-analyzer` to find entry points and understand patterns.
+    - If the work is UI related, use their frontend design skill
+    - Only then implement changes.
+
+- Tasklist maintenance
+  - Every task in the tasklist is a checklist item (`- [ ]`).
+  - For each task the orchestrator completes, they must:
+    - Update the tasklist by checking off the corresponding item (`- [x]`).
+    - Optionally record a short note or the commit hash next to the checked item.
+  - Updating the tasklist is part of the task and should be included in the same commit as the implementation or an immediate follow-up commit.
+
+- Commits & granularity
+  - After each task is implemented and verified, the orchestrator must create a separate git commit for that task.
+  - Do not batch multiple tasks into a single commit unless a task explicitly says it depends on another and they cannot be separated.
+  - Commit messages should mention the task id.
+  - DO NOT REVERT any unrelated code changes
+```
+
+Starting the flow is then just:
+
+```md
+You are the orchestrator for Stream A.
+Read @orchestrator-instructions.md
+Read @implementation-plan.md
+Start / Continue the work.
+```
+
+![](/images/ghost/e6062f866d998ec29846.png)
+
+<figcaption>
+
+Orchestrators at work
+
+</figcaption>
+
+In this setup, I don't really think of the orchestrator as "another coding agent". I think of it more as an execution manager and verifier. The actual implementation can be delegated downwards, while the orchestrator keeps track of the plan state, runs checks, and makes sure the result still matches the original intent.
+
+After that, I still like doing an additional review-oriented pass just to verify that the work really is implemented, and not just described confidently. This might also be a good point to do some extra manual checks for the actual implementation, but also validate your own mental model of the functionality in the codebase so you can confidently build on top of it in future work.
+
+<a id="browser-verification-is-becoming-part-of-the-normal-loop" />
+
+### Browser verification is becoming part of the normal loop
+
+Another thing that has slowly become more important in my workflow is browser-side verification.
+
+I've written about [Chrome DevTools and agent browser style tooling](/browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser/), so I won't go too deep into those here, but the short version is that I increasingly want verification to include more than just tests and static review. Most of the time, the orchestrator is responsible for that too.
+
+So in addition to delegating implementation and running tests, I also want it to verify the result in the browser where relevant. That can mean Chrome DevTools, and increasingly it can also mean agent browser style tooling.
+
+I'm still incorporating agent browser more fully into the toolset, but I think the longer-term benefit there is pretty clear: individual subagents should eventually be able to verify their own work in parallel as part of the implementation flow. Chrome DevTools style MCP setups have felt a bit less happy when multiple agents try to use them at once, so for now that verification often sits more naturally at the orchestrator layer.
+
+<a id="clear-validation-matters-more-than-the-harness" />
+
+### Clear validation matters more than the harness
+
+One thing that feels very obvious to me at this point is that regardless of which harness you use, the best results tend to come from giving the model a clear way to validate whether the result is actually correct.That can be tests, visual checks, browser flows, snapshots, linting, typechecking, golden outputs, or any other concrete signal that tells the model when it has matched the target and when it has not.
+
+Without that feedback loop, you are much more dependent on the model confidently approximating what you meant. Sometimes that is enough, but often it isn't.
+
+This is also why it makes sense that people copy test sets from existing applications when trying to clone them outright. The tests are not just verification, they are also an unusually precise description of expected behavior. If you can give the model that kind of target, the odds of getting the exact result you wanted go up quite a bit. So while I do care about harnesses and agent structure a lot, I would still rank clear validation above most harness-level differences.
+
+<a id="model-mix-mostly-gpt-54-some-opus-46" />
+
+### Model mix: mostly GPT-5.4, some Opus 4.6
+
+At the model level, I'm mostly using GPT-5.4 right now, with some Opus 4.6 added in. The biggest reason is pretty simple: the larger context window of GPT-5.4 is very useful in this kind of work, at least compared to what I currently get from Opus through GitHub Copilot (128k max).
+
+Opus on the other hand is very good especially for UI work, particularly when combined with a stronger design-oriented skill or prompt setup like [Anthropic's frontend-design skill](https://github.com/anthropics/skills/blob/main/skills/frontend-design/SKILL.md?ref=huuhka.net). I've also meant to test out [Uncodixfy skill](https://github.com/cyxzdev/Uncodixfy?ref=huuhka.net) to see if it can help either of these models give better UI outputs, but that's still on the to-do list.
+
+For everything else, GPT-5.4 and GPT-5.3-Codex have handled the work very well.  
+One thing that does feel fairly obvious, though, is that both models have a set number of UI templates they tend to lean on whenever you ask them to build something from scratch. That is not really a surprise anymore, but it is visible. So even when the model is good, the prompting and skill layer still matter a lot if you want the result to feel intentional instead of generic. Ask a model to build 10 different takes on the same UI component, and you'll see the same few templates come up again and again. That is not necessarily a problem, but it is something to be aware of when you're trying to get a specific design or interaction pattern out of the model.
+
+<a id="final-thoughts" />
+
+## Final thoughts
+
+I don't really expect this to be my workflow a year from now. Right now though, this is the setup that has felt the most useful in actual development work:
+
+-   standardize the harness where possible
+-   add process only when the task complexity justifies it- use plans as real handoff artifacts instead of generated paperwork
+-   parallelize bigger work instead of stretching one implementation thread forever
+-   verify in the browser too, not just in code and tests
+
+That's basically it.
+
+The models will keep changing, the harnesses will keep changing, and some of these tradeoffs will likely look different again fairly soon. But for now, this has been a good local optimum for me.

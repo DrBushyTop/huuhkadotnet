@@ -79,6 +79,49 @@ typography:
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.65
+  reading-title:
+    fontFamily: "'Geist Variable', sans-serif"
+    fontSize: "clamp(30px, 3.2vw, 44px)"
+    fontWeight: 600
+    lineHeight: 1.18
+    letterSpacing: "-0.025em"
+  reading-body:
+    fontFamily: "'Source Sans 3 Variable', sans-serif"
+    fontSize: "19px"
+    fontWeight: 400
+    lineHeight: 1.7
+  reading-heading:
+    fontFamily: "'Geist Variable', sans-serif"
+    fontSize: "28px"
+    fontWeight: 600
+    lineHeight: 1.3
+  reading-subheading:
+    fontFamily: "'Geist Variable', sans-serif"
+    fontSize: "23px"
+    fontWeight: 600
+    lineHeight: 1.3
+  reading-date:
+    fontFamily: "'Geist Mono Variable', monospace"
+    fontSize: "11px"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "0.02em"
+  reading-rail:
+    fontFamily: "'Source Sans 3 Variable', sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.45
+  reading-rail-label:
+    fontFamily: "'Geist Mono Variable', monospace"
+    fontSize: "10px"
+    fontWeight: 400
+    lineHeight: 1.6
+    letterSpacing: "0.06em"
+  reading-next-title:
+    fontFamily: "'Geist Variable', sans-serif"
+    fontSize: "17px"
+    fontWeight: 500
+    lineHeight: 1.45
   inline-code:
     fontFamily: "'SauceCodePro Nerd Font Mono', ui-monospace, monospace"
     fontSize: "0.9em"
@@ -164,6 +207,16 @@ components:
     rounded: "{rounded.navigation}"
     width: "44px"
     height: "44px"
+  reading-prose:
+    textColor: "{colors.ink}"
+    typography: "{typography.reading-body}"
+  reading-contents:
+    textColor: "{colors.muted}"
+    typography: "{typography.reading-rail}"
+  reading-callout:
+    backgroundColor: "{colors.popular-ground}"
+    textColor: "{colors.ink}"
+    padding: "16px 24px"
 ---
 
 # Design system: Huuhka.net
@@ -172,127 +225,128 @@ components:
 
 **Creative North Star: "Articles first"**
 
-Huuhka.net is a personal technical publication. Article images, publication dates, and clear titles carry the page. The small author portrait and compact navigation identify Pasi without competing with the writing.
+Huuhka.net is a personal technical publication. Article images, publication dates, and clear titles carry the index. The small author portrait and compact navigation identify Pasi without competing with the writing.
 
-The implemented direction uses white backgrounds, slate text, restrained blue details, and sans-serif typography. Compact popular links sit above larger rounded archive cards with padded text, topic tags, and dates. This is the approved preliminary homepage direction, not final production polish.
+White backgrounds, slate text, restrained blue details, and sans-serif typography connect the index to the article reader. Compact popular links sit above larger padded archive cards. Long-form pages give prose, diagrams, and code their own reading space without changing the approved header or palette.
 
 **Key Characteristics:**
 - Image-led article links with compact topic tags, visible dates, and no excerpts.
-- A light sticky header with an original geometric H, mono navigation, and a single-row mobile menu trigger.
+- A light sticky header with the geometric H, mono navigation, and a single-row mobile menu trigger.
 - Compact popular cards and roomier rounded archive cards with restrained borders.
+- Centered long-form prose with a compact series and contents rail, uncropped feature images, and horizontally scrolling code.
 - A secondary author introduction with a real portrait.
 
-Source authority: the user selected round-four A on September 21, 2026, then requested the more prominent compact rectangular popular cards. The user subsequently requested Encore-like mono navigation and neutral highlights, a single-row mobile header with a menu, and rounded padded archive cards with compact topic tags and smaller titles. The user then approved Geist Sans for headings, article titles, and the wordmark. These refinements supersede the earlier unboxed cards and provisional font choices. The homepage composition belongs in `.impeccable/surfaces/src-pages-index-astro.md`. The tokens here come from `src/styles/global.css` and `src/styles/code.css`; markup and behavior come from `src/components/Header.astro`, `src/pages/index.astro`, and `src/layouts/Base.astro`. `package.json` records the installed font packages. `PRODUCT.md` retains migration and product constraints. Shipping image sources are recorded in `public/images/provenance.json`.
-
-The requested header, card, and font refinements are implemented. Geist Sans is the approved heading and wordmark family; Source Sans 3 remains the body font, and Geist Mono handles navigation, tags, and dates. The earlier article-reader sidebar and mobile-control arrangements are proposals, not an implemented or approved reading system. Bespoke posts may vary visually, and external destinations should remain identifiable. Content migration and deployment are separate work.
+The approved homepage composition and font choices remain unchanged. This document records the shared visual system and its implemented reader extension. Page composition lives in `.impeccable/surfaces/`. Source values come from `src/styles/global.css`, `src/styles/code.css`, and `src/styles/article.css`; behavior comes from the page, layout, and header components. Migration scope and production limits belong in `docs/migration.md`.
 
 ## Colors
 
-The palette uses cool neutrals with a small blue accent. Frontmatter records the current CSS values rather than the earlier mockup estimates.
+The palette uses cool neutrals with a small blue accent. Frontmatter holds the normative values.
 
 ### Primary
 
 - `blue` colors the H, focus outlines, and input caret.
-- `link` is the darker blue for link feedback and the current mobile menu item.
+- `link` colors prose links, link feedback, and the current mobile menu item.
 
 ### Neutral
 
-- `paper` is the page and control background. The header stays light.
-- `ink` is primary text, including article titles and the current desktop navigation item.
-- `muted` is secondary copy, dates, topic tags, inactive navigation, search hints, and counts.
-- `line` separates the header and footer and borders both card types.
-- `popular-ground` fills popular cards and unloaded image areas. `popular-hover` changes their hover fill.
-- `nav-highlight` fills active and hovered navigation, menu buttons, and topic tags. `article-ground` fills archive cards.
-- `control-border` outlines search and pagination controls. `popular-hover-border` defines the popular-card hover edge.
+- `paper` fills the page, header, and controls. `ink` is primary text.
+- `muted` is secondary copy, dates, tags, inactive navigation, and counts.
+- `line` separates the header and footer and borders cards, code, and tables.
+- `popular-ground` fills popular cards, code fallbacks, callouts, and table headings. `popular-hover` changes the popular-card hover fill.
+- `nav-highlight` fills navigation highlights, menu buttons, and topic tags. `article-ground` fills archive cards.
+- `control-border` outlines search and pagination. `popular-hover-border` defines the popular-card hover edge.
 
 **The restrained accent Rule.** Keep the header light. Concentrate blue in the logo, links, and keyboard focus rather than a full-width pastel band.
 
 ## Typography
 
-The user approved Geist Sans for all headings, archive and popular titles, and the Huuhka.net wordmark. Its CSS family is Geist Variable. Source Sans 3 Variable remains the body font. Geist Mono Variable handles navigation, topic tags, and dates. `Base.astro` imports Geist and Source Sans 3; `Header.astro` imports Geist Mono. These replace the earlier provisional Manrope treatment.
+Geist Sans is the approved heading and wordmark family, exposed as Geist Variable in CSS. Source Sans 3 Variable is the body font. Geist Mono Variable handles navigation, tags, and dates. Do not make body copy monospaced.
 
-The frontmatter captures the desktop hierarchy. Author and section headings share a 26px size and 600 weight. Archive titles use 19px at 500 weight; popular titles use 16px at 500 weight. Dates sit in the card footer, with tabular numerals. Navigation, tags, and dates use uppercase letters with modest positive tracking. Body copy remains sans-serif rather than adopting mono throughout.
+The existing index roles remain intact. Author and section headings are semibold; archive and popular titles use medium weight. At content widths of 700px and below, author and section headings become 24px. Archive and popular titles keep their desktop sizes. At the separate 760px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Phone introduction copy is 15px with 1.4 line height and a 29ch limit.
 
-At content widths of 700px and below, the author and section headings become 24px. Archive titles remain 19px and popular titles remain 16px. At the header's separate 760px breakpoint, the wordmark becomes 21px. Mobile menu page links use 16px Geist Mono. The introduction copy becomes 15px with a 1.4 line height and a 29ch maximum width. Secondary counts and footer copy use 14px.
+The reader uses the `reading-title`, `reading-body`, `reading-heading`, and `reading-subheading` roles. At 600px and below, prose becomes 18px, second-level headings 25px, and third-level headings 21px. The prose column is capped at 720px. Publication and updated dates use `reading-date`, uppercase letters, and tabular numerals. Archive dates retain their separate `date` role and tracking. Reader bylines and captions use 14px Source Sans 3. Rail links use `reading-rail`; their compact navigation labels use `reading-rail-label`. Series names use 13px medium Geist Sans. The continuation title uses `reading-next-title`, becoming 16px on phones. Its mono navigation label uses 10px type with .04em tracking.
 
-The user selected SauceCodePro Nerd Font Mono for code. `Base.astro` imports `src/styles/code.css`, which defines the code font, 14px block size, and 1.65 line height. The self-hosted WOFF2 files include regular, bold, italic, and bold italic faces, with normal and italic styles at weights 400 and 700 and `font-display: swap`. The full glyph set is retained. The files, license, and conversion provenance are in `public/fonts/sauce-code-pro/`. Use this family for `pre`, `code`, `kbd`, and `samp`, with ligatures disabled. Inline code, keyboard input, and sample output use 0.9em.
-
-Do not add a large display type role or a serif masthead. Long-form reading measures and the complete article reader still await implementation.
+SauceCodePro Nerd Font Mono remains the code family for `pre`, `code`, `kbd`, and `samp`, with ligatures disabled. Its self-hosted regular, bold, italic, and bold italic WOFF2 faces use `font-display: swap`. The full glyph set, license, and conversion provenance remain in `public/fonts/sauce-code-pro/`. Inline code uses its existing relative-size role; block code keeps 14px and 1.65 line height. Syntax highlighting does not replace these font settings.
 
 ## Layout
 
-The shared page container uses `min(1200px, calc(100% - 96px))`. The header has a separate 1440px maximum width, 48px horizontal padding, and a 64px minimum height. It is sticky at the top, with 80px document scroll padding. The author introduction uses a 56px portrait with a 19px gap and 24px top and bottom padding at every width.
+The shared page container is `min(1200px, calc(100% - 96px))`. The header has a separate 1440px maximum width, 48px horizontal padding, and a 64px minimum height. It stays at the top with 80px document scroll padding. Between 701px and 1000px, page gutters become 32px. At 700px and below, they become 20px.
 
-Desktop archive grids have three equal columns with a shared 32px gap. Popular groups also have three columns, with their own tighter gap. Section headings leave 12px below them. The archive starts 28px after the popular cards. The archive search field sits beside its heading, and its result count has 8px above and 16px below. Archive cards stretch their links to the full card height; their padded content grows so metadata aligns toward the bottom.
+The index keeps compact section spacing and padded cards. Desktop archive grids have three columns and a 32px gap, then two columns through tablet widths and one at 700px and below. Popular cards have a separate tighter grid. The index brief records its composition and pagination.
 
-Between 701px and 1000px, page gutters become 32px and the archive has two columns. Popular cards remain in three columns, but each places its image above its title with 14px padding and 56px thumbnails.
+The reader has a separate container of `min(1480px, calc(100% - 64px))`. At 1200px and above, its grid has a central 720px column, two equal flexible outside columns, and 36px gaps. Header, feature image, prose, and continuation link occupy the center column. The right-hand rail does not shift the prose away from the viewport center. The rail has a 224px maximum width, sticks at 96px, and scrolls within a maximum height of `calc(100dvh - 120px)` with contained overscroll.
 
-At 700px and below, page gutters become 20px. The portrait becomes 48px. Both card groups become one column; popular cards return to horizontal image-and-title layouts with 62px thumbnails and 13px padding. The archive starts 24px after the popular cards. Its search field takes the full width below the heading with a 12px gap. Introduction padding, heading bottom margin, and result-count margins stay unchanged. Archive gaps become 28px, card content padding becomes 20px, and the footer stacks vertically.
+At 1199px and below, the reader becomes a single column of `min(720px, calc(100% - 48px))`. Series and contents disclosures precede the article body, have no sticky positioning or internal height limit, and leave 24px below the rail. At 600px and below, the reader uses 20px side gutters. The reader footer shares the 720px center alignment, uses compact 12px text and 18px/24px vertical padding, and wraps its links on phones rather than creating a large stacked block.
 
-The header switches at 760px, independently of the content grid. With JavaScript, it stays in one row with the brand, GitHub icon, and menu button. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, ordinary page and social links remain visible and may wrap to a second row.
-
-The page scrolls normally. The current preview shows twelve articles before an explicit loading control, not automatic infinite scrolling. This pagination count describes the homepage implementation, not a universal layout token.
+The header switches at 760px independently of the content grid. With JavaScript it stays in one row with the brand, GitHub link, and menu button. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
 
 ## Elevation & Depth
 
-There are no shadows. White space, image blocks, borders, and the cool card fills separate content. Hover changes color and border only; cards do not lift or scale.
+There are no shadows. White space, image blocks, borders, and cool card fills separate content. Hover changes color and border without lifting or scaling cards.
 
-Keyboard focus uses a 3px blue outline offset by 5px. The search container instead uses a 2px blue outline offset by 2px on focus within. Popular-card fill and border transitions and archive-card border transitions take 160ms with `ease-out`. Navigation color and background changes take 150ms. Opening the mobile menu reveals the page links with a 160ms clipping animation, without moving the page. Reduced-motion preferences disable animations and transitions and use automatic scroll behavior. The sticky header sits at z-index 10; the modal dialog uses the browser top layer.
+Keyboard focus uses a 3px blue outline offset by 5px. Search instead uses a 2px outline offset by 2px on focus within. Card transitions take 160ms with `ease-out`; navigation changes take 150ms. The mobile menu uses a 160ms clipping animation. Reduced-motion preferences disable animations and transitions and use automatic scroll behavior. The sticky header uses z-index 10; the modal dialog uses the browser top layer.
+
+The contents marker is a 2px blue line beside the active link. Its vertical transform and the disclosure chevron rotation use 160ms `ease-out` transitions. Reduced-motion preferences remove both transitions. Current-link text uses ink and semibold weight; the marker carries position, not additional elevation.
 
 ## Shapes
 
-Archive cards use rounded containers with 1px borders. Their images have a 1.6 aspect ratio and 13px upper corners that fit inside the outer card border; lower image corners stay square. Popular cards remain compact horizontal rectangles with softened corners, and their square thumbnails use the control radius. Navigation and menu controls have their own 9px radius. Search, topic tags, and pagination controls share the smaller control radius. Only the author portrait is circular. The previous active-navigation underline is replaced by a neutral rounded highlight.
+Archive cards have rounded containers and 1px borders. Their cropped images use a 1.6 aspect ratio and 13px upper corners inside the outer border. Popular cards remain compact rectangles with softened corners and square thumbnails. Navigation has its own radius; search, tags, and pagination use the smaller control radius. Only the author portrait is circular.
+
+Reader feature images use 12px corners and `object-fit: contain`, with a 440px maximum height. Body images keep their proportions and use 6px corners. Code uses the existing popular-card radius. Callouts have a single blue left border rather than a card outline.
 
 ## Components
 
 ### Header and navigation
 
-Keep the original blue geometric H next to the capitalized Huuhka.net wordmark. Desktop Articles and About links use lightweight uppercase Geist Mono. Current, hover, and keyboard-focus states use neutral rounded backgrounds; `aria-current` identifies the page. LinkedIn, GitHub, and RSS are icon links at the right with accessible names. All links retain the global keyboard-focus outline.
+Keep the blue geometric H beside the capitalized Huuhka.net wordmark. Desktop Articles and About links use uppercase Geist Mono with neutral current, hover, and focus backgrounds. `aria-current` identifies the current page. LinkedIn, GitHub, and RSS icon links have accessible names.
 
-The mobile header stays in one row with a GitHub link and a 44px menu button. The menu is a full-screen native modal dialog with the brand, a close button, large page links, and labeled social links at the bottom. Opening it locks background scrolling. The close control has autofocus; the close button and menu links dismiss the dialog. Native Escape dismissal is expected from the modal dialog but has not been confirmed through the T3 browser checks. Closing restores focus to the trigger on mobile. Resizing to desktop closes it and focuses the current desktop page link. Preserve the no-JavaScript navigation fallback.
+The phone header has a 44px menu button. Its native modal dialog contains the brand, close control, page links, and labeled social links. Opening locks background scrolling. The close button and menu links dismiss it; closing restores focus to the trigger on mobile. Resizing to desktop closes it and focuses the current desktop page link. Preserve the no-JavaScript fallback. These implemented behaviors do not constitute a full keyboard audit.
 
-### Popular cards
+### Popular and archive cards
 
-Use a filled, bordered rectangle with a thumbnail, compact title, and external-link arrow. The desktop minimum height is 116px; mobile uses 96px. The whole rectangle is a link. The title uses the compact-title role, and hover changes both fill and border.
+Popular cards use a filled rectangle with a thumbnail, compact title, and corner arrow. The desktop minimum height is 116px; mobile uses 96px. Their three selections remain provisional, not analytics rankings, and the sample-selection label stays absent. The existing arrow is decorative; local article links must not be documented as external destinations.
 
-The user requested removal of the visible "Sample selection" label. Keep it absent from the interface. Internally, the current three cards remain provisional picks from the first three preview entries, not verified analytics rankings.
+Archive cards place up to two non-interactive topic labels above the title and a date opposite Read more below it. Suppress the redundant Artificial Intelligence label when AI is also present. Content has 22px desktop padding, 20px mobile padding, and 30px above metadata. The full card is a local article link with the title as its accessible name; Read more is not a nested link. Hover changes the border and underlines the blue Read more cue.
 
-### Archive cards
+### Search and progressive loading
 
-Use a large image followed by a padded content area. Compact topic tags precede the smaller title; the footer places the publication date opposite a Read more cue. Content padding is 22px on desktop and 20px on mobile, with 30px space above the metadata row. The light card fill and border enclose the whole link. Images crop with `object-fit: cover`. Hover darkens the border and turns the Read more cue blue with an underline; the title does not change color.
+The bordered search field has an accessible label, search icon, and an inline clear button when text is present. Fuzzy search covers the complete collection, including posts not yet shown. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query.
 
-The whole card links to the original published article and uses the title as its accessible name. Read more is a visual cue, not a nested link. Show at most two non-interactive topic tags, suppressing the redundant Artificial Intelligence label when AI is also present. Tags wrap safely and do not replace fuzzy search with category filters. Preserve exact stored article metadata when migration begins.
+Load more uses a 46px minimum height and reveals another batch of articles. It disappears when no results remain. Focus moves to the first newly revealed article without forced scrolling. Without JavaScript all articles remain visible and search and loading controls stay hidden. The homepage brief owns the batch size, not the shared tokens.
 
-### Code
+### Article reading
 
-Code blocks use a light fallback fill, a 1px quiet border, and the same 12px corner radius as popular cards. Keep 20px padding and 24px vertical margins. Blocks stay within the available width and scroll horizontally when needed; preserve whitespace and use a two-space tab size. Nested code inherits the block font size and line height without another fill or padding.
+The header contains an All articles link, title, author link, original publication date, and linked tags. If the updated calendar date differs, show Updated beside the author and publication date rather than repeating it below the article. Tag archives reuse the index card treatment. The optional feature image starts the centered article body and retains its original caption.
 
-Inline code has a light fill, 4px corners, and 2px by 5px padding. Long inline tokens may wrap anywhere. Do not substitute Geist Mono for the code font: Geist Mono remains the navigation, tag, and date family. These defaults do not establish a syntax-highlighting palette or claim a finished article reader.
+The compact rail groups native series disclosures with On this page. Series disclosures start collapsed at every width and remain user-controlled. Show On this page when the document has more than one heading at its shallowest available depth of two or greater. JavaScript opens contents at 1200px and above and closes it below that threshold, resetting the default when the breakpoint changes. Without JavaScript, all disclosures remain usable and initially collapsed. On narrow screens summaries have at least 44px height and links at least 38px height.
 
-### Search
+Contents links track the section crossing a 112px reading line below the viewport top. The active link receives `aria-current="location"`, darker semibold text, and the moving blue marker. Scroll, resize, hash changes, disclosure changes, body resizing, and font readiness schedule updates. On desktop, tracking keeps the selected rail entry visible without scrolling the article. Heading anchors combine 24px scroll margins with global 80px scroll padding, placing targets 104px below the top.
 
-The bordered field has a search icon, an accessible label, and an inline clear button when text is present. Fuzzy search covers all fifteen preview entries, including entries not yet revealed. Counts are announced politely; no matches show a short explanation and a Clear search action. Escape clears the query and restores input focus. The query is reflected in the URL.
+Series membership and ordered post lists come from content metadata, not title matching. An article can appear in several series; the current article uses `aria-current="page"` in each list. Only explicit theme-navigation callouts move into this navigation. Warnings and other author notes remain in the article.
 
-### Buttons and progressive loading
+Below blog prose, one compact continuation link points to the next member of the primary series when available, otherwise to the older article. The label names the series or says Older article. The primary series is the first matching group in the series data file. Do not add repeated author blocks, updated dates, or another archive-return link at the bottom. Community pages do not enter the blog sequence. The shared reader footer contains copyright, Community activities, and RSS in a compact row that can wrap.
 
-The bordered Load more button uses a 46px minimum height and the smaller corner radius. Its hover state changes text and border to blue. It reveals the remaining three preview articles, then disappears. Keyboard focus moves to the first newly revealed article without forced scrolling. The Clear search text button uses link blue and an underline on hover.
+### Code, tables, and callouts
 
-Without JavaScript, all fifteen article links remain visible and search and loading controls stay hidden. The footer identifies this as a design preview. Article, About, and RSS links still point to the live publication; this is not a completed local article reader.
+Code blocks retain the existing light fallback fill, quiet border, padding, radius, and vertical margins. Syntax-highlighted blocks may supply their own theme colors. Preserve whitespace, two-space tabs, and horizontal scrolling within the available width. Nested code does not add another fill or padding. Inline code can wrap long tokens.
+
+Tables scroll inside the article, use 16px text, quiet cell borders, and filled header cells. Callouts use the `reading-callout` treatment with a blue left border. Embedded video keeps a 16:9 ratio; playback still depends on the external host.
 
 ## Do's and Don'ts
 
 ### Do
 
 - Keep the author's real portrait and published article imagery.
-- Keep publication dates visible and preserve the original article metadata.
+- Keep publication dates visible and preserve original article metadata.
 - Distinguish compact popular links from larger padded archive cards.
 - Keep keyboard focus visible and preserve usable article links without JavaScript.
 - Use Geist Sans for headings and the wordmark, Source Sans 3 for body copy, Geist Mono for navigation, tags, and dates, and SauceCodePro Nerd Font Mono for code.
+- Keep the contents list before prose in document order and allow code and tables to scroll within the reader.
 
 ### Don't
 
-- Don't present sample popular selections as measured rankings.
-- Don't add excerpts, category-filter chips, a topic sidebar, or an oversized author hero to the approved homepage.
+- Don't present provisional popular selections as measured rankings.
 - Don't replace the light header with a flat pastel navigation band.
 - Don't introduce a serif publication masthead or invented promotional copy.
-- Don't claim the article reader, content migration, or deployment is complete.
+- Don't apply archive-image cropping to article diagrams or feature images.
+- Don't treat browser spot checks as a full keyboard or screen-reader audit.

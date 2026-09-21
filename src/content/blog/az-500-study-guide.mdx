@@ -1,0 +1,208 @@
+---
+title: "AZ-500 Study Guide"
+slug: "az-500-study-guide"
+publishedAt: "2020-03-18T01:06:28.000+02:00"
+updatedAt: "2020-11-09T14:36:45.000+02:00"
+description: "I recently passed the AZ-500: Azure Security Engineer Associate
+  certification, and thought that now that most of the world is under some level
+  of COVID-19 related quarantine, what better way to spend one's time than study
+  for a certification test. This study guide aims to help with that process. "
+tags:
+  - "Azure"
+  - "Security"
+  - "Certification"
+  - "AZ-500"
+tagSlugs:
+  - "azure"
+  - "security"
+  - "certification"
+  - "az-500"
+image: "/images/ghost/ecfb36194f5ff23ee2dd.jpg"
+imageAlt: ""
+draft: false
+featured: true
+seoTitle: "AZ-500 Azure Security Engineer Associate Study Guide"
+seoDescription: "I recently passed the AZ-500: Azure Security Engineer Associate
+  certification, This study guide aims to help others with getting certified."
+series: []
+---
+
+I recently passed the AZ-500: Azure Security Engineer Associate certification, and thought that now that most of the world is under some level of COVID-19 related quarantine, what better way to spend one's time than study for a certification test?This study guide aims to help with that process.
+
+In this guide you will find the current (**as of 24.5.2020**) learning objectives of the exam, with at least a single link to a relevant piece of the Azure Documentation or other related resource to learn about the specific objective.
+
+<a id="what-is-az-500-who-should-take-it" />
+
+## What is AZ-500? Who should take it?
+
+According to Microsoft themselves:
+
+> The candidates for this exam are Microsoft Azure security engineers who implement security controls, maintain the security posture, manage identity and access, and protect data, applications, and networks. Candidates identify and remediate vulnerabilities by using a variety of security tools, implement threat protection, and respond to security incident escalations. As a Microsoft Azure security engineer, candidates often serve as part of a larger team dedicated to cloud-based management and security and may also secure hybrid environments as part of an end-to-end infrastructure.
+
+If you identify with that description at all, perhaps take a look at the official site for Microsoft about the exam below.
+
+[Exam AZ-500: Microsoft Azure Security Technologies - Learn](https://docs.microsoft.com/en-us/learn/certifications/exams/az-500?ref=huuhka.net)
+
+Exam AZ-500: Microsoft Azure Security Technologies
+
+<a id="skills-measured" />
+
+## Skills measured
+
+**NOTE:** The exams do **NOT** cover any services that are in preview at the time you are taking it.
+
+<a id="manage-identity-and-access-20-25-" />
+
+### Manage identity and access (20-25%)
+
+**Configure Azure Active Directory for workloads**
+
+> **[Good set of labs](https://docs.microsoft.com/en-us/learn/paths/manage-identity-and-access/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)**
+
+-   [create App Registration](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure App Registration permission scopes](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-configure-app-expose-web-apis?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([theory](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+-   [manage App Registration permission consent](https://docs.microsoft.com/en-us/azure/active-directory/develop/quickstart-configure-app-access-web-apis?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([theory](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+-   [configure Multi-Factor Authentication settings](https://docs.microsoft.com/en-us/azure/active-directory/authentication/concept-mfa-howitworks?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [manage Azure AD directory groups](https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-manage-groups?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [manage Azure AD users](https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/add-users-azure-active-directory?context=azure/active-directory/users-groups-roles/context/ugr-context?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [install and configure Azure AD Connect](https://docs.microsoft.com/en-us/azure/active-directory/hybrid/how-to-connect-install-roadmap?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure authentication methods](https://docs.microsoft.com/en-us/azure/security/fundamentals/choose-ad-authn?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [implement Conditional Access policies](https://docs.microsoft.com/en-us/azure/active-directory/conditional-access/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Azure AD identity protection](https://docs.microsoft.com/en-us/azure/active-directory/identity-protection/concept-identity-protection-policies?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) ([and this](https://docs.microsoft.com/en-us/azure/active-directory/identity-protection/howto-identity-protection-configure-risk-policies?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))
+
+**Configure Azure AD Privileged Identity Management**
+
+-   [monitor privileged access](https://docs.microsoft.com/en-us/azure/active-directory/privileged-identity-management/pim-email-notifications?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Access Reviews](https://docs.microsoft.com/en-us/azure/active-directory/privileged-identity-management/pim-how-to-start-security-review?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [activate Privileged Identity Management](https://docs.microsoft.com/en-us/azure/active-directory/privileged-identity-management/pim-getting-started?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+**Configure Azure tenant security**
+
+-   [transfer Azure subscriptions between Azure AD tenants](https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-how-subscriptions-associated-directory?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) ([also this](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/billing-subscription-transfer?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))
+-   [manage API access to Azure subscriptions and resources](https://docs.microsoft.com/en-us/azure/role-based-access-control/conditional-access-azure-management?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([RBAC in general](https://docs.microsoft.com/en-us/azure/role-based-access-control/overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+
+<a id="implement-platform-protection-35-40-" />
+
+### Implement platform protection (35-40%)
+
+**Implement network security**
+
+> **[Good set of labs](https://docs.microsoft.com/en-us/learn/paths/implement-network-security/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)**
+
+-   [configure virtual network connectivity](https://docs.microsoft.com/en-us/azure/virtual-network/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Network Security Groups (NSGs)](https://docs.microsoft.com/en-us/azure/virtual-network/security-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [create and configure Azure Firewall](https://docs.microsoft.com/en-us/azure/firewall/deploy-ps?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [create and configure Azure Front Door service](https://docs.microsoft.com/en-us/azure/frontdoor/quickstart-create-front-door?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [create and configure application security groups](https://docs.microsoft.com/en-us/azure/virtual-network/application-security-groups?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([good blog](https://medium.com/awesome-azure/azure-application-security-group-asg-1e5e2e5321c3?ref=huuhka.net))_
+-   [configure remote access management](https://docs.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-vnet-vnet-rm-ps?toc=%2fazure%2fvirtual-network%2ftoc.json?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure baseline](https://docs.microsoft.com/en-us/azure/virtual-network/tutorial-restrict-network-access-to-resources?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([also security center](https://docs.microsoft.com/en-us/azure/security-center/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+-   [configure resource firewall](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-scenario-udr-gw-nva?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+**Implement host security**
+
+-   [configure endpoint security within the VM](https://docs.microsoft.com/en-us/azure/security-center/security-center-install-endpoint-protection?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure VM security](https://docs.microsoft.com/en-us/azure/security/fundamentals/virtual-machines-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [harden VMs in Azure](https://docs.microsoft.com/en-us/azure/security/fundamentals/iaas?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([also CIS](https://www.cisecurity.org/blog/cis-hardened-images-now-in-microsoft-azure-marketplace/?ref=huuhka.net))_
+-   [configure system updates for VMs in Azure](https://docs.microsoft.com/en-us/azure/security/fundamentals/iaas?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#manage-your-vm-updates)
+-   configure baseline _([also security center](https://docs.microsoft.com/en-us/azure/security-center/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+
+**Configure container security**
+
+> **[Good set of labs](https://docs.microsoft.com/en-us/learn/paths/administer-containers-in-azure/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)**
+
+-   [configure network](https://docs.microsoft.com/en-us/azure/virtual-network/container-networking-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure authentication](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-authentication?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure container isolation](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-image-security?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure AKS security](https://docs.microsoft.com/en-us/azure/aks/azure-ad-rbac?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) (the whole security and auth section is good)
+-   [configure container registry](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-get-started-portal?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [implement vulnerability management](https://docs.microsoft.com/en-us/azure/security-center/azure-container-registry-integration?toc=/azure/container-registry/toc.json&bc=/azure/container-registry/breadcrumb/toc.json?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([also this](https://docs.microsoft.com/en-us/azure/security-center/azure-container-registry-integration?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+
+**Implement Azure Resource management security**
+
+-   [create Azure resource locks](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/lock-resources?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [manage resource group security](https://docs.microsoft.com/en-us/azure/role-based-access-control/quickstart-assign-role-user-portal?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Azure policies](https://docs.microsoft.com/en-us/azure/governance/policy/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([Lab module](https://docs.microsoft.com/en-us/learn/modules/intro-to-governance/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+-   [configure custom RBAC roles](https://docs.microsoft.com/en-us/azure/role-based-access-control/custom-roles?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([tutorial](https://docs.microsoft.com/en-us/azure/role-based-access-control/tutorial-custom-role-powershell?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+-   [configure subscription and resource permissions](https://docs.microsoft.com/en-us/azure/role-based-access-control/quickstart-assign-role-user-portal?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+<a id="manage-security-operations-15-20-" />
+
+### Manage security operations (15-20%)
+
+**Configure security services**
+
+> **[Good set of labs](https://docs.microsoft.com/en-us/learn/paths/manage-security-operations/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)**
+
+-   [configure Azure Monitor](https://docs.microsoft.com/en-us/azure/azure-monitor/learn/quick-monitor-azure-resource?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure diagnostic logging and log retention](https://docs.microsoft.com/en-us/azure/azure-monitor/learn/tutorial-resource-logs?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure vulnerability scanning](https://docs.microsoft.com/en-us/azure/security-center/built-in-vulnerability-assessment?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+**Configure security policies**
+
+-   [configure centralized policy management by using Azure Security Center](https://docs.microsoft.com/en-us/azure/security-center/tutorial-security-policy?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Just in Time VM access by using Azure Security Center](https://docs.microsoft.com/en-us/azure/security-center/security-center-just-in-time?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+**Manage security alerts**
+
+-   [create and customize alerts](https://docs.microsoft.com/en-us/azure/security-center/security-center-managing-and-responding-alerts?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [review and respond to alerts and recommendations](https://docs.microsoft.com/en-us/azure/security-center/security-center-incident?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure a playbook for a security event by using Azure Sentinel](https://docs.microsoft.com/en-us/azure/sentinel/tutorial-respond-threats-playbook?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [investigate escalated security incidents](https://docs.microsoft.com/en-us/azure/sentinel/tutorial-investigate-cases?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+<a id="secure-data-and-applications-25-30-" />
+
+### Secure data and applications (25-30%)
+
+> **[Decent overall labs](https://docs.microsoft.com/en-us/learn/paths/secure-your-cloud-data/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)**
+
+**Configure security policies to manage data**
+
+> [**Relevant pluralsight course**](https://www.pluralsight.com/courses/microsoft-azure-configuring-data-security-policies?ref=huuhka.net)
+
+-   [configure data classification](https://docs.microsoft.com/en-us/azure/security-center/tutorial-security-policy?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure data retention](https://docs.microsoft.com/en-us/azure/security-center/custom-security-policies?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure data sovereignty](https://www.youtube.com/watch?v=DtaNgBPCHSk&ref=huuhka.net)
+
+**Configure security for data infrastructure**
+
+-   [enable database authentication](https://docs.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-connect-msi?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [enable database auditing](https://docs.microsoft.com/en-us/azure/sql-database/sql-database-auditing?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Azure SQL Database Advanced Threat Protection](https://docs.microsoft.com/en-us/azure/sql-database/sql-database-threat-detection-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure access control for storage accounts](https://docs.microsoft.com/en-us/azure/role-based-access-control/quickstart-assign-role-user-portal?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure key management for storage accounts](https://docs.microsoft.com/en-us/learn/modules/secure-azure-storage-account/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Azure AD authentication for Azure Storage](https://azure.microsoft.com/en-us/blog/azure-storage-support-for-azure-ad-based-access-control-now-generally-available/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Azure AD Domain Services authentication for Azure Files](https://docs.microsoft.com/en-us/azure/storage/files/storage-files-identity-auth-active-directory-domain-service-enable?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [create and manage Shared Access Signatures (SAS)](https://docs.microsoft.com/en-us/rest/api/storageservices/delegate-access-with-shared-access-signature?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure security for HDInsight](https://docs.microsoft.com/en-us/azure/hdinsight/hadoop/apache-hadoop-on-premises-migration-best-practices-security-devops?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure security for Cosmos DB](https://docs.microsoft.com/en-us/azure/cosmos-db/database-security?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure security for Azure Data Lake](https://docs.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-access-control?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+**Configure encryption for data at rest**
+
+> **[Good set of labs / intro](https://docs.microsoft.com/en-us/learn/modules/secure-data-at-rest/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)**
+
+-   [implement Azure SQL Database Always Encrypted](https://docs.microsoft.com/en-us/azure/sql-database/sql-database-always-encrypted?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [implement database encryption](https://docs.microsoft.com/en-us/azure/sql-database/transparent-data-encryption-azure-sql?tabs=azure-portal?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [implement Storage Service Encryption](https://docs.microsoft.com/en-us/azure/storage/common/storage-service-encryption?toc=%2fazure%2fstorage%2fblobs%2ftoc.json?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) ([Great best practice guide](https://docs.microsoft.com/en-us/azure/storage/blobs/security-recommendations?ref=huuhka.net))
+-   [implement disk encryption](https://docs.microsoft.com/en-us/azure/security/fundamentals/azure-disk-encryption-vms-vmss?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+**Configure application security**
+
+-   [configure SSL/TLS certs](https://docs.microsoft.com/en-us/azure/app-service/configure-ssl-bindings?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure Azure services to protect web apps](https://docs.microsoft.com/en-us/azure/app-service/overview-security?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [create an application security baseline](https://docs.microsoft.com/en-us/azure/app-service/security-recommendations?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+
+**Configure and manage Key Vault**
+
+-   [manage access to Key Vault](https://docs.microsoft.com/en-us/azure/role-based-access-control/quickstart-assign-role-user-portal?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [manage permissions to secrets, certificates, and keys](https://docs.microsoft.com/en-us/azure/key-vault/overview-security?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure RBAC usage in Azure Key Vault](https://docs.microsoft.com/en-us/azure/key-vault/key-vault-secure-your-key-vault?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [manage certificates](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [manage secrets](https://docs.microsoft.com/en-us/azure/key-vault/key-vault-manage-with-cli2?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   [configure key rotation](https://docs.microsoft.com/en-us/azure/key-vault/tutorial-rotation?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) _([also this](https://docs.microsoft.com/en-us/azure/key-vault/key-vault-key-rotation-log-monitoring?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net))_
+
+<a id="and-that-s-it-" />
+
+## And that's it!
+
+Hopefully you will find this guide useful. If you notice any broken links etc. contact me on either the comments below or via [twitter](https://twitter.com/DrBushyTop?ref=huuhka.net).

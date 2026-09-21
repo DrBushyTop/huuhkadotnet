@@ -1,0 +1,285 @@
+---
+title: "Automating Azure Private Link - Private Endpoints for Azure Storage"
+slug: "automating-azure-private-link-storage-private-endpoints"
+publishedAt: "2020-02-25T20:16:56.000+02:00"
+updatedAt: "2020-11-09T14:40:42.000+02:00"
+description: "Last week Microsoft announced that Azure Private Link is now
+  generally available on a limited quantity of services. I dug in to how the
+  portal is doing the deployment of Private Endpoints for Azure Storage and how
+  to automate it. Here's how you can do it too."
+tags:
+  - "ARM Templates"
+  - "Azure"
+  - "Azure Private Link"
+tagSlugs:
+  - "arm-templates"
+  - "azure"
+  - "azure-private-link"
+image: "/images/ghost/fdaa02de571011e645b1.jpg"
+imageAlt: ""
+draft: false
+featured: false
+seoDescription: "Last week Microsoft announced that Azure Private Link is now
+  generally available on a limited quantity of services. Here's how you can
+  automate it."
+series: []
+---
+
+Last week Microsoft announced that [Azure Private Link is now generally available](https://azure.microsoft.com/en-us/updates/private-link-now-available-in-ga/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) on **a limited quantity of services**. I dug in to how the portal is doing the deployment of Private Endpoints for Azure Storage and how to automate it. Here's how you can do it too.
+
+<a id="what-is-azure-private-link" />
+
+## What is Azure Private Link?
+
+So in a nutshell, Azure Private Link allows you to consume services hosted on the Azure platform privately, inside your own network without requiring internet access and using the Azure backbone network. This can be either a native PaaS resource like Azure Storage or a SQL database, or any other service like a 3rd party software offering. On top of this, we have the built-in protection against data exfiltration, as only explicitly mapped services are accessible through the link.
+
+Below is a pretty good example from the [Microsoft documentation](https://azure.microsoft.com/en-us/services/private-link/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#how-it-works).
+
+![](/images/ghost/45f4def67cbc411ad118.png)
+
+The capabilities can be summed up into two concepts: Private Link Services, and Private Endpoints. Let's take a closer look at both in the context of the example.
+
+[Private Link Service](https://docs.microsoft.com/en-us/azure/private-link/private-link-service-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) is a resource that the service provider creates on their end or in the case of Azure PaaS resources, not something you need to worry about. Currently this needs to be a service behind a Standard Azure Load Balancer, which then has the ability to manage connection requests from Private Endpoint consumers. I won't go much more into detail on this here, but the important thing to understand is that this can be part of any Azure tenant, and thus allows a 3rd party provider to provide services inside your Azure VNET. I'll dive deeper into this in a later post.
+
+On the other hand, [Private Endpoints](https://docs.microsoft.com/en-us/azure/private-link/private-endpoint-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) are network interfaces in your private VNETs that are representations of the services using Azure Private Link. In the Azure portal, they consist of a Private Endpoint resource with a certain FQDN, and an automatically generated NIC resource that gets given a private IP address inside your subnet.
+
+When a Private Endpoint gets created, a request is sent to the Private Link Service on the other side, which in turn then can either accept or reject the connection. You will of course also need to think how to handle DNS entries for the IP addresses, [but there are a couple of ways of handling this](https://docs.microsoft.com/en-us/azure/private-link/private-endpoint-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#dns-configuration). We'll take a look at using a private DNS zone for this below.
+
+<a id="what-about-service-endpoints" />
+
+### What about service endpoints?
+
+This might seem quite similar to [Virtual Network Service Endpoints](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net) for the PaaS services before, but the difference comes from the actual implementation on the backend. Service endpoints are used to provide access to PaaS services from your internal network, but those services still use public IP addresses and names.
+
+This means that any connections you make still need to have firewall openings for the pubic internet addresses of the Azure datacenters you are hosting your services in, and on-premises access to the resource is not supported ([and needs some extra magic](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#secure-azure-service-access-from-on-premises)).
+
+So what Private Link allows you to do is:
+
+-   Clean up your firewalls. No more public openings required.
+-   Allow access from On-Premises through a private connection
+
+<a id="let-s-automate-" />
+
+## Let's automate!
+
+Okay, so now that you know a little about what the service actually does, let's take a look into what it takes to get this thing working with Azure Storage using ARM templates.
+
+The end result of this experiment is a private VNET with a storage account mapped to it with a Private Endpoint. Optionally you will get a private DNS zone and VM to verify the configuration with.
+
+Flow of the basic private endpoint setup:
+
+-   Create a NSG to block access to internet for the VNET (optional)
+-   Create a VNET and a Subnet with privateEndpointNetworkPolicies disabled
+-   Create a storage account
+-   Create a private endpoint resource to point to a specific service of the storage account (blob, table etc.)
+
+Creating a storage account and a VNET is nothing to write home about, and you can take a look at the final ARM templates [here](https://github.com/DrBushyTop/ARMTemplates/tree/master/PrivateLink?ref=huuhka.net), but here are some little things that came up in my testing.
+
+First of all, subnets need to have a special setting "[privateEndpointNetworkPolicies](https://github.com/DrBushyTop/ARMTemplates/blob/master/PrivateLink/private_endpoint_storage.json?ref=huuhka.net#L95)" set as Disabled before you can deploy a Private Endpoint into it. What this does is disables all NSG constraints on the endpoint traffic and is due to this [limitation](https://docs.microsoft.com/en-us/azure/private-link/private-endpoint-overview?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net#limitations) in the implementation.
+
+```
+"subnets": [
+  {
+    "name": "[variables('subnetName')]",
+    "properties": {
+      "addressPrefix": "[replace(parameters('vnetAddressPrefix'), '/16', '/24')]",
+      "networkSecurityGroup": {
+        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+      },
+      "privateEndpointNetworkPolicies": "Disabled"
+    }
+  }
+],
+```
+
+Second, the [Private Endpoint resource configuration](https://github.com/DrBushyTop/ARMTemplates/blob/master/PrivateLink/privatelink_endpoint.json?ref=huuhka.net#L34) was fairly strange. I could not find any clear documentation on how the properties.privateLinkServiceConnections objects Id property should be set up, so I copied the way Microsoft does it themselves on the portal deployments. This I believe prompts the automatic creation of the special NIC for the storage connection with a random guid. The groupIDs array specifies the service this endpoint is for, and only allows one value per endpoint. (blob, table... etc). And lastly, the privateLinkServiceId value is just a pointer to the storage account in my case.
+
+```
+{
+  "apiVersion": "2019-11-01",
+  "name": "[parameters('privateEndpointName')]",
+  "type": "Microsoft.Network/privateEndpoints",
+  "location": "[parameters('location')]",
+  "properties": {
+    "privateLinkServiceConnections": [
+      {
+        // Why this works is a bit unclear, but ARM seems to create the privateLinkServiceConnection by just giving the ID here, like a subnet in a vnet would work.
+        "id": "[concat(resourceGroup().id, '/providers/Microsoft.Network/privateEndpoints/privateLinkServiceConnections/', parameters('privateEndpointConnectionName'))]",
+        "name": "[parameters('privateEndpointConnectionName')]",
+        "properties": {
+          "privateLinkServiceId": "[parameters('privateStorageId')]",
+          "groupIds": "[parameters('groupIds')]"
+        }
+      }
+    ],
+    "manualPrivateLinkServiceConnections": [
+    ],
+    "subnet": {
+      "id": "[parameters('subnetId')]"
+    }
+  }
+}
+```
+
+And as you can see below, the new NIC does not even have a location. The settings seem to always be created as dynamic too, but that should be modifiable later if you want.
+
+![](/images/ghost/19a787e11d07fa9c375a.jpg)
+
+<figcaption>
+
+NIC
+
+</figcaption>
+
+![](/images/ghost/aa81f7ac6a8c8002ffef.jpg)
+
+<figcaption>
+
+Endpoint
+
+</figcaption>
+
+<a id="private-dns-spaghetti-alert-" />
+
+### Private DNS Spaghetti alert!
+
+Now if you're happy with what you have and don't want to do anything with a DNS using private zones. Turn back now. Due to limitations of the reference() function in ARM templates, this implementation turned out quite messy. In my hubris I thought I could vastly simplify on Microsoft's own way of doing this on the backend of the portal, but after banging my head against the wall for a bit I'm pretty much back at the same solution they came up with.
+
+Flow of the DNS setup:
+
+-   Create a private DNS zone based on the storage service used (blob, table etc.)
+-   Fetch the Id of the NIC automatically created by the Private Endpoint deployment from it's outputs.
+-   Reference the NIC Id, get an array of IpConfigurations (often there is only one, though)
+-   Loop through these IpConfigurations, and loop through the FQDNs of each. Set these FQDNs in the Private Zone with the correct IPs
+
+The **reference()** function in ARM **sucks**. There's no way around it. Whenever I try to use it in a somewhat clever way, I end up with an error telling me that the function is not expected to be used there. So far I've found that **you cannot use it** in the following cases:
+
+-   Inside resource names
+-   Inside copy loop count field
+-   Inside variables or parameters sections
+-   Nested inside another reference() function
+-   Inside ARM functions
+
+As it happens, due to these limitations ([and the fact that params / vars do not work with nested templates](https://feedback.azure.com/forums/281804-azure-resource-manager/suggestions/33774850-parameters-in-nested-templates-is-broken?ref=huuhka.net)) the private DNS setup takes 4 template files in total to get this logic going.
+
+First of all, as mentioned before, the [Private Endpoint resource](https://github.com/DrBushyTop/ARMTemplates/blob/master/PrivateLink/privatelink_endpoint.json?ref=huuhka.net) automatically generates the special NIC resource, and you cannot (at least I did not figure out how the guid is generated) know the exact name of the resource beforehand. I also tried creating this NIC myself, but that NIC is missing the required fqdn info in the properties of a GET request. So you end up creating the Private Endpoint in a separate file and output the required NIC Resource Id as a result of that deployment from the properties of the endpoint resource itself.
+
+```
+  "outputs": {
+    "storageNicId":{
+      "type":"string",
+      "value": "[reference(resourceId('Microsoft.Network/privateEndpoints', parameters('privateEndpointName')), '2019-11-01').networkInterfaces[0].id]"
+    }
+  },
+```
+
+Then, because you need to reference the output, you pass in the ID to [a template](https://github.com/DrBushyTop/ARMTemplates/blob/master/PrivateLink/privatelink_dnsentries_ipconfigParser.json?ref=huuhka.net#L29) that has a single purpose of referencing the IpConfigurations array from it and passing it onwards.
+
+```
+// The only thing this template does is uses the reference function on the ID and passes on the ipconfigurations array to
+// the next one so we can loop through it the correct number of times.
+{
+  "type": "Microsoft.Resources/deployments",
+  "apiVersion": "2019-10-01",
+  "name": "PrivateDns_Entries_Handler",
+  "properties": {
+    "mode": "Incremental",
+    "parameters":{
+      "privateDnsZoneName": {"value": "[parameters('privateDnsZoneName')]"},
+      "Ipconfigs": {"value": "[reference(parameters('storageNicId'), '2019-11-01').ipConfigurations]"},
+      "dnsEntriesTemplateUri": {"value": "[parameters('dnsEntriesTemplateUri')]"}
+    },
+    "templateLink":{
+      "uri": "[parameters('dnsEntriesHandlerTemplateUri')]"
+    }
+  }
+}
+```
+
+After this, you get the array on a [3rd deployment file](https://github.com/DrBushyTop/ARMTemplates/blob/master/PrivateLink/privatelink_dnsentries_handler.json?ref=huuhka.net), which in turn then copy loops through the array to create deployments of yet another deployment.
+
+```
+{
+  "type": "Microsoft.Resources/deployments",
+  "apiVersion": "2019-10-01",
+  "name": "[concat('PrivateDnsFQDN', copyIndex(1))]",
+  "properties": {
+    "mode": "Incremental",
+    "parameters":{
+      "privateDnsZoneName": {"value": "[parameters('privateDnsZoneName')]"},
+      "storageNicIpConf": {"value": "[parameters('Ipconfigs')[copyIndex()]]"}
+    },
+    "templateLink":{
+      "uri": "[parameters('dnsEntriesTemplateUri')]"
+    }
+  },
+  "copy": {
+    "name": "ipconfigCopy",
+    "count": "[length(parameters('Ipconfigs'))]",
+    "mode": "parallel"
+  }
+}
+```
+
+And finally, when we have a single IP configuration object passed in, [we can loop through the FQDNs](https://github.com/DrBushyTop/ARMTemplates/blob/master/PrivateLink/privatelink_dnsentries.json?ref=huuhka.net) included in it, and create the required DNS entries.
+
+```
+{
+  "type": "Microsoft.Network/privateDnsZones/A",
+  "name": "[concat(parameters('privateDnsZoneName'),'/', split(parameters('storageNicIpConf').properties.privateLinkConnectionProperties.fqdns[copyIndex()], '.')[0])]",
+  "location": "global",
+  "apiVersion": "2018-09-01",
+  "properties": {
+    "aRecords": "[concat(json(concat('[{\"ipv4Address\":\"', parameters('storageNicIpConf').properties.privateIPAddress,'\"}]')))]",
+    "ttl": 3600
+  },
+  "copy": {
+    "name": "fqdnCopy",
+    "count": "[length(parameters('storageNicIpConf').properties.privateLinkConnectionProperties.fqdns)]"
+  }
+}
+```
+
+Now we should finally have the required setup done. I also looked at the ARM templates Microsoft themselves use behind the portal (links in the resources section below), and they are also passing an "existingEntries" object through a similar chain, but I was not able to get anything in that object, so I left out the logic related to that for clarity.
+
+This is how it looks in the portal
+
+![](/images/ghost/3b665a32e62af81169d2.jpg)
+
+<figcaption>
+
+Resources deployed
+
+</figcaption>
+
+<a id="verifying-the-results" />
+
+### Verifying the results
+
+Now that our Private DNS is set up correctly, we can log in to the tester VM and see what the status is. I also added a file in a container inside the storage account to be able to do some Invoke-WebRequest testing too.
+
+![](/images/ghost/bb9a150abe5cc0e932f3.JPG)
+
+As you can see, the address of the storage account resolves to a private IP, and I am able to fetch a file from the storage account with all internet access being denied on the VM. Magic!
+
+**We do still have a bit of a problem, though**. As the special Private Endpoint NIC is not in our ARM templates, complete mode will try to delete it, not be able to do so and get stuck. This seems to happen regardless of whether you have a delete lock or not.
+
+I ended up copying the resource with just the minimum settings and the same name as the autogenerated NIC to get around this. [You can find it commented in the file if you want to take a look.](https://github.com/DrBushyTop/ARMTemplates/blob/master/PrivateLink/private_endpoint_storage.json?ref=huuhka.net#L232)
+
+<a id="what-s-next" />
+
+## What's next?
+
+I'll dive deeper into setting up my own service to serve inside another tenant's private network in a future blog post. The limitation to be behind a standard load balancer is a bit of a bummer, because we pretty much only do PaaS stuff at Zure. While currently it does not seem to be possible to use this for an Azure Web App, that is definitely the feature I'm most excited about.
+
+While I did not yet look into doing the linking with Azure SQL and CosmosDB, I'm also quite certain that they function in a very similar way to the storage implementation, so you should be off to a good start with this guide if that's what you want to do. Do remember that these are still in preview.
+
+Hit me up on [twitter](https://twitter.com/DrBushyTop?ref=huuhka.net) if you have any questions, and check out the blog on a later date to find out more!
+
+<a id="resources" />
+
+## Resources
+
+-   [Source Code for this post](https://github.com/DrBushyTop/ARMTemplates/tree/master/PrivateLink?ref=huuhka.net)
+-   [Docs](https://docs.microsoft.com/en-us/azure/private-link/?WT.mc_id=AZ-MVP-5003781&ref=huuhka.net)
+-   Microsoft created ARMs in the loop: [endpoint](https://storage.hosting.portal.azure.net/storage/Content/4.13.392.912/DeploymentTemplates/PrivateEndpointForStorage.json?ref=huuhka.net), [parser 1](https://storage.hosting.portal.azure.net/storage/Content/4.13.392.912/DeploymentTemplates/PrivateDnsForPrivateEndpoint.json?ref=huuhka.net), [parser 2](https://storage.hosting.portal.azure.net/storage/Content/4.13.392.912/DeploymentTemplates/PrivateDnsForPrivateEndpointNic.json?ref=huuhka.net), [fqdns](https://storage.hosting.portal.azure.net/storage/Content/4.13.392.912/DeploymentTemplates/PrivateDnsForPrivateEndpointIpConfig.json?ref=huuhka.net)
