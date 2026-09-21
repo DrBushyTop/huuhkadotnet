@@ -1,0 +1,195 @@
+[
+  {
+    "title": "Building your own PR reviewer with coding agents",
+    "slug": "building-your-own-pr-reviewer-with-coding-agents",
+    "url": "https://www.huuhka.net/building-your-own-pr-reviewer-with-coding-agents/",
+    "publishedAt": "2026-03-11T20:28:00+00:00",
+    "tags": [
+      "AI",
+      "Artificial Intelligence",
+      "GitHub Copilot",
+      "OpenCode"
+    ],
+    "image": "/images/building-your-own-pr-reviewer-with-coding-agents.webp"
+  },
+  {
+    "title": "Testing Cloudflare's Code Mode on Azure DevOps MCP",
+    "slug": "testing-cloudflares-code-mode-on-azure-devops-mcp",
+    "url": "https://www.huuhka.net/testing-cloudflares-code-mode-on-azure-devops-mcp/",
+    "publishedAt": "2026-03-07T21:37:00+00:00",
+    "tags": [
+      "AI",
+      "Azure DevOps",
+      "GitHub Copilot",
+      "OpenCode"
+    ],
+    "image": "/images/testing-cloudflares-code-mode-on-azure-devops-mcp.webp"
+  },
+  {
+    "title": "Enabling Custom (Bicep) Language Server support in OpenCode",
+    "slug": "enabling-bicep-language-server-support-in-opencode",
+    "url": "https://www.huuhka.net/enabling-bicep-language-server-support-in-opencode/",
+    "publishedAt": "2026-03-01T13:29:36+00:00",
+    "tags": [
+      "AI",
+      "Azure",
+      "DevOps",
+      "OpenCode",
+      "Bicep"
+    ],
+    "image": "/images/enabling-bicep-language-server-support-in-opencode.webp"
+  },
+  {
+    "title": "How I currently develop with LLM models (Early 2026)",
+    "slug": "how-i-currently-develop-with-llm-models-early-2026",
+    "url": "https://www.huuhka.net/how-i-currently-develop-with-llm-models-early-2026/",
+    "publishedAt": "2026-02-25T17:15:00+00:00",
+    "tags": [
+      "Developer Tools",
+      "AI",
+      "GitHub Copilot",
+      "OpenCode"
+    ],
+    "image": "/images/how-i-currently-develop-with-llm-models-early-2026.webp"
+  },
+  {
+    "title": "Designing a shared OpenTelemetry contract for AI services on Azure",
+    "slug": "designing-a-shared-opentelemetry-contract-for-ai-services-on-azure",
+    "url": "https://www.huuhka.net/designing-a-shared-opentelemetry-contract-for-ai-services-on-azure/",
+    "publishedAt": "2026-02-22T18:13:00+00:00",
+    "tags": [
+      "AI",
+      "Developer Tools",
+      "Azure",
+      "Telemetry"
+    ],
+    "image": "/images/designing-a-shared-opentelemetry-contract-for-ai-services-on-azure.webp"
+  },
+  {
+    "title": "Semantic Kernel to Microsoft Agent Framework: Practical reflections",
+    "slug": "semantic-kernel-to-microsoft-agent-framework-practical-reflections",
+    "url": "https://www.huuhka.net/semantic-kernel-to-microsoft-agent-framework-practical-reflections/",
+    "publishedAt": "2026-02-20T18:08:00+00:00",
+    "tags": [
+      "AI",
+      "Azure"
+    ],
+    "image": "/images/semantic-kernel-to-microsoft-agent-framework-practical-reflections.webp"
+  },
+  {
+    "title": "Preserving MCP session continuity with Redis",
+    "slug": "preserving-mcp-session-continuity-with-redis",
+    "url": "https://www.huuhka.net/preserving-mcp-session-continuity-with-redis/",
+    "publishedAt": "2026-02-10T18:44:00+00:00",
+    "tags": [
+      "AI",
+      "Azure",
+      "Developer Tools",
+      "OpenCode",
+      "GitHub Copilot"
+    ],
+    "image": "/images/preserving-mcp-session-continuity-with-redis.webp"
+  },
+  {
+    "title": "Practical experiences with Azure APIM AI Gateway and imported Foundry endpoints",
+    "slug": "practical-experiences-with-azure-apim-ai-gateway-and-imported-foundry-endpoints",
+    "url": "https://www.huuhka.net/practical-experiences-with-azure-apim-ai-gateway-and-imported-foundry-endpoints/",
+    "publishedAt": "2026-02-08T12:20:00+00:00",
+    "tags": [
+      "AI",
+      "API Management",
+      "Bicep",
+      "Developer Tools"
+    ],
+    "image": "/images/practical-experiences-with-azure-apim-ai-gateway-and-imported-foundry-endpoints.webp"
+  },
+  {
+    "title": "Shipping signed config updates to local AI tooling",
+    "slug": "shipping-signed-config-updates-to-local-ai-tooling",
+    "url": "https://www.huuhka.net/shipping-signed-config-updates-to-local-ai-tooling/",
+    "publishedAt": "2026-01-28T18:39:00+00:00",
+    "tags": [
+      "AI",
+      "Developer Tools",
+      "DevOps",
+      "Security"
+    ],
+    "image": "/images/shipping-signed-config-updates-to-local-ai-tooling.webp"
+  },
+  {
+    "title": "Browser verification for coding agents: Chrome DevTools MCP vs agent-browser",
+    "slug": "browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser",
+    "url": "https://www.huuhka.net/browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser/",
+    "publishedAt": "2026-01-28T17:13:00+00:00",
+    "tags": [
+      "Artificial Intelligence",
+      "GitHub Copilot",
+      "OpenCode",
+      "Developer Tools"
+    ],
+    "image": "/images/browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser.webp"
+  },
+  {
+    "title": "Securing remote MCP servers with Entra ID without breaking reconnects",
+    "slug": "securing-remote-mcp-servers-with-entra-id-without-breaking-reconnects",
+    "url": "https://www.huuhka.net/securing-remote-mcp-servers-with-entra-id-without-breaking-reconnects/",
+    "publishedAt": "2026-01-16T18:31:00+00:00",
+    "tags": [
+      "AI",
+      "OpenCode",
+      "Security"
+    ],
+    "image": "/images/securing-remote-mcp-servers-with-entra-id-without-breaking-reconnects.webp"
+  },
+  {
+    "title": "Primary vs Subagents in LLM harnesses",
+    "slug": "primary-vs-subagents-in-llm-harnesses",
+    "url": "https://www.huuhka.net/primary-vs-subagents-in-llm-harnesses/",
+    "publishedAt": "2026-01-15T14:35:00+00:00",
+    "tags": [
+      "AI",
+      "OpenCode",
+      "GitHub Copilot",
+      "GitHub",
+      "Artificial Intelligence"
+    ],
+    "image": "/images/primary-vs-subagents-in-llm-harnesses.webp"
+  },
+  {
+    "title": "Automating Azure DevOps workload identity service connections end to end",
+    "slug": "automating-azure-devops-workload-identity-service-connections-end-to-end",
+    "url": "https://www.huuhka.net/automating-azure-devops-workload-identity-service-connections-end-to-end/",
+    "publishedAt": "2026-01-13T18:28:00+00:00",
+    "tags": [
+      "Bicep",
+      "PowerShell",
+      "DevOps"
+    ],
+    "image": "/images/automating-azure-devops-workload-identity-service-connections-end-to-end.webp"
+  },
+  {
+    "title": "Connecting OpenCode with Microsoft Foundry Models",
+    "slug": "connecting-opencode-with-microsoft-foundry-models",
+    "url": "https://www.huuhka.net/connecting-opencode-with-microsoft-foundry-models/",
+    "publishedAt": "2025-12-21T16:41:00+00:00",
+    "tags": [
+      "AI",
+      "Artificial Intelligence",
+      "Azure",
+      "Microsoft Foundry"
+    ],
+    "image": "/images/connecting-opencode-with-microsoft-foundry-models.webp"
+  },
+  {
+    "title": "Research - Plan - Implement",
+    "slug": "research-plan-implement",
+    "url": "https://www.huuhka.net/research-plan-implement/",
+    "publishedAt": "2025-12-17T11:48:00+00:00",
+    "tags": [
+      "AI",
+      "GitHub",
+      "OpenCode"
+    ],
+    "image": "/images/research-plan-implement.webp"
+  }
+]

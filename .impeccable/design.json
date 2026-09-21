@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-21T10:51:49.920692+00:00",
+  "title": "Design system: Huuhka.net",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.00000 89.88)",
+          "oklch(26% 0.00000 89.88)",
+          "oklch(38% 0.00000 89.88)",
+          "oklch(49% 0.00000 89.88)",
+          "oklch(61% 0.00000 89.88)",
+          "oklch(72% 0.00000 89.88)",
+          "oklch(84% 0.00000 89.88)",
+          "oklch(95% 0.00000 89.88)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#202b3a",
+        "tonalRamp": [
+          "oklch(15% 0.03166 256.28)",
+          "oklch(26% 0.03166 256.28)",
+          "oklch(38% 0.03166 256.28)",
+          "oklch(49% 0.03166 256.28)",
+          "oklch(61% 0.03166 256.28)",
+          "oklch(72% 0.03166 256.28)",
+          "oklch(84% 0.03166 256.28)",
+          "oklch(95% 0.03166 256.28)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#596574",
+        "tonalRamp": [
+          "oklch(15% 0.02816 254.09)",
+          "oklch(26% 0.02816 254.09)",
+          "oklch(38% 0.02816 254.09)",
+          "oklch(49% 0.02816 254.09)",
+          "oklch(61% 0.02816 254.09)",
+          "oklch(72% 0.02816 254.09)",
+          "oklch(84% 0.02816 254.09)",
+          "oklch(95% 0.02816 254.09)"
+        ]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Blue",
+        "canonical": "#087caf",
+        "tonalRamp": [
+          "oklch(15% 0.11857 236.60)",
+          "oklch(26% 0.11857 236.60)",
+          "oklch(38% 0.11857 236.60)",
+          "oklch(49% 0.11857 236.60)",
+          "oklch(61% 0.11857 236.60)",
+          "oklch(72% 0.11857 236.60)",
+          "oklch(84% 0.11857 236.60)",
+          "oklch(95% 0.11857 236.60)"
+        ]
+      },
+      "link": {
+        "role": "primary",
+        "displayName": "Link",
+        "canonical": "#076b97",
+        "tonalRamp": [
+          "oklch(15% 0.10579 236.25)",
+          "oklch(26% 0.10579 236.25)",
+          "oklch(38% 0.10579 236.25)",
+          "oklch(49% 0.10579 236.25)",
+          "oklch(61% 0.10579 236.25)",
+          "oklch(72% 0.10579 236.25)",
+          "oklch(84% 0.10579 236.25)",
+          "oklch(95% 0.10579 236.25)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#dce3e8",
+        "tonalRamp": [
+          "oklch(15% 0.01018 238.52)",
+          "oklch(26% 0.01018 238.52)",
+          "oklch(38% 0.01018 238.52)",
+          "oklch(49% 0.01018 238.52)",
+          "oklch(61% 0.01018 238.52)",
+          "oklch(72% 0.01018 238.52)",
+          "oklch(84% 0.01018 238.52)",
+          "oklch(95% 0.01018 238.52)"
+        ]
+      },
+      "popular-ground": {
+        "role": "neutral",
+        "displayName": "Popular ground",
+        "canonical": "#f1f5f7",
+        "tonalRamp": [
+          "oklch(15% 0.00505 228.82)",
+          "oklch(26% 0.00505 228.82)",
+          "oklch(38% 0.00505 228.82)",
+          "oklch(49% 0.00505 228.82)",
+          "oklch(61% 0.00505 228.82)",
+          "oklch(72% 0.00505 228.82)",
+          "oklch(84% 0.00505 228.82)",
+          "oklch(95% 0.00505 228.82)"
+        ]
+      },
+      "popular-hover": {
+        "role": "neutral",
+        "displayName": "Popular hover",
+        "canonical": "#e8f0f5",
+        "tonalRamp": [
+          "oklch(15% 0.01089 234.82)",
+          "oklch(26% 0.01089 234.82)",
+          "oklch(38% 0.01089 234.82)",
+          "oklch(49% 0.01089 234.82)",
+          "oklch(61% 0.01089 234.82)",
+          "oklch(72% 0.01089 234.82)",
+          "oklch(84% 0.01089 234.82)",
+          "oklch(95% 0.01089 234.82)"
+        ]
+      },
+      "control-border": {
+        "role": "neutral",
+        "displayName": "Control border",
+        "canonical": "#b9c5ce",
+        "tonalRamp": [
+          "oklch(15% 0.01831 240.05)",
+          "oklch(26% 0.01831 240.05)",
+          "oklch(38% 0.01831 240.05)",
+          "oklch(49% 0.01831 240.05)",
+          "oklch(61% 0.01831 240.05)",
+          "oklch(72% 0.01831 240.05)",
+          "oklch(84% 0.01831 240.05)",
+          "oklch(95% 0.01831 240.05)"
+        ]
+      },
+      "popular-hover-border": {
+        "role": "neutral",
+        "displayName": "Popular hover border",
+        "canonical": "#aabfcc",
+        "tonalRamp": [
+          "oklch(15% 0.02952 234.96)",
+          "oklch(26% 0.02952 234.96)",
+          "oklch(38% 0.02952 234.96)",
+          "oklch(49% 0.02952 234.96)",
+          "oklch(61% 0.02952 234.96)",
+          "oklch(72% 0.02952 234.96)",
+          "oklch(84% 0.02952 234.96)",
+          "oklch(95% 0.02952 234.96)"
+        ]
+      },
+      "nav-highlight": {
+        "role": "neutral",
+        "displayName": "Nav highlight",
+        "canonical": "#eef1f3",
+        "tonalRamp": [
+          "oklch(15% 0.00419 236.50)",
+          "oklch(26% 0.00419 236.50)",
+          "oklch(38% 0.00419 236.50)",
+          "oklch(49% 0.00419 236.50)",
+          "oklch(61% 0.00419 236.50)",
+          "oklch(72% 0.00419 236.50)",
+          "oklch(84% 0.00419 236.50)",
+          "oklch(95% 0.00419 236.50)"
+        ]
+      },
+      "article-ground": {
+        "role": "neutral",
+        "displayName": "Article ground",
+        "canonical": "#f7f9fa",
+        "tonalRamp": [
+          "oklch(15% 0.00252 228.78)",
+          "oklch(26% 0.00252 228.78)",
+          "oklch(38% 0.00252 228.78)",
+          "oklch(49% 0.00252 228.78)",
+          "oklch(61% 0.00252 228.78)",
+          "oklch(72% 0.00252 228.78)",
+          "oklch(84% 0.00252 228.78)",
+          "oklch(95% 0.00252 228.78)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "Approved Geist Sans wordmark."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Archive heading."
+      },
+      "author": {
+        "displayName": "Author",
+        "purpose": "Compact author name."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Popular-section heading."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Archive article title."
+      },
+      "compact-title": {
+        "displayName": "Compact title",
+        "purpose": "Popular-card title."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default content text."
+      },
+      "date": {
+        "displayName": "Date",
+        "purpose": "Compact Geist Mono dates in the article footer, with tabular numerals."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Lightweight uppercase Geist Mono navigation."
+      },
+      "tag": {
+        "displayName": "Topic tag",
+        "purpose": "Compact non-interactive uppercase Geist Mono topic labels."
+      },
+      "code": {
+        "displayName": "Code block",
+        "purpose": "SauceCodePro Nerd Font Mono at 14px and 1.65 line height, with ligatures disabled."
+      },
+      "inline-code": {
+        "displayName": "Inline code",
+        "purpose": "Code, keyboard input, and sample output at 0.9em in SauceCodePro Nerd Font Mono."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "popular-hover",
+        "value": "background 160ms ease-out, border-color 160ms ease-out",
+        "purpose": "Color-only popular-card feedback; disabled for reduced motion."
+      },
+      {
+        "name": "navigation-hover",
+        "value": "color 150ms ease-out, background-color 150ms ease-out",
+        "purpose": "Neutral navigation feedback; disabled for reduced motion."
+      },
+      {
+        "name": "article-hover",
+        "value": "border-color 160ms ease-out",
+        "purpose": "Archive-card border feedback; disabled for reduced motion."
+      },
+      {
+        "name": "menu-appear",
+        "value": "clip-path: inset(0 0 8% 0) to inset(0), 160ms ease-out",
+        "purpose": "Reveal mobile page links when the dialog opens; disabled for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-max",
+        "value": "700px"
+      },
+      {
+        "name": "tablet-min",
+        "value": "701px"
+      },
+      {
+        "name": "tablet-max",
+        "value": "1000px"
+      },
+      {
+        "name": "mobile-header-max",
+        "value": "760px"
+      },
+      {
+        "name": "desktop-header-min",
+        "value": "761px"
+      }
+    ],
+    "focus": {
+      "global": "3px solid var(--blue); outline-offset: 5px",
+      "search": "2px solid var(--blue); outline-offset: 2px"
+    },
+    "provenance": {
+      "sources": [
+        "src/styles/global.css",
+        "src/components/Header.astro",
+        "src/pages/index.astro",
+        "src/layouts/Base.astro",
+        "package.json",
+        "PRODUCT.md",
+        ".impeccable/surfaces/src-pages-index-astro.md",
+        "src/styles/code.css",
+        "public/fonts/sauce-code-pro/provenance.json",
+        "public/fonts/sauce-code-pro/LICENSE.txt"
+      ],
+      "authority": "User-selected round-four A on September 21, 2026, followed by compact popular cards, Encore-like mono navigation and neutral highlights, a single-row mobile menu, rounded padded archive cards with topic tags and smaller titles, and approved Geist Sans headings and wordmark. The user then selected SauceCodePro Nerd Font for code and requested removal of the visible sample-selection label. The user then requested tighter introduction, section, and archive spacing while preserving card padding and grid gaps.",
+      "status": "Requested header, card, and font refinements implemented. Preliminary homepage only; article reader, migration, and deployment remain separate.",
+      "tonalRamps": "Synthesized OKLCH panel previews, not additional application color tokens.",
+      "componentSamples": "Isolated style specimens, not working search, pagination, or mobile-menu behavior. Image slots are placeholders; the homepage uses real published imagery.",
+      "popularSelection": "First three preview entries remain provisional internally, without a visible sample-selection label and without a verified analytics claim.",
+      "verification": "The Geist heading/card review covers its captured scope. Native dialog Escape dismissal has not been confirmed through T3."
+    },
+    "fontAssets": {
+      "code": {
+        "directory": "public/fonts/sauce-code-pro/",
+        "family": "SauceCodePro Nerd Font Mono",
+        "format": "woff2",
+        "faces": [
+          "Regular",
+          "Bold",
+          "Italic",
+          "BoldItalic"
+        ],
+        "weights": [
+          400,
+          700
+        ],
+        "styles": [
+          "normal",
+          "italic"
+        ],
+        "fontDisplay": "swap",
+        "glyphCoverage": "Full glyph set retained; no subsetting.",
+        "license": "public/fonts/sauce-code-pro/LICENSE.txt",
+        "provenance": "public/fonts/sauce-code-pro/provenance.json"
+      }
+    }
+  },
+  "components": [
+    {
+      "name": "Load more",
+      "kind": "button",
+      "refersTo": "load-more",
+      "description": "Explicit archive pagination, not infinite scrolling.",
+      "html": "<button class=\"ds-load\">Load 3 more articles <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></button>",
+      "css": ".ds-load{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:inline-flex;align-items:center;gap:16px;min-height:46px;padding:9px 22px;border:1px solid #b9c5ce;border-radius:6px;background:var(--paper,#fff);color:var(--ink,#202b3a);font-size:16px;font-weight:550;cursor:pointer}.ds-load:hover{color:var(--link,#076b97);border-color:var(--blue,#087caf)}.ds-load:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}.ds-load:disabled{opacity:.6;cursor:default}"
+    },
+    {
+      "name": "Clear search",
+      "kind": "button",
+      "refersTo": "text-button",
+      "description": "Text action for resetting an empty search.",
+      "html": "<button class=\"ds-clear\">Clear search <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></button>",
+      "css": ".ds-clear{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:inline-flex;align-items:center;gap:8px;padding:0;color:var(--link,#076b97);background:none;border:0;font-size:18px;line-height:1.5;cursor:pointer}.ds-clear:hover{text-decoration:underline;text-underline-offset:.2em}.ds-clear:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}"
+    },
+    {
+      "name": "Article search",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Fuzzy title and topic search with a visible container focus state.",
+      "html": "<label class=\"ds-search\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4.5 4.5\"/></svg><input type=\"search\" aria-label=\"Search articles by title or topic\" placeholder=\"Search articles...\"></label>",
+      "css": ".ds-search{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:flex;align-items:center;gap:10px;width:340px;max-width:100%;min-height:45px;padding:0 12px;border:1px solid #b9c5ce;border-radius:6px;color:var(--muted,#596574);background:var(--paper,#fff)}.ds-search:focus-within{outline:2px solid var(--blue,#087caf);outline-offset:2px;border-color:var(--blue,#087caf)}.ds-search>svg{flex:0 0 20px}.ds-search input{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);padding:10px 0;width:100%;min-width:0;outline:none;border:0;color:var(--ink,#202b3a);background:transparent;font-size:16px;caret-color:var(--blue,#087caf)}.ds-search input::placeholder{color:var(--muted,#596574);opacity:1}"
+    },
+    {
+      "name": "Main navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Lightweight mono navigation with neutral rounded current and hover highlights.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a href=\"#articles\" aria-current=\"page\">Articles</a><a href=\"#about\">About</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:4px;min-height:64px}.ds-nav a{font-family:var(--nav-font,'Geist Mono Variable',monospace);display:flex;align-items:center;min-height:34px;padding:7px 12px;border-radius:9px;color:var(--muted,#596574);text-decoration:none;font-size:13px;font-weight:400;line-height:1;letter-spacing:.04em;text-transform:uppercase;transition:color 150ms ease-out,background-color 150ms ease-out}.ds-nav a[aria-current],.ds-nav a:hover,.ds-nav a:focus-visible{color:var(--ink,#202b3a);background:var(--nav-highlight,#eef1f3)}.ds-nav a:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}@media(prefers-reduced-motion:reduce){.ds-nav a{transition:none}}"
+    },
+    {
+      "name": "Popular card",
+      "kind": "card",
+      "refersTo": "popular-card",
+      "description": "Filled compact link. The image slot stands in for a published thumbnail in this isolated specimen.",
+      "html": "<a class=\"ds-popular\" href=\"#article\"><span class=\"ds-thumb\" aria-hidden=\"true\"></span><span class=\"ds-popular-title\">Article title</span><svg class=\"ds-external\" width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M14 4h6v6m0-6L10 14M10 4H4v16h16v-6\"/></svg></a>",
+      "css": ".ds-popular{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);display:flex;align-items:center;position:relative;min-height:116px;gap:15px;padding:16px;background:var(--popular-ground,#f1f5f7);border:1px solid var(--line,#dce3e8);border-radius:12px;color:var(--ink,#202b3a);text-decoration:none;transition:background 160ms ease-out,border-color 160ms ease-out}.ds-popular:hover{background:var(--popular-hover,#e8f0f5);border-color:#aabfcc}.ds-popular:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}.ds-thumb{width:72px;height:72px;flex:0 0 72px;border-radius:6px;background:var(--line,#dce3e8)}.ds-popular-title{font-family:var(--brand-font,'Geist Variable',sans-serif);font-size:16px;line-height:1.4;font-weight:500;letter-spacing:-.012em;padding-right:6px}.ds-external{position:absolute;top:9px;right:9px;color:var(--muted,#596574)}@media(prefers-reduced-motion:reduce){.ds-popular{transition:none}}"
+    },
+    {
+      "name": "Archive card",
+      "kind": "card",
+      "refersTo": "article-card",
+      "description": "Rounded image-led card with padded topic tags, title, date, and Read more cue. Empty image slot represents published imagery.",
+      "html": "<article class=\"ds-article\"><a href=\"#article\" aria-labelledby=\"ds-article-title\"><div class=\"ds-article-image\" aria-hidden=\"true\"></div><div class=\"ds-article-content\"><ul class=\"ds-tags\" aria-label=\"Topics\"><li>Azure</li><li>DevOps</li></ul><h3 id=\"ds-article-title\">Article title</h3><div class=\"ds-meta\"><time datetime=\"2026-09-21\">21 Sep 2026</time><span class=\"ds-read\" aria-hidden=\"true\">Read more <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></span></div></div></a></article>",
+      "css": ".ds-article{font-family:var(--body-font,'Source Sans 3 Variable',sans-serif);min-width:0}.ds-article>a{display:flex;flex-direction:column;height:100%;border:1px solid var(--line,#dce3e8);border-radius:14px;background:var(--article-ground,#f7f9fa);color:var(--ink,#202b3a);text-decoration:none;transition:border-color 160ms ease-out}.ds-article-image{aspect-ratio:1.6;overflow:hidden;border-radius:13px 13px 0 0;background:var(--popular-ground,#f1f5f7)}.ds-article-content{display:flex;flex-direction:column;flex:1;padding:22px}.ds-tags{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0 0 14px;list-style:none}.ds-tags li{font-family:var(--nav-font,'Geist Mono Variable',monospace);max-width:100%;padding:3px 8px;border-radius:6px;background:var(--nav-highlight,#eef1f3);color:var(--muted,#596574);font-size:10px;line-height:1.5;letter-spacing:.04em;text-transform:uppercase;overflow-wrap:anywhere}.ds-article h3{font-family:var(--brand-font,'Geist Variable',sans-serif);margin:0;font-size:19px;font-weight:500;line-height:1.4;letter-spacing:-.02em}.ds-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:auto;padding-top:30px}.ds-article time{font-family:var(--nav-font,'Geist Mono Variable',monospace);color:var(--muted,#596574);font-size:11px;font-weight:400;line-height:1.5;letter-spacing:.04em;text-transform:uppercase;font-variant-numeric:tabular-nums}.ds-read{display:inline-flex;align-items:center;gap:8px;font-size:15px;white-space:nowrap}.ds-article>a:hover{border-color:var(--muted,#596574)}.ds-article>a:hover .ds-read{color:var(--link,#076b97);text-decoration:underline;text-underline-offset:.2em}.ds-article>a:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}@media(max-width:700px){.ds-article-content{padding:20px}}@media(prefers-reduced-motion:reduce){.ds-article>a{transition:none}}"
+    },
+    {
+      "name": "Topic tags",
+      "kind": "chip",
+      "refersTo": "topic-tag",
+      "description": "Non-interactive article topics, at most two per card. These are not filter buttons.",
+      "html": "<ul class=\"ds-tags\" aria-label=\"Topics\"><li>Azure</li><li>DevOps</li></ul>",
+      "css": ".ds-tags{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0 0 14px;list-style:none}.ds-tags li{font-family:var(--nav-font,'Geist Mono Variable',monospace);max-width:100%;padding:3px 8px;border-radius:6px;background:var(--nav-highlight,#eef1f3);color:var(--muted,#596574);font-size:10px;line-height:1.5;letter-spacing:.04em;text-transform:uppercase;overflow-wrap:anywhere}"
+    },
+    {
+      "name": "Mobile menu button",
+      "kind": "button",
+      "refersTo": "menu-toggle",
+      "description": "44px mobile navigation trigger. The application connects it to a full-screen native dialog.",
+      "html": "<button class=\"ds-menu\" type=\"button\" aria-label=\"Open navigation menu\" aria-expanded=\"false\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"/></svg></button>",
+      "css": ".ds-menu{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;padding:0;border:0;border-radius:9px;background:var(--nav-highlight,#eef1f3);color:var(--ink,#202b3a);cursor:pointer}.ds-menu:hover{background:var(--nav-highlight,#eef1f3)}.ds-menu:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px;}"
+    },
+    {
+      "name": "Code block",
+      "kind": "custom",
+      "refersTo": "code-block",
+      "description": "Self-hosted SauceCodePro Nerd Font Mono. Preserves whitespace, disables ligatures, and scrolls horizontally without widening the page.",
+      "html": "<pre class=\"ds-code-block\"><code>const article = { title: \"Azure notes\" };\nconsole.log(article.title);</code></pre>",
+      "css": ".ds-code-block{max-width:100%;margin-block:24px;padding:20px;overflow-x:auto;border:1px solid var(--line,#dce3e8);border-radius:12px;background:var(--popular-ground,#f1f5f7);color:var(--ink,#202b3a);font-family:var(--code-font,'SauceCodePro Nerd Font Mono',ui-monospace,monospace);font-size:var(--code-size,14px);font-weight:400;line-height:var(--code-line-height,1.65);font-variant-ligatures:none;tab-size:2}.ds-code-block code{font-family:inherit;font-variant-ligatures:none;padding:0;background:none;border-radius:0;font-size:inherit;line-height:inherit;overflow-wrap:normal;white-space:pre}.ds-code-block:focus-visible{outline:3px solid var(--blue,#087caf);outline-offset:5px}"
+    },
+    {
+      "name": "Inline code",
+      "kind": "custom",
+      "refersTo": "inline-code",
+      "description": "Small light-backed code token; long tokens may wrap.",
+      "html": "<code class=\"ds-inline-code\">az deployment group create</code>",
+      "css": ".ds-inline-code{font-family:var(--code-font,'SauceCodePro Nerd Font Mono',ui-monospace,monospace);font-size:.9em;font-variant-ligatures:none;padding:2px 5px;border-radius:4px;background:var(--popular-ground,#f1f5f7);overflow-wrap:anywhere}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Articles first",
+    "overview": "Huuhka.net is a personal technical publication. Article images, publication dates, and clear titles carry the page. The small author portrait and compact navigation identify Pasi without competing with the writing.\n\nThe implemented direction uses white backgrounds, slate text, restrained blue details, and sans-serif typography. Compact popular links sit above larger rounded archive cards with padded text, topic tags, and dates. This is the approved preliminary homepage direction, not final production polish.",
+    "keyCharacteristics": [
+      "Image-led article links with compact topic tags, visible dates, and no excerpts.",
+      "A light sticky header with an original geometric H, mono navigation, and a single-row mobile menu trigger.",
+      "Compact popular cards and roomier rounded archive cards with restrained borders.",
+      "A secondary author introduction with a real portrait."
+    ],
+    "rules": [
+      {
+        "name": "The restrained accent Rule",
+        "body": "Keep the header light. Concentrate blue in the logo, links, and keyboard focus rather than a full-width pastel band.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Keep the author's real portrait and published article imagery.",
+      "Keep publication dates visible and preserve the original article metadata.",
+      "Distinguish compact popular links from larger padded archive cards.",
+      "Keep keyboard focus visible and preserve usable article links without JavaScript.",
+      "Use Geist Sans for headings and the wordmark, Source Sans 3 for body copy, Geist Mono for navigation, tags, and dates, and SauceCodePro Nerd Font Mono for code."
+    ],
+    "donts": [
+      "Don't present sample popular selections as measured rankings.",
+      "Don't add excerpts, category-filter chips, a topic sidebar, or an oversized author hero to the approved homepage.",
+      "Don't replace the light header with a flat pastel navigation band.",
+      "Don't introduce a serif publication masthead or invented promotional copy.",
+      "Don't claim the article reader, content migration, or deployment is complete."
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "upstreamCommit": "33db50390a1b173e6f19ecc2119248d2ec166a11",
+  "conversion": "Lossless WOFF2 conversion with fontTools; full glyph set retained.",
+  "files": [
+    {
+      "file": "SauceCodeProNerdFontMono-Regular.woff2",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/33db50390a1b173e6f19ecc2119248d2ec166a11/patched-fonts/SourceCodePro/SauceCodeProNerdFontMono-Regular.ttf",
+      "sourceSha256": "cbfe6a91123b9d78a1b593cb2efa10a806a704490e3cea6b894078b86d67c0b1"
+    },
+    {
+      "file": "SauceCodeProNerdFontMono-Bold.woff2",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/33db50390a1b173e6f19ecc2119248d2ec166a11/patched-fonts/SourceCodePro/SauceCodeProNerdFontMono-Bold.ttf",
+      "sourceSha256": "fedd1dcdfc4228621075dc8a61190474aace7617aff61d1faca877d340a40ff6"
+    },
+    {
+      "file": "SauceCodeProNerdFontMono-Italic.woff2",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/33db50390a1b173e6f19ecc2119248d2ec166a11/patched-fonts/SourceCodePro/SauceCodeProNerdFontMono-Italic.ttf",
+      "sourceSha256": "a7f108988ed9c38001ba6e2554c537744d75ed326b7a64be1eacc0cb695969f2"
+    },
+    {
+      "file": "SauceCodeProNerdFontMono-BoldItalic.woff2",
+      "source": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/33db50390a1b173e6f19ecc2119248d2ec166a11/patched-fonts/SourceCodePro/SauceCodeProNerdFontMono-BoldItalic.ttf",
+      "sourceSha256": "bc723ce781926ee93fbfb7585bd13e151f755ee2cdc08310e0e3200a753db8f3"
+    }
+  ]
+}

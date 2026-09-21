@@ -1,0 +1,78 @@
+@font-face {
+  font-family: 'SauceCodePro Nerd Font Mono';
+  src: url('/fonts/sauce-code-pro/SauceCodeProNerdFontMono-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SauceCodePro Nerd Font Mono';
+  src: url('/fonts/sauce-code-pro/SauceCodeProNerdFontMono-Bold.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SauceCodePro Nerd Font Mono';
+  src: url('/fonts/sauce-code-pro/SauceCodeProNerdFontMono-Italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SauceCodePro Nerd Font Mono';
+  src: url('/fonts/sauce-code-pro/SauceCodeProNerdFontMono-BoldItalic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --code-font: 'SauceCodePro Nerd Font Mono', ui-monospace, monospace;
+  --code-size: 14px;
+  --code-line-height: 1.65;
+}
+
+pre, code, kbd, samp {
+  font-family: var(--code-font);
+  font-variant-ligatures: none;
+}
+
+code, kbd, samp {
+  font-size: 0.9em;
+}
+
+:not(pre) > code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--popular-ground);
+  overflow-wrap: anywhere;
+}
+
+pre {
+  max-width: 100%;
+  margin-block: 24px;
+  padding: 20px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--popular-ground);
+  color: var(--ink);
+  font-size: var(--code-size);
+  font-weight: 400;
+  line-height: var(--code-line-height);
+  tab-size: 2;
+}
+
+pre code {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  font-size: inherit;
+  line-height: inherit;
+  overflow-wrap: normal;
+  white-space: pre;
+}
