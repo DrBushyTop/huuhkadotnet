@@ -59,7 +59,8 @@ Source Sans 3, and code uses SauceCodePro Nerd Font Mono. All fonts are self-hos
 Font licenses and code-font provenance are under `public/fonts/`.
 
 Azure deployment and GitHub Actions are configured under [deployment/](deployment/README.md).
-Indexing remains blocked until custom-domain cutover. Analytics are disabled.
+Production indexing is enabled after domain cutover. Local builds remain blocked.
+Analytics are disabled.
 
 ## Article images
 

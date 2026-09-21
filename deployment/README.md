@@ -63,10 +63,21 @@ to the migration snapshot.
 - Site: https://blue-rock-039035703.5.azurestaticapps.net
 - Images: https://huuhkamediacep4lunoep3hw.blob.core.windows.net/images
 - Managed identity: `huuhkadotnet-github` in `huuhkadotnet-identity`
+- Production indexing: `SITE_INDEXABLE=true` after the September 21, 2026 cutover.
 
 ## Custom domain cutover
 
-The deployment leaves Ghost and DNS untouched. Canonical URLs remain
+The deployment leaves Ghost and DNS untouched. The domain bindings are described
+in `domains.bicep`; apply it separately once the DNS records exist:
+
+```sh
+az deployment group create -g huuhkadotnet-prod --name domains --template-file deployment/domains.bicep
+```
+
+The current apex A record target is `51.124.91.155`, the app's `stableInboundIP`.
+The `www` and `blog` CNAME targets are `blue-rock-039035703.5.azurestaticapps.net`.
+The apex also needs Azure's generated TXT ownership token. Keep unrelated TXT
+records intact. Canonical URLs remain
 `https://www.huuhka.net`. Indexing remains blocked until cutover.
 
 1. Add `www.huuhka.net` in the Static Web App's **Custom domains** page. Use TXT
