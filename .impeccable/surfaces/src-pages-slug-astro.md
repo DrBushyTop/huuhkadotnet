@@ -59,7 +59,7 @@ FINISH: Record source-backed reader rules without claiming all articles, externa
 - Keep original heading anchors. Contents includes the shallowest eligible depth of two or greater and its immediate subheading depth, in article order. Show it when the combined list has more than one entry. Primary links have a 14px left inset; immediate subheadings have 24px.
 - Keep header, prose, continuation, and footer aligned to the centered 720px reading width. Center wider media independently and cap captions at the prose width. Code and tables scroll horizontally without widening the page.
 - Series memberships come from frontmatter arrays and ordered groups in `src/data/series.json`, including overlapping themes. Only explicit theme-navigation callouts move into the rail. Warnings and other author notes stay in the body.
-- Remaining callouts use blockquotes; bookmark links retain their title and description. Embedded video remains external. Exact conversion limits belong in `docs/migration.md`.
+- Remaining callouts use blockquotes; bookmark links retain their title and description. Embedded video remains external.
 - Keep canonical and SEO metadata, while noindex and blocking robots remain in place for this local pass.
 - Blog posts include click-to-load giscus comments after the continuation link.
   Community pages do not. Thread keys use root-level article paths. Keep a
@@ -82,10 +82,6 @@ active marker follows forward and reverse desktop scrolling. Original article
 content and anchors remain unchanged. `reader-contents/verification.md` records
 the checks, including 52 contents lists and 311 valid heading targets across all
 56 generated reader pages.
-
-Build passed for 95 pages; all 20 tests passed. Migration validation checked 56
-content pages and 94 source URLs with zero errors. Local validation passed for 94
-routes, 56 AMP redirects, RSS, and the 404.
 
 Earlier image-dialog checks remain in
 `.impeccable/review/reader-images/verification.md`, with five viewport captures.

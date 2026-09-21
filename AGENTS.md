@@ -10,7 +10,6 @@ work here. The older application in the parent folder is not part of this build.
 - Read `.impeccable/surfaces/src-pages-index-astro.md` for homepage decisions.
 - Keep `.impeccable/design.json` consistent with approved design-system changes.
 - Preserve real article titles, publication dates, images, and destination URLs.
-- Read `docs/migration.md` before changing migration tooling or imported content.
 - Keep the site local. Do not deploy, remove `noindex`, or add analytics without
   an explicit request. Never modify production Ghost during ordinary development.
 
@@ -26,8 +25,7 @@ platform binary when none is available. Local binaries are ignored by Git.
 
 ## Verification
 
-Run `npm run build`, `npm test`, and `npm run validate:migration` after code changes.
-With the dev server running, also run `npm run validate:local`. Check desktop and phone
+Run `npm run build` and `npm test` after code changes. Check desktop and phone
 layouts in the shared browser for visual changes. Report the limits of what was
 tested, especially keyboard behavior and untested external embeds.
 

@@ -52,11 +52,6 @@ The editor can also upload directly and save HTTPS Blob URLs in MDX. These URLs
 are preserved. The editor fork lives at
 https://github.com/DrBushyTop/huuhkadotnet-editor.
 
-Migration validation deliberately compares the original Ghost snapshot. Run it
-when changing migration tooling; it will report intentional later article edits.
-Routine CI runs the build and tests, not a requirement that posts remain identical
-to the migration snapshot.
-
 ## Current resources
 
 - Subscription: `ede0939c-80c4-4dfe-bf3d-84521f3f6d1f`

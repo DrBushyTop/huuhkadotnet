@@ -3,9 +3,7 @@ import mdx from '@astrojs/mdx';
 import { unified } from '@astrojs/markdown-remark';
 import rehypeContent from './scripts/rehype-content.mjs';
 import { lightCodeTheme, darkCodeTheme } from './scripts/code-themes.mjs';
-import { readFileSync, existsSync } from 'node:fs';
-const inventory = existsSync('migration/inventory.json') ? JSON.parse(readFileSync('migration/inventory.json','utf8')) : [];
-const redirects = Object.fromEntries(inventory.map(post => [`/${post.slug}/amp`, {destination:`/${post.slug}/`,status:301}]));
+import redirects from './src/data/redirects.json' with {type:'json'};
 export default defineConfig({
   site:'https://www.huuhka.net', trailingSlash:'always',
   integrations:[mdx()],

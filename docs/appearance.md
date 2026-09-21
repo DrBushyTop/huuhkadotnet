@@ -97,7 +97,6 @@ Browser theme metadata and giscus selection use Latte in light mode. Comments
 remain disabled locally, so the external embed is not visually verified. Layout,
 fonts, and authored images are unchanged.
 
-Verification: 53 tests, the build, migration checks and local routes pass.
 Browser checks cover the homepage and PR reviewer at 1440px and the reviewer at
 390px, both code backgrounds, and the Macchiato active contents marker. Code
 remains horizontally scrollable without widening the page. These checks are not

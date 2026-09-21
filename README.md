@@ -1,6 +1,6 @@
 # Huuhka.net
 
-Static Astro blog with published Ghost content migrated to MDX. No CMS, database,
+Static Astro blog with Git-backed MDX content. No CMS, database,
 or production connection is needed to run the site.
 
 ```sh
@@ -13,8 +13,6 @@ Open `http://127.0.0.1:4321`. Node 22.12 or newer is required.
 ```sh
 npm run build
 npm test
-npm run validate:migration
-npm run validate:local # requires the dev server
 ```
 
 The homepage shows 12 articles at a time and searches the full collection. Article,
@@ -39,20 +37,14 @@ order, starting at the shallowest heading depth of two or greater. The contents
 disclosure appears when that list has more than one entry.
 
 Plain Markdown works inside MDX. Use fenced code with a language identifier.
-Migrated files include explicit anchors to preserve old links; new headings get
+Existing articles include explicit anchors to preserve old links; new headings get
 IDs automatically. Bespoke MDX components can be imported when needed.
 
-`migration/` contains source-comparison records, not a second content store.
-Intentional edits to migrated content may need corresponding validation changes;
-do not blindly update the baseline to hide missing content.
-
-## Design and migration
+## Design
 
 - `DESIGN.md` and `PRODUCT.md` describe the approved design and product constraints.
 - `.impeccable/surfaces/` records page-specific decisions.
 - `.agents/skills/impeccable/` contains the local design skill.
-- `docs/migration.md` covers import tooling, source attribution, verification,
-  known limits, and work deferred until deployment.
 
 Headings use Geist Sans, navigation and metadata use Geist Mono, body text uses
 Source Sans 3, and code uses SauceCodePro Nerd Font Mono. All fonts are self-hosted.

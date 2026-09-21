@@ -1,0 +1,226 @@
+{
+  "/building-your-own-pr-reviewer-with-coding-agents/amp": {
+    "destination": "/building-your-own-pr-reviewer-with-coding-agents/",
+    "status": 301
+  },
+  "/testing-cloudflares-code-mode-on-azure-devops-mcp/amp": {
+    "destination": "/testing-cloudflares-code-mode-on-azure-devops-mcp/",
+    "status": 301
+  },
+  "/enabling-bicep-language-server-support-in-opencode/amp": {
+    "destination": "/enabling-bicep-language-server-support-in-opencode/",
+    "status": 301
+  },
+  "/how-i-currently-develop-with-llm-models-early-2026/amp": {
+    "destination": "/how-i-currently-develop-with-llm-models-early-2026/",
+    "status": 301
+  },
+  "/designing-a-shared-opentelemetry-contract-for-ai-services-on-azure/amp": {
+    "destination": "/designing-a-shared-opentelemetry-contract-for-ai-services-on-azure/",
+    "status": 301
+  },
+  "/semantic-kernel-to-microsoft-agent-framework-practical-reflections/amp": {
+    "destination": "/semantic-kernel-to-microsoft-agent-framework-practical-reflections/",
+    "status": 301
+  },
+  "/preserving-mcp-session-continuity-with-redis/amp": {
+    "destination": "/preserving-mcp-session-continuity-with-redis/",
+    "status": 301
+  },
+  "/practical-experiences-with-azure-apim-ai-gateway-and-imported-foundry-endpoints/amp": {
+    "destination": "/practical-experiences-with-azure-apim-ai-gateway-and-imported-foundry-endpoints/",
+    "status": 301
+  },
+  "/shipping-signed-config-updates-to-local-ai-tooling/amp": {
+    "destination": "/shipping-signed-config-updates-to-local-ai-tooling/",
+    "status": 301
+  },
+  "/browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser/amp": {
+    "destination": "/browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser/",
+    "status": 301
+  },
+  "/securing-remote-mcp-servers-with-entra-id-without-breaking-reconnects/amp": {
+    "destination": "/securing-remote-mcp-servers-with-entra-id-without-breaking-reconnects/",
+    "status": 301
+  },
+  "/primary-vs-subagents-in-llm-harnesses/amp": {
+    "destination": "/primary-vs-subagents-in-llm-harnesses/",
+    "status": 301
+  },
+  "/automating-azure-devops-workload-identity-service-connections-end-to-end/amp": {
+    "destination": "/automating-azure-devops-workload-identity-service-connections-end-to-end/",
+    "status": 301
+  },
+  "/connecting-opencode-with-microsoft-foundry-models/amp": {
+    "destination": "/connecting-opencode-with-microsoft-foundry-models/",
+    "status": 301
+  },
+  "/research-plan-implement/amp": {
+    "destination": "/research-plan-implement/",
+    "status": 301
+  },
+  "/ai-dev-platform-fundamentals/amp": {
+    "destination": "/ai-dev-platform-fundamentals/",
+    "status": 301
+  },
+  "/a-mental-model-for-llm-tooling-primitives/amp": {
+    "destination": "/a-mental-model-for-llm-tooling-primitives/",
+    "status": 301
+  },
+  "/a-simple-document-processing-pipeline-that-worked/amp": {
+    "destination": "/a-simple-document-processing-pipeline-that-worked/",
+    "status": 301
+  },
+  "/wrapping-your-head-around-azure-ai-foundry/amp": {
+    "destination": "/wrapping-your-head-around-azure-ai-foundry/",
+    "status": 301
+  },
+  "/intro-to-managed-devops-pools/amp": {
+    "destination": "/intro-to-managed-devops-pools/",
+    "status": 301
+  },
+  "/using-bicep-to-manage-entra-id-and-why-i-probably-wont-be-doing-it/amp": {
+    "destination": "/using-bicep-to-manage-entra-id-and-why-i-probably-wont-be-doing-it/",
+    "status": 301
+  },
+  "/setting-up-kubernetes-as-an-external-identity-provider-for-workload-identity-federation/amp": {
+    "destination": "/setting-up-kubernetes-as-an-external-identity-provider-for-workload-identity-federation/",
+    "status": 301
+  },
+  "/how-does-identity-federation-actually-work/amp": {
+    "destination": "/how-does-identity-federation-actually-work/",
+    "status": 301
+  },
+  "/quick-ways-of-getting-objectids/amp": {
+    "destination": "/quick-ways-of-getting-objectids/",
+    "status": 301
+  },
+  "/troubleshooting-azure-app-service-and-functions/amp": {
+    "destination": "/troubleshooting-azure-app-service-and-functions/",
+    "status": 301
+  },
+  "/entra-id-groups-in-sql-dont-have-a-default-schema/amp": {
+    "destination": "/entra-id-groups-in-sql-dont-have-a-default-schema/",
+    "status": 301
+  },
+  "/simple-log-aggregation/amp": {
+    "destination": "/simple-log-aggregation/",
+    "status": 301
+  },
+  "/azure-devops-agents-in-azure-container-apps/amp": {
+    "destination": "/azure-devops-agents-in-azure-container-apps/",
+    "status": 301
+  },
+  "/azure-devops-agents-using-managed-identitites/amp": {
+    "destination": "/azure-devops-agents-using-managed-identitites/",
+    "status": 301
+  },
+  "/user-assigned-managed-identities-with-azure-devops-service-connections/amp": {
+    "destination": "/user-assigned-managed-identities-with-azure-devops-service-connections/",
+    "status": 301
+  },
+  "/using-azure-ai-speech-sdk-go/amp": {
+    "destination": "/using-azure-ai-speech-sdk-go/",
+    "status": 301
+  },
+  "/saving-custom-data-into-log-analytics-from-a-go-application/amp": {
+    "destination": "/saving-custom-data-into-log-analytics-from-a-go-application/",
+    "status": 301
+  },
+  "/simple-azure-app-automation-for-developers/amp": {
+    "destination": "/simple-azure-app-automation-for-developers/",
+    "status": 301
+  },
+  "/monitoring-setup-for-azure-ad-b2c/amp": {
+    "destination": "/monitoring-setup-for-azure-ad-b2c/",
+    "status": 301
+  },
+  "/devops-for-azure-workbooks/amp": {
+    "destination": "/devops-for-azure-workbooks/",
+    "status": 301
+  },
+  "/tips-for-using-azure-workbooks-part-2/amp": {
+    "destination": "/tips-for-using-azure-workbooks-part-2/",
+    "status": 301
+  },
+  "/tips-for-using-azure-workbooks/amp": {
+    "destination": "/tips-for-using-azure-workbooks/",
+    "status": 301
+  },
+  "/updating-azure-devops-service-principal-secrets/amp": {
+    "destination": "/updating-azure-devops-service-principal-secrets/",
+    "status": 301
+  },
+  "/business-benefits-of-robust-telemetry-practices/amp": {
+    "destination": "/business-benefits-of-robust-telemetry-practices/",
+    "status": 301
+  },
+  "/personalizing-your-github-codespaces/amp": {
+    "destination": "/personalizing-your-github-codespaces/",
+    "status": 301
+  },
+  "/getting-started-with-github-codespaces/amp": {
+    "destination": "/getting-started-with-github-codespaces/",
+    "status": 301
+  },
+  "/ive-been-awarded-the-microsoft-azure-mvp-title/amp": {
+    "destination": "/ive-been-awarded-the-microsoft-azure-mvp-title/",
+    "status": 301
+  },
+  "/azure-pipelines-yaml-trigger-overview/amp": {
+    "destination": "/azure-pipelines-yaml-trigger-overview/",
+    "status": 301
+  },
+  "/simple-staging-slots-for-azure-storage-static-websites/amp": {
+    "destination": "/simple-staging-slots-for-azure-storage-static-websites/",
+    "status": 301
+  },
+  "/app-service-imported-ssl-certificate-from-another-subscription-kv/amp": {
+    "destination": "/app-service-imported-ssl-certificate-from-another-subscription-kv/",
+    "status": 301
+  },
+  "/my-presentations-from-global-azure-virtual/amp": {
+    "destination": "/my-presentations-from-global-azure-virtual/",
+    "status": 301
+  },
+  "/runtime-artifact-selection-in-azure-pipelines-yaml/amp": {
+    "destination": "/runtime-artifact-selection-in-azure-pipelines-yaml/",
+    "status": 301
+  },
+  "/az-500-study-guide/amp": {
+    "destination": "/az-500-study-guide/",
+    "status": 301
+  },
+  "/troubleshooting-azure-data-factory-v2-publish/amp": {
+    "destination": "/troubleshooting-azure-data-factory-v2-publish/",
+    "status": 301
+  },
+  "/automating-azure-private-link-storage-private-endpoints/amp": {
+    "destination": "/automating-azure-private-link-storage-private-endpoints/",
+    "status": 301
+  },
+  "/updating-arm-schema-and-apiv/amp": {
+    "destination": "/updating-arm-schema-and-apiv/",
+    "status": 301
+  },
+  "/figuring-out-undocumented-arm/amp": {
+    "destination": "/figuring-out-undocumented-arm/",
+    "status": 301
+  },
+  "/ci-with-azure-pipelines-yaml/amp": {
+    "destination": "/ci-with-azure-pipelines-yaml/",
+    "status": 301
+  },
+  "/automating-net-ef-core-sql-migration-script-creation/amp": {
+    "destination": "/automating-net-ef-core-sql-migration-script-creation/",
+    "status": 301
+  },
+  "/devops-flow-in-azure-data-factory-v2/amp": {
+    "destination": "/devops-flow-in-azure-data-factory-v2/",
+    "status": 301
+  },
+  "/community-activities/amp": {
+    "destination": "/community-activities/",
+    "status": 301
+  }
+}

@@ -13,7 +13,7 @@ Local and Azure preview hosts never load the tracker. The loader and tracker
 honor Do Not Track.
 
 There is no consent banner or settings panel. The owner confirmed there are no
-existing rejection choices to migrate. The GA script, consent persistence, and
+existing rejection choices to preserve. The GA script, consent persistence, and
 cookie-writing integration have been removed. `/privacy/` explains the switch.
 The loader does not read or write browser storage. Umami's tracker can read its
 own optional `umami.disabled` opt-out flag and does not write analytics cookies.
@@ -180,8 +180,7 @@ The source HTML configures `UA-152228894-1`. At runtime that tag also loads
 `v=2`, `tid=G-X678YYBF80`, `en=page_view`, and the correct Azure-hosted page URL
 in `dl`. The site's canonical URL does not replace that page-location parameter.
 
-This corrects the previous migration note, which only inspected HTML. The
-observed behavior is consistent with a connected Google tag; the account's
+The observed behavior is consistent with a connected Google tag; the account's
 configuration was not inspected.
 
 The browser created `_ga`, `_ga_X678YYBF80`, `_gid`, and
@@ -388,30 +387,12 @@ Sources:
 - https://talk.hyvor.com/privacy
 - https://talk.hyvor.com/docs/moderation
 
-### Migration and acceptance checks
-
-Before replacing Disqus, obtain an export and inspect its thread URLs and
-identifiers. The legacy site exposes the shortname `huuhkadotnet`. Preserve the
-existing root-level article slugs and reconcile `huuhka.net` versus
-`www.huuhka.net`; do not create separate threads for Azure and local previews.
-Remark42 documents Disqus import. Do not assume a lossless one-click import
-into giscus.
-
-For whichever system is chosen, test posting, hiding/deleting spam, blocking a
-user, mobile layout, keyboard access, external-service failure, and deletion
-requests. Check actual network requests and storage before and after loading
-the widget. Keep comments disabled on preview builds.
-
 ## Navigation changes and verification
 
 About is hidden in both navigation layouts. The author archive remains reachable
 from article bylines so existing routes are preserved. Sessionize now appears in
 the desktop social links, the phone header, and the phone menu. On phones it
 replaces the standalone GitHub shortcut; GitHub remains in the menu.
-
-The production build passed, along with all 34 tests, migration validation,
-and local route validation. These checks covered 94 imported routes, 56 AMP
-redirects, RSS, and the missing-page response.
 
 Shared-browser header checks covered desktop at 1280 by 800 and the phone
 layout and menu at 390 by 844. Neither layout overflowed horizontally. Opening

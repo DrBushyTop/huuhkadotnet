@@ -290,7 +290,7 @@ White backgrounds, slate text, restrained blue details, and sans-serif typograph
 - Centered long-form prose with a compact left reading rail, wider uncropped images, captioned image zoom, and horizontally scrolling code.
 - A secondary author introduction with a real portrait.
 
-The approved homepage composition and font choices remain unchanged. This document records the shared visual system and its implemented reader extension. Page composition lives in `.impeccable/surfaces/`. Source values come from `src/styles/global.css`, `src/styles/code.css`, `src/styles/article.css`, and `src/styles/image-viewer.css`; behavior comes from the page, layout, and header components. Migration scope and production limits belong in `docs/migration.md`.
+The approved homepage composition and font choices remain unchanged. This document records the shared visual system and its implemented reader extension. Page composition lives in `.impeccable/surfaces/`. Source values come from `src/styles/global.css`, `src/styles/code.css`, `src/styles/article.css`, and `src/styles/image-viewer.css`; behavior comes from the page, layout, and header components.
 
 ## Colors
 

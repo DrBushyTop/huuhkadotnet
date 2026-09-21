@@ -35,7 +35,7 @@ FINISH: Keep documentation matched to source. Browser evidence covers only its r
 - Hide popular articles while a nonblank search is active at every width, placing the result count and archive directly below search. Restore popular articles when the query clears, including Escape and browser history changes.
 - Without JavaScript, show all articles and hide search and loading controls.
 - Keep metadata from the collection. Display at most two non-interactive topic labels on cards; full linked tags belong on article pages.
-- Keep noindex and analytics disabled during local migration. Production requirements belong in `docs/migration.md`.
+- Keep noindex and analytics disabled locally.
 
 ## Card images
 
@@ -49,8 +49,7 @@ on phones. Reader images and zoom are unchanged.
 The card-image reviewer found the implementation ready to ship, with only stale
 cropping documentation to fix. This refresh resolves that documentation mismatch.
 Captures in `.impeccable/review/card-images/` cover the homepage at 1440 by 1000
-and a portrait-image search result at 390 by 844 CSS pixels. All 20 tests, the
-95-page build, migration checks, and local route checks passed.
+and a portrait-image search result at 390 by 844 CSS pixels.
 
 Browser checks confirmed fuzzy search, empty results, Escape reset, 12 initial
 articles, and 24 after Load more, with focus on the first newly revealed card.

@@ -5,7 +5,6 @@ dist/
 .impeccable/questions/
 .DS_Store
 .agents/skills/impeccable/scripts/bin/
-.migration/
 .env
 .env.*
 !.env.example
