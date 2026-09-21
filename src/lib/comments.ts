@@ -54,7 +54,7 @@ export function mountComments(window: Window & typeof globalThis) {
       'data-mapping': 'specific',
       'data-term': section.dataset.thread!,
       'data-strict': '1',
-      'data-reactions-enabled': '1',
+      'data-reactions-enabled': '0',
       'data-emit-metadata': '1',
       'data-input-position': 'top',
       'data-theme': theme(),
