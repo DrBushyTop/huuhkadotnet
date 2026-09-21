@@ -475,3 +475,17 @@ links, focus, controls, scrollbars, tables, callouts, and image dialogs follow t
 same mode. Syntax text and shared text pairs must pass 4.5:1; control outlines and
 focus indicators must pass 3:1. These checks do not certify image contents or
 external embeds.
+
+## Approved Latte and Macchiato refinement
+
+The approved refinement uses full Latte light colors and purple interactions in
+both modes. Base fills the page and Mantle fills cards and code. Mauve marks
+focus, active navigation, the contents marker, and hover borders. Latte link text
+uses a darker Mauve #782ed5 for contrast; Macchiato uses #c6a0f6. Selected and
+hovered items have purple-tinted fills #e9e0f3 and #37304b. The logo stays blue.
+Code backgrounds are #e6e9ef in Latte and #1e2030 in Macchiato. Latte syntax
+foregrounds are adjusted for the darker Mantle background.
+
+The white/slate palette above describes the earlier comparison baseline. The
+Latte and Macchiato values in this section supersede it. Approved for publication
+on September 21, 2026. Layout and fonts are unchanged.

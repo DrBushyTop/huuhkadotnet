@@ -48,7 +48,7 @@ code, kbd, samp {
 :not(pre) > code {
   padding: 2px 5px;
   border-radius: 4px;
-  background: var(--popular-ground);
+  background: var(--code-ground);
   overflow-wrap: anywhere;
 }
 
@@ -59,7 +59,7 @@ pre {
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--popular-ground);
+  background: var(--code-ground);
   color: var(--ink);
   font-size: var(--code-size);
   font-weight: 400;

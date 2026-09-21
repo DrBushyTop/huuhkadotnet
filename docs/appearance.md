@@ -72,3 +72,33 @@ change worked. The code font loaded as SauceCodePro Nerd Font Mono.
 
 Giscus configuration and live theme messages have DOM tests, not a new external
 comment-posting test. No real Safari or screen-reader certification is claimed.
+
+## Approved full-Latte and purple-accent refinement
+
+The owner approved full Latte and purple accents for publication on September
+21, 2026. The earlier sections describe commit `b806895`; this section supersedes
+its palette and code-background choices.
+
+Base #eff1f5 replaces white and Mantle #e6e9ef fills cards and code. Text #4c4f69
+and Subtext1 #5c5f77 replace slate. Both themes now use Mauve for interaction:
+#8839ef in Latte and #c6a0f6 in Macchiato. Latte link text is darkened to #782ed5
+for contrast. Purple-tinted #e9e0f3 and #37304b fills mark selected navigation and
+hover states. This applies to header navigation, contents links and marker,
+article links, controls, and keyboard focus. The logo remains blue.
+
+Code uses Mantle instead of the page's Base in both themes. Macchiato code is
+#1e2030 against the #24273a page. Inline and unhighlighted code use the same
+background token. Latte syntax foregrounds were recalibrated against #e6e9ef.
+Tests check every rendered code token and the shared text and focus colors.
+The Docsify reference also uses Mantle for code, with selectable accent flavors:
+`https://github.com/catppuccin/docsify`.
+
+Browser theme metadata and giscus selection use Latte in light mode. Comments
+remain disabled locally, so the external embed is not visually verified. Layout,
+fonts, and authored images are unchanged.
+
+Verification: 53 tests, the build, migration checks and local routes pass.
+Browser checks cover the homepage and PR reviewer at 1440px and the reviewer at
+390px, both code backgrounds, and the Macchiato active contents marker. Code
+remains horizontally scrollable without widening the page. These checks are not
+a whole-site keyboard or screen-reader audit.

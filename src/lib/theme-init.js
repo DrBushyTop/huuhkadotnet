@@ -10,7 +10,7 @@
   function apply() {
     const theme = preference === 'system' ? (system.matches ? 'dark' : 'light') : preference;
     root.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#24273a' : '#ffffff');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#24273a' : '#eff1f5');
     document.querySelectorAll('[data-theme-toggle]').forEach(toggle => {
       toggle.setAttribute('aria-checked', String(theme === 'dark'));
     });

@@ -50,6 +50,7 @@ test('theme defaults to system without storage writes and follows device changes
   b.system.matches = false;
   b.system.change();
   assert.equal(b.document.documentElement.dataset.theme, 'light');
+  assert.equal(b.document.meta, '#eff1f5');
   assert.ok(b.toggles.every(c => c.attributes['aria-checked'] === 'false'));
 });
 
@@ -107,6 +108,7 @@ test('all rendered syntax colors meet 4.5:1 in light and Macchiato themes', () =
       for (const mode of ['light', 'dark']) {
         const background = pre.style.getPropertyValue(`--shiki-${mode}-bg`);
         assert.match(background, /^#[\da-f]{6}$/i);
+        assert.equal(background, mode === 'light' ? '#e6e9ef' : '#1e2030');
         for (const token of [pre, ...pre.querySelectorAll('span[style]')]) {
           const foreground = token.style.getPropertyValue(`--shiki-${mode}`);
           if (!foreground) continue;
@@ -124,11 +126,11 @@ test('shared theme text, focus, and control colors meet contrast requirements', 
   const colors = Object.fromEntries([...css.matchAll(/--([\w-]+): light-dark\((#[\da-f]{6}), (#[\da-f]{6})\)/gi)].map(m => [m[1], [m[2], m[3]]]));
   for (const mode of [0, 1]) {
     for (const foreground of ['ink', 'muted', 'link']) {
-      for (const background of ['paper', 'article-ground', 'popular-ground', 'popular-hover', 'nav-highlight']) {
+      for (const background of ['paper', 'article-ground', 'popular-ground', 'popular-hover', 'nav-highlight', 'code-ground']) {
         assert.ok(contrast(colors[foreground][mode], colors[background][mode]) >= 4.5, `${mode} ${foreground}/${background}`);
       }
     }
-    for (const foreground of ['blue', 'control-border']) {
+    for (const foreground of ['blue', 'accent', 'control-border']) {
       assert.ok(contrast(colors[foreground][mode], colors.paper[mode]) >= 3, `${mode} ${foreground}/paper`);
     }
     assert.ok(contrast(colors['selection-ink'][mode], colors['selection-ground'][mode]) >= 4.5);
@@ -153,4 +155,13 @@ test('toggle motion has a reduced-motion override', () => {
   const css = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8');
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?transition: none !important/);
   assert.match(css, /\.theme-toggle-thumb[\s\S]*?transition: transform 220ms/);
+});
+
+test('both themes use purple active navigation and a separate code background', () => {
+  const css = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8');
+  const article = readFileSync(new URL('../src/styles/article.css', import.meta.url), 'utf8');
+  assert.match(css, /--accent: light-dark\(#8839ef, #c6a0f6\)/);
+  assert.match(css, /\.main-nav a\[aria-current\] \{ color: var\(--link\)/);
+  assert.match(article, /\.toc-list a\[aria-current\] \{ color: var\(--link\)/);
+  assert.match(article, /\.toc-marker[^}]*background: var\(--accent\)/);
 });

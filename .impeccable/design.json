@@ -439,50 +439,90 @@
     },
     "themes": {
       "light": {
-        "paper": "#ffffff",
-        "ink": "#202b3a",
-        "muted": "#596574",
-        "blue": "#087caf",
-        "link": "#076b97",
-        "line": "#dce3e8",
-        "popular-ground": "#f1f5f7",
-        "popular-hover": "#e8f0f5",
-        "nav-highlight": "#eef1f3",
-        "article-ground": "#f7f9fa",
-        "control-border": "#7b8995",
-        "popular-hover-border": "#aabfcc",
-        "selection-ink": "#14334b",
-        "selection-ground": "#d7edf7",
-        "scrollbar": "#7b8995"
+        "paper": "#eff1f5",
+        "ink": "#4c4f69",
+        "muted": "#5c5f77",
+        "accent": "#8839ef",
+        "code-ground": "#e6e9ef",
+        "blue": "#1e66f5",
+        "link": "#782ed5",
+        "line": "#ccd0da",
+        "popular-ground": "#e6e9ef",
+        "popular-hover": "#e9e0f3",
+        "nav-highlight": "#e9e0f3",
+        "article-ground": "#e6e9ef",
+        "control-border": "#6c6f85",
+        "popular-hover-border": "#8839ef",
+        "selection-ink": "#4c4f69",
+        "selection-ground": "#e9e0f3",
+        "scrollbar": "#6c6f85"
       },
       "dark": {
         "paper": "#24273a",
         "ink": "#cad3f5",
         "muted": "#a5adcb",
+        "accent": "#c6a0f6",
+        "code-ground": "#1e2030",
         "blue": "#8aadf4",
-        "link": "#7dc4e4",
+        "link": "#c6a0f6",
         "line": "#494d64",
         "popular-ground": "#1e2030",
-        "popular-hover": "#363a4f",
-        "nav-highlight": "#363a4f",
+        "popular-hover": "#37304b",
+        "nav-highlight": "#37304b",
         "article-ground": "#1e2030",
         "control-border": "#8087a2",
-        "popular-hover-border": "#8087a2",
+        "popular-hover-border": "#c6a0f6",
         "selection-ink": "#cad3f5",
-        "selection-ground": "#494d64",
+        "selection-ground": "#37304b",
         "scrollbar": "#8087a2"
       },
       "darkPalette": "Catppuccin Macchiato",
       "source": "https://github.com/catppuccin/palette",
       "syntax": {
         "light": "huuhka-latte",
-        "dark": "catppuccin-macchiato"
+        "dark": "huuhka-macchiato"
       },
       "control": {
         "type": "Animated sun/moon switch with device-theme reset",
         "motion": "220ms thumb translation and icon rotation; disabled for reduced motion",
         "mobileLabel": "16px Geist Mono, uppercase, 0.04em tracking",
         "minimumTargetHeight": "44px"
+      },
+      "refinement": {
+        "status": "Approved for publication on September 21, 2026",
+        "palette": "Catppuccin Latte",
+        "colors": {
+          "paper": "#eff1f5",
+          "ink": "#4c4f69",
+          "muted": "#5c5f77",
+          "accent": "#8839ef",
+          "code-ground": "#e6e9ef",
+          "blue": "#1e66f5",
+          "link": "#782ed5",
+          "line": "#ccd0da",
+          "popular-ground": "#e6e9ef",
+          "popular-hover": "#e9e0f3",
+          "nav-highlight": "#e9e0f3",
+          "article-ground": "#e6e9ef",
+          "control-border": "#6c6f85",
+          "popular-hover-border": "#8839ef",
+          "selection-ink": "#4c4f69",
+          "selection-ground": "#e9e0f3",
+          "scrollbar": "#6c6f85"
+        },
+        "linkAdjustment": "Latte Mauve darkened for small-text contrast",
+        "comments": "catppuccin_latte",
+        "accent": {
+          "light": "#8839ef",
+          "dark": "#c6a0f6",
+          "lightText": "#782ed5",
+          "lightFill": "#e9e0f3",
+          "darkFill": "#37304b"
+        },
+        "codeBackground": {
+          "light": "#e6e9ef",
+          "dark": "#1e2030"
+        }
       }
     }
   },

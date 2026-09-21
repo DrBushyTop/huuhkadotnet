@@ -7,7 +7,7 @@ export function mountComments(window: Window & typeof globalThis) {
   const button = section.querySelector<HTMLButtonElement>('[data-load-comments]')!;
   const status = section.querySelector<HTMLElement>('[data-comments-status]')!;
   const container = section.querySelector<HTMLElement>('.giscus')!;
-  const theme = () => document.documentElement.dataset.theme === 'dark' ? 'catppuccin_macchiato' : 'light';
+  const theme = () => document.documentElement.dataset.theme === 'dark' ? 'catppuccin_macchiato' : 'catppuccin_latte';
   window.addEventListener('themechange', () => {
     container.querySelector<HTMLIFrameElement>('iframe.giscus-frame')?.contentWindow?.postMessage(
       {giscus: {setConfig: {theme: theme()}}}, 'https://giscus.app',

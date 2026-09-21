@@ -171,6 +171,6 @@ test('giscus uses Macchiato on dark pages and receives theme updates without rel
   b.document.querySelector('.giscus').append(frame);
   b.document.documentElement.dataset.theme = 'light';
   b.events.get('themechange')();
-  assert.deepEqual(messages, [[{giscus: {setConfig: {theme: 'light'}}}, 'https://giscus.app']]);
+  assert.deepEqual(messages, [[{giscus: {setConfig: {theme: 'catppuccin_latte'}}}, 'https://giscus.app']]);
   assert.equal(b.document.querySelectorAll('.giscus script').length, 1);
 });

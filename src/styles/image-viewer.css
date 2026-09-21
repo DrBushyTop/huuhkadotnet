@@ -11,7 +11,7 @@
 .image-viewer-toolbar a, .image-viewer-toolbar button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
 .image-viewer-toolbar a { color: var(--link); text-decoration: underline; }
 .image-viewer-toolbar button { cursor: pointer; font: inherit; color: var(--ink); padding: 8px 12px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--paper); }
-.image-viewer-toolbar button:hover { background: var(--nav-highlight); }
+.image-viewer-toolbar button:hover { color: var(--link); background: var(--nav-highlight); }
 .image-viewer-figure { margin: 0; }
 .image-viewer-image { display: block; width: 100%; height: auto; max-height: calc(100dvh - 220px); object-fit: contain; }
 .image-viewer-caption { max-width: 720px; margin: 16px auto 0; overflow-wrap: anywhere; }
