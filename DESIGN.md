@@ -335,7 +335,7 @@ Feature images, standalone inline-image figures, and wide authored figures exten
 
 At 1199px and below, the reader becomes a single column of `min(720px, calc(100% - 48px))`. Series and contents disclosures precede the article body, have no sticky positioning or internal height limit, and leave 24px below the rail. At 600px and below, the reader uses 20px side gutters. The reader footer shares the 720px center alignment, uses compact 12px text and 18px/24px vertical padding, and wraps its links on phones rather than creating a large stacked block.
 
-The header switches at 1100px independently of the content grid. With JavaScript it stays in one row with the brand, Sessionize link, and menu button. GitHub remains in the menu. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
+The header switches at 1100px independently of the content grid. With JavaScript it stays in one row with only the brand and menu button. Sessionize and GitHub remain in the menu. The full-screen menu uses the device viewport height and safe-area bottom padding. Without JavaScript, page and social links remain visible and may wrap.
 
 ## Elevation & Depth
 

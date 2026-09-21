@@ -16,13 +16,15 @@ test('About is absent from desktop and mobile navigation', () => {
   }
 });
 
-test('Sessionize is accessible in both headers and the mobile menu', () => {
-  for (const selector of ['.social-nav', '.mobile-header-actions', '.mobile-social-links']) {
+test('Sessionize stays in desktop navigation and the mobile menu, not the mobile top bar', () => {
+  for (const selector of ['.social-nav', '.mobile-social-links']) {
     const link = document.querySelector(`${selector} a[href="${profile}"]`);
     assert.ok(link, selector);
     assert.match(link.getAttribute('aria-label') || link.textContent, /Sessionize/);
     assert.ok(link.querySelector('svg[aria-hidden="true"] path'));
   }
+  assert.equal(document.querySelector('.mobile-header-actions a'), null);
+  assert.ok(document.querySelector('.mobile-header-actions button.menu-toggle'));
   assert.ok(document.querySelector('.mobile-social-links a[href="https://github.com/DrBushyTop"]'));
 });
 
