@@ -5,7 +5,17 @@ import CardImage from '../components/CardImage.astro';
 import {getPosts, cardPost} from '../lib/posts';
 const posts = (await getPosts()).map(cardPost);
 
-const popular = posts.slice(0, 3);
+// Owner-supplied analytics ranking, excluding the front page. Not a live feed.
+const popular = [
+  'building-your-own-pr-reviewer-with-coding-agents',
+  'connecting-opencode-with-microsoft-foundry-models',
+  'browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser',
+  'azure-devops-agents-in-azure-container-apps',
+].map(slug => {
+  const post = posts.find(post => post.slug === slug);
+  if (!post) throw new Error(`Popular article not found: ${slug}`);
+  return post;
+});
 const dateFormat = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC',
 });

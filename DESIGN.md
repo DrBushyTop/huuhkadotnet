@@ -361,7 +361,7 @@ The phone header has a 44px menu button. Its native modal dialog contains the br
 
 ### Popular and archive cards
 
-Popular cards use a filled rectangle with a thumbnail, compact title, and corner arrow. The desktop minimum height is 116px; mobile uses 96px. Their three selections remain provisional, not analytics rankings, and the sample-selection label stays absent. The existing arrow is decorative; local article links must not be documented as external destinations.
+Popular cards use a filled rectangle with a thumbnail, compact title, and corner arrow. The desktop minimum height is 116px; mobile uses 96px. Their four selections follow the owner-supplied analytics ranking with the front page excluded. Use two columns above 700px and one on phones. The ranking is a fixed selection, not a live analytics feed; do not display snapshot counts. The existing arrow is decorative; local article links must not be documented as external destinations.
 
 Archive cards place up to two non-interactive topic labels above the title and a date opposite Read more below it. Suppress the redundant Artificial Intelligence label when AI is also present. Content has 22px desktop padding, 20px mobile padding, and 30px above metadata. The full card is a local article link with the title as its accessible name; Read more is not a nested link. Hover changes the border and underlines the blue Read more cue.
 
@@ -430,7 +430,7 @@ Tables scroll inside the article, use 16px text, quiet cell borders, and filled 
 
 ### Don't
 
-- Don't present provisional popular selections as measured rankings.
+- Don't describe the fixed popular selection as a live analytics ranking.
 - Don't replace the light header with a flat pastel navigation band.
 - Don't introduce a serif publication masthead or invented promotional copy.
 - Don't crop the sharp foreground image in cards, article diagrams, or feature images. Only decorative card backdrops use cover cropping.

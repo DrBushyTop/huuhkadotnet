@@ -16,13 +16,13 @@ Mode: Read. Preserve the approved homepage composition while replacing the previ
 
 ## Direction contract
 
-THESIS: A personal article index with provisional popular picks before the dated archive. No oversized introduction, category filters, or excerpts.
+THESIS: A personal article index with owner-selected popular articles before the dated archive. No oversized introduction, category filters, or excerpts.
 
 OWN-WORLD: White header, small blue geometric H, uppercase Geist Mono navigation, slate text, and quiet blue links. Popular cards are compact filled rectangles. Archive cards retain pale fill, fine borders, rounded image corners, 19px medium Geist Sans titles, up to two topic tags, and the date/read-more footer. Geist Sans also sets the wordmark and section headings. Preserve the shared palette, card padding, and code font in DESIGN.md.
 
-STORY: Readers recognize Pasi, choose a suggested article, or search titles and topics across all 55 imported posts. Article cards, community activities, and RSS open local routes. About is hidden from navigation until its content is ready; the author archive is preserved. The popular group uses the newest three entries as provisional picks without a sample-selection label or a verified analytics claim.
+STORY: Readers recognize Pasi, choose a suggested article, or search titles and topics across all 55 imported posts. Article cards, community activities, and RSS open local routes. About is hidden from navigation until its content is ready; the author archive is preserved. The popular group uses the four selected articles from the owner-supplied analytics screenshot, in ranking order, with the front page excluded. The selection is fixed rather than a live analytics feed.
 
-FIRST VIEWPORT: A compact header with LinkedIn, GitHub, Sessionize, and RSS links. A small portrait introduction, three popular cards, then the dated archive with search beside its heading. Desktop archive cards use three columns; phone cards stack. The phone header stays on one row with Sessionize and a full-screen navigation menu. GitHub remains available in that menu.
+FIRST VIEWPORT: A compact header with LinkedIn, GitHub, Sessionize, and RSS links. A small portrait introduction, four popular cards in two columns above 700px and one on phones, then the dated archive with search beside its heading. Desktop archive cards use three columns; phone cards stack. The phone header stays on one row with Sessionize and a full-screen navigation menu. GitHub remains available in that menu.
 
 FORM: The approved image-led homepage remains the composition reference. Use the real portrait and published post images, with local WebP archive thumbnails. Keep introduction padding at 24px and the archive separation at 28px on desktop and 24px on phones. Preserve padding inside archive cards. Card images fit fully within the existing containers, with a blurred, muted copy of the same image behind them to fill unused space.
 

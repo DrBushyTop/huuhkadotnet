@@ -32,7 +32,7 @@ A personal technical publication. Readers should be able to find a relevant post
 
 Keep huuhka.net and Pasi Huuhka as the publication and author identities, with the real portrait and published article imagery. Preserve the approved compact, light header and image-led homepage. Use Geist Sans headings and wordmark, Source Sans 3 body copy, Geist Mono navigation and metadata, and SauceCodePro Nerd Font Mono code. DESIGN.md records the visual rules; page briefs record composition.
 
-The three popular selections are provisional, not measured rankings. Keep room for bespoke article visuals and explicitly external destinations without redesigning the shared index.
+The four popular selections follow the owner-supplied analytics ranking, excluding the front page. They are fixed article links, not a live analytics feed. Keep room for bespoke article visuals and explicitly external destinations without redesigning the shared index.
 
 ## Reading and series navigation
 

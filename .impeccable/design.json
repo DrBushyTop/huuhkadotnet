@@ -388,7 +388,7 @@
       "status": "Centered reader, captioned image viewer, and two-depth contents navigation implemented locally. Deployment, production indexing, and analytics remain deferred.",
       "tonalRamps": "Synthesized OKLCH panel previews, not additional application color tokens.",
       "componentSamples": "Isolated style specimens, not working application search, pagination, mobile-menu, image-viewer, or scroll-tracking behavior. Card image specimens use self-contained placeholder graphics in both layers; application cards reuse existing image URLs.",
-      "popularSelection": "Newest three collection entries remain provisional, without a visible sample-selection label or measured-ranking claim.",
+      "popularSelection": "Four fixed articles follow the owner-supplied analytics ranking, excluding the front page. Two columns above 700px, one on phones; no live ranking or snapshot counts.",
       "verification": "Ship for reader cleanup and targeted contents fix, with no material fixes. Build: 95 pages. Tests: 20 passed. Migration: 56 content pages and 94 source URLs, zero errors. Local: 94 routes, 56 AMP redirects, RSS, and 404 passed. Desktop and phone captures at 1440 by 1000 and 390 by 844 CSS pixels document no overflow, disclosure behavior, resolving links, a 104px anchor landing, and forward/reverse contents tracking. Earlier image-dialog checks retain their recorded scope and predate removal of the visible Zoom cue. No whole-site keyboard, screen-reader, or real Safari audit.",
       "cardImageReview": "Implementation ready to ship; reviewer requested only stale cropping documentation be fixed. Desktop and phone captures in .impeccable/review/card-images/. Twenty tests, 95-page build, migration, and local route checks passed. Fuzzy search, empty results, Escape reset, and 12-to-24 Load more with focus verified. No top-corner redesign approved."
     },
@@ -563,7 +563,7 @@
       "Give article images the approved wider measure while keeping prose and captions centered. Preserve authored image links and usable images without JavaScript."
     ],
     "donts": [
-      "Don't present provisional popular selections as measured rankings.",
+      "Don't describe the fixed popular selection as a live analytics ranking.",
       "Don't replace the light header with a flat pastel navigation band.",
       "Don't introduce a serif publication masthead or invented promotional copy.",
       "Don't crop the sharp foreground image in cards, article diagrams, or feature images. Only decorative card backdrops use cover cropping.",
