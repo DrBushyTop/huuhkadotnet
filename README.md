@@ -54,7 +54,7 @@ Azure deployment and GitHub Actions are configured under [deployment/](deploymen
 Production indexing is enabled after domain cutover. Local builds remain blocked.
 Umami Cloud runs without analytics cookies or a consent banner on the public HTTPS
 domains. Do Not Track is honored; query strings and fragments are excluded.
-Giscus comments load on request on blog posts. Both stay off on local and preview
+Giscus comments load as the comments section approaches the viewport on blog posts. Both stay off on local and preview
 hosts. Setup and verification notes are in `docs/analytics-and-comments.md`.
 
 ## Article images

@@ -59,7 +59,7 @@ reduced motion removes transitions. Both buttons have 44px touch targets and
 work with Space and Enter. Narrow layouts put them in the mobile menu to keep
 the top bar to brand and hamburger. Its Theme label matches the menu
 links in Geist Mono. A loaded giscus iframe gets a theme update through
-its documented postMessage API; comments remain click-to-load.
+its documented postMessage API; comments load as their section approaches the viewport.
 
 ## Verification scope
 

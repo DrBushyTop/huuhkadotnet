@@ -36,7 +36,7 @@ Tracker configuration checked against the actual Cloud script and:
 - https://umami.is/docs/data-collection
 - https://umami.is/privacy
 
-Comments appear only on blog posts. Show comments loads giscus separately from
+Comments appear only on blog posts. Giscus loads as the comments section approaches the viewport, separately from
 analytics consent. Each thread maps to the article's root-level path with strict
 matching. No Disqus data is imported. The GitHub link remains available without
 JavaScript and when the embed fails.
@@ -341,8 +341,8 @@ post-publication moderation, not a general approval queue.
 
 I suggest a dedicated public comments repository, separate from private site
 source. Map discussions using stable article paths, not titles that may change,
-and restrict allowed origins. Load the widget only when a reader chooses
-Show comments, with a direct GitHub discussion link as a fallback.
+and restrict allowed origins. Load the widget as
+the comments section approaches the viewport, with a direct GitHub discussion link as a fallback.
 
 GitHub remains a third party. Its authentication and privacy terms still matter;
 "no tracking" is not the same as no external requests.

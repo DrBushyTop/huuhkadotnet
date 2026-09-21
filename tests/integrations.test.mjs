@@ -16,6 +16,7 @@ function browser(html = homepage, url = 'https://www.huuhka.net/article/?giscus=
   const cookies = new Map();
   const deletions = [];
   const timers = new Map();
+  const observers = [];
   Object.defineProperty(document, 'cookie', {
     get: () => [...cookies].map(([key, value]) => `${key}=${value}`).join('; '),
     set: value => {
@@ -27,6 +28,11 @@ function browser(html = homepage, url = 'https://www.huuhka.net/article/?giscus=
   });
   const window = {
     document, location: new URL(url), navigator: {doNotTrack: null},
+    IntersectionObserver: class {
+      constructor(callback, options) { this.callback = callback; this.options = options; observers.push(this); }
+      observe(target) { this.target = target; }
+      disconnect() { this.disconnected = true; }
+    },
     localStorage: {
       getItem: key => values.get(key) ?? null,
       setItem: (key, value) => values.set(key, value),
@@ -36,7 +42,7 @@ function browser(html = homepage, url = 'https://www.huuhka.net/article/?giscus=
     clearTimeout: id => timers.delete(id),
   };
   const click = selector => document.querySelector(selector).dispatchEvent(new Event('click'));
-  return {window, document, values, cookies, deletions, events, timers, click, Event};
+  return {window, document, values, cookies, deletions, events, timers, click, Event, observers, approachComments: () => observers[0].callback([{isIntersecting: true}])};
 }
 
 test('integrations only run on exact public HTTPS hosts', () => {
@@ -102,7 +108,7 @@ test('preview hosts load neither Umami nor giscus', () => {
   mountComments(window);
   assert.equal(document.querySelector('script[data-website-id]'), null);
   assert.equal(document.querySelector('script[src*="giscus.app"]'), null);
-  assert.equal(document.querySelector('[data-load-comments]').hidden, true);
+  assert.equal(document.querySelector('[data-load-comments]'), null);
 });
 
 test('built pages retain Privacy but remove the GA consent UI', () => {
@@ -115,12 +121,19 @@ test('built pages retain Privacy but remove the GA consent UI', () => {
   }
 });
 
-test('giscus loads only on request with stable strict mapping and no analytics consent', () => {
-  const {window, document, click, timers} = browser(article);
+test('giscus loads once near the viewport with stable strict mapping', () => {
+  const {window, document, approachComments, observers, timers} = browser(article);
   mountComments(window);
   assert.equal(document.querySelector('script[src*="giscus.app"]'), null);
-  click('[data-load-comments]');
-  click('[data-load-comments]');
+  mountComments(window);
+  assert.equal(observers.length, 1);
+  assert.equal(observers[0].options.rootMargin, '300px');
+  assert.equal(observers[0].target, document.querySelector('[data-comments]'));
+  observers[0].callback([{isIntersecting: false}]);
+  assert.equal(document.querySelector('script[src*="giscus.app"]'), null);
+  approachComments();
+  approachComments();
+  assert.equal(observers[0].disconnected, true);
   const scripts = document.querySelectorAll('script[src="https://giscus.app/client.js"]');
   assert.equal(scripts.length, 1);
   assert.equal(scripts[0].getAttribute('data-term'), '/ci-with-azure-pipelines-yaml/');
@@ -134,9 +147,9 @@ test('giscus loads only on request with stable strict mapping and no analytics c
 });
 
 test('giscus trusts messages only from its own iframe and origin', () => {
-  const {window, document, click, events} = browser(article);
+  const {window, document, approachComments, events} = browser(article);
   mountComments(window);
-  click('[data-load-comments]');
+  approachComments();
   const iframe = document.createElement('iframe');
   iframe.className = 'giscus-frame';
   const source = {};
@@ -162,7 +175,7 @@ test('giscus uses Macchiato on dark pages and receives theme updates without rel
   const b = browser(article);
   b.document.documentElement.dataset.theme = 'dark';
   mountComments(b.window);
-  b.click('[data-load-comments]');
+  b.approachComments();
   assert.equal(b.document.querySelector('.giscus script').getAttribute('data-theme'), 'catppuccin_macchiato');
   const frame = b.document.createElement('iframe');
   frame.className = 'giscus-frame';
@@ -173,4 +186,22 @@ test('giscus uses Macchiato on dark pages and receives theme updates without rel
   b.events.get('themechange')();
   assert.deepEqual(messages, [[{giscus: {setConfig: {theme: 'catppuccin_latte'}}}, 'https://giscus.app']]);
   assert.equal(b.document.querySelectorAll('.giscus script').length, 1);
+});
+
+test('giscus loads without IntersectionObserver and retains its script-error fallback', () => {
+  const {window, document, Event} = browser(article);
+  delete window.IntersectionObserver;
+  mountComments(window);
+  const script = document.querySelector('.giscus script');
+  assert.ok(script);
+  script.dispatchEvent(new Event('error'));
+  assert.match(document.querySelector('[data-comments-status]').textContent, /could not load/);
+});
+
+test('comments keep the GitHub link without the load button or explanatory text', () => {
+  const {document} = parseHTML(article);
+  const section = document.querySelector('[data-comments]');
+  assert.equal(section.querySelector('button'), null);
+  assert.doesNotMatch(section.textContent, /Choose Show comments|You.ll need a GitHub account/);
+  assert.ok(section.querySelector('a[href*="github.com"]'));
 });

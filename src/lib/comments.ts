@@ -3,8 +3,8 @@ import {isPublicSite} from './site-integrations.ts';
 export function mountComments(window: Window & typeof globalThis) {
   const {document} = window;
   const section = document.querySelector<HTMLElement>('[data-comments]');
-  if (!section) return;
-  const button = section.querySelector<HTMLButtonElement>('[data-load-comments]')!;
+  if (!section || section.dataset.commentsMounted) return;
+  section.dataset.commentsMounted = 'true';
   const status = section.querySelector<HTMLElement>('[data-comments-status]')!;
   const container = section.querySelector<HTMLElement>('.giscus')!;
   const theme = () => document.documentElement.dataset.theme === 'dark' ? 'catppuccin_macchiato' : 'catppuccin_latte';
@@ -22,7 +22,6 @@ export function mountComments(window: Window & typeof globalThis) {
     return;
   }
 
-  button.hidden = false;
   let loaded = false;
   let timeout: ReturnType<typeof setTimeout>;
   const showError = () => {
@@ -39,12 +38,10 @@ export function mountComments(window: Window & typeof globalThis) {
       status.textContent = '';
     }
   });
-  button.addEventListener('click', () => {
+  const load = () => {
     if (loaded) return;
     loaded = true;
-    button.hidden = true;
     status.textContent = 'Loading comments…';
-    status.focus({preventScroll: true});
     const script = document.createElement('script');
     script.src = 'https://giscus.app/client.js';
     script.async = true;
@@ -67,5 +64,15 @@ export function mountComments(window: Window & typeof globalThis) {
     script.addEventListener('error', showError);
     timeout = window.setTimeout(showError, 15000);
     container.append(script);
-  });
+  };
+  if (!window.IntersectionObserver) {
+    load();
+    return;
+  }
+  const observer = new window.IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    observer.disconnect();
+    load();
+  }, {rootMargin: '300px'});
+  observer.observe(section);
 }

@@ -10,13 +10,10 @@ const discussionUrl = `https://github.com/${config.repo}/discussions?discussions
   data-category={config.category} data-category-id={config.categoryId}
   data-thread={thread}>
   <h2 id="comments-heading">Comments</h2>
-  <p>Comments are public GitHub Discussions. Choose Show comments to connect to giscus and GitHub.
-    You'll need a GitHub account to comment.</p>
   <div class="comments-actions">
-    <button class="load-more" type="button" data-load-comments hidden>Show comments</button>
     <a href={discussionUrl}>View discussions on GitHub</a>
   </div>
-  <p class="comments-status" data-comments-status role="status" tabindex="-1"></p>
+  <p class="comments-status" data-comments-status role="status"></p>
   <div class="giscus"></div>
   <noscript><p>JavaScript is off. Use the GitHub link to read or add comments.</p></noscript>
 </section>
@@ -31,5 +28,6 @@ const discussionUrl = `https://github.com/${config.repo}/discussions?discussions
   .comments-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
   a { color: var(--link); text-decoration: underline; font-size: 16px; }
   .comments-status { color: var(--muted); }
+  .comments-status:empty { display: none; }
   .giscus { margin-top: 16px; }
 </style>
