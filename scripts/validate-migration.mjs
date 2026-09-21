@@ -39,7 +39,17 @@ for (const entry of inventory) {
     assert.equal(new Set(ids).size,ids.length,'duplicate anchor IDs');
     for (const h of entry.headings) if(h.id) assert.ok(ids.includes(h.id),`Missing original anchor #${h.id}`);
     const normalizedBody=document.querySelector('.article-prose').textContent.replace(/\s/g,'');
-    for(const text of entry.textBlocks) assert.ok(normalizedBody.includes(text.replace(/\s/g,'')),`Missing source text: ${text.slice(0,80)}`);
+    // Source paragraphs can become semantic lists whose markers are absent from textContent.
+    const numberedBody=document.querySelector('.article-prose').cloneNode(true);
+    for(const list of numberedBody.querySelectorAll('ol')) {
+      let number=Number(list.getAttribute('start') || 1);
+      for(const item of [...list.children].filter(node=>node.localName==='li')) {
+        if(item.hasAttribute('value')) number=Number(item.getAttribute('value'));
+        item.prepend(`${number++}. `);
+      }
+    }
+    const normalizedNumberedBody=numberedBody.textContent.replace(/\s/g,'');
+    for(const text of entry.textBlocks) assert.ok(normalizedBody.includes(text.replace(/\s/g,'')) || normalizedNumberedBody.includes(text.replace(/\s/g,'')),`Missing source text: ${text.slice(0,80)}`);
     const codes=[...document.querySelectorAll('.article-prose pre code')];
     assert.equal(codes.length,entry.code.length,'Code block count differs');
     codes.forEach((code,i)=>assert.equal(code.textContent.trimEnd(),entry.code[i].text.trimEnd(),`Code block ${i} changed`));

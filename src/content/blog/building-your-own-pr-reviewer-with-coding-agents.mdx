@@ -95,21 +95,21 @@ Azure DevOps lets you control how much resource detail goes into the webhook pay
 
 The shape I've been using is fairly simple:
 
-1\. A source system event arrives.
+1. A source system event arrives.
 
-2\. A manager layer classifies whether work should start.
+2. A manager layer classifies whether work should start.
 
-3\. The manager gathers enough context to create a review job.
+3. The manager gathers enough context to create a review job.
 
-4\. The manager stores run state in a database.
+4. The manager stores run state in a database.
 
-5\. The manager starts an isolated worker run.
+5. The manager starts an isolated worker run.
 
-6\. The worker performs the LLM review and returns structured output.
+6. The worker performs the LLM review and returns structured output.
 
-7\. The manager parses the result and posts comments or findings back to the source system.
+7. The manager parses the result and posts comments or findings back to the source system.
 
-8\. The manager updates run state.
+8. The manager updates run state.
 
 Notice the LLM is only a small part of the whole pipeline, and that the logic is no rocket science.
 
