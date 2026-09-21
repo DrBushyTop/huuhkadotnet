@@ -10,7 +10,6 @@ const popular = [
   'building-your-own-pr-reviewer-with-coding-agents',
   'connecting-opencode-with-microsoft-foundry-models',
   'browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser',
-  'azure-devops-agents-in-azure-container-apps',
 ].map(slug => {
   const post = posts.find(post => post.slug === slug);
   if (!post) throw new Error(`Popular article not found: ${slug}`);
