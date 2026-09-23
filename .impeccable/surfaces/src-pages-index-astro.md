@@ -46,3 +46,5 @@ Global DESIGN.md, tokens, and `.impeccable/design.json` remain unchanged. The pr
 On phone and short viewports, scrolling past either end of the article list passes to the page through native scroll chaining. Desktop layouts with a fixed page keep list scrolling contained.
 
 Desktop writing rows vertically center dates, reading times, titles, and arrows. Metadata columns are 100px and 48px with 20px gaps, reducing the empty space before titles. Phone rows retain metadata above the title.
+
+The author introduction includes the original circular portrait, 44px on desktop and 56px on phone. The homepage document title is `Huuhka.net | Pasi Huuhka`. Compact toolbar spacing preserves room for the writing list.
