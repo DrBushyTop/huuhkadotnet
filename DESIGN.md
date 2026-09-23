@@ -279,18 +279,18 @@ components:
 
 **Creative North Star: "Articles first"**
 
-Huuhka.net is a personal technical publication. Article images, publication dates, and clear titles carry the index. The small author portrait and compact navigation identify Pasi without competing with the writing.
+Huuhka.net is a personal technical publication. Article images, publication dates, and clear titles carry the homepage. The compact navigation identifies Pasi without competing with the writing.
 
-White backgrounds, slate text, restrained blue details, and sans-serif typography connect the index to the article reader. Compact popular links sit above larger padded archive cards. Long-form pages give prose, diagrams, and code their own reading space without changing the approved header or palette.
+Latte and Macchiato colors and sans-serif typography connect the homepage to the article reader. A featured article and three compact popular cards sit above a searchable text list of every article. Long-form pages give prose, diagrams, and code their own reading space.
 
 **Key Characteristics:**
-- Image-led article links with compact topic tags, visible dates, and no excerpts.
+- A featured article with its original image and excerpt, followed by dated article links.
 - A light sticky header with the geometric H, mono navigation, and a single-row mobile menu trigger.
-- Compact popular cards and roomier rounded archive cards with restrained borders.
+- Compact popular cards with artwork on the right and a text list of all articles.
 - Centered long-form prose with a compact left reading rail, wider uncropped images, captioned image zoom, and horizontally scrolling code.
-- A secondary author introduction with a real portrait.
+- A secondary author introduction linking to the author page.
 
-The approved homepage composition and font choices remain unchanged. This document records the shared visual system and its implemented reader extension. Page composition lives in `.impeccable/surfaces/`. Source values come from `src/styles/global.css`, `src/styles/code.css`, `src/styles/article.css`, and `src/styles/image-viewer.css`; behavior comes from the page, layout, and header components.
+This document records the shared visual system and its implemented reader extension. Homepage composition lives in `.impeccable/surfaces/`. Source values come from `src/styles/global.css`, `src/styles/code.css`, `src/styles/article.css`, and `src/styles/image-viewer.css`; homepage-specific styles and behavior live in `src/components/FieldNotesHome.astro` and `src/components/PopularPosts.astro`.
 
 ## Colors
 
@@ -317,7 +317,7 @@ The palette uses cool neutrals with a small blue accent. Frontmatter holds the n
 
 Geist Sans is the approved heading and wordmark family, exposed as Geist Variable in CSS. Source Sans 3 Variable is the body font. Geist Mono Variable handles navigation, tags, and dates. Do not make body copy monospaced.
 
-The existing index roles remain intact. Author and section headings are semibold; archive and popular titles use medium weight. At content widths of 700px and below, author and section headings become 24px. Archive and popular titles keep their desktop sizes. At the separate 1240px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Phone introduction copy is 15px with 1.4 line height and a 29ch limit.
+The homepage uses Geist for the hero, popular titles, and article list titles. At the 1240px header breakpoint, the wordmark becomes 21px and mobile page links use 16px Geist Mono. Tag and author archive cards retain their own title roles.
 
 The reader uses the `reading-title`, `reading-body`, `reading-heading`, and `reading-subheading` roles. At 600px and below, prose becomes 18px, second-level headings 25px, and third-level headings 21px. The prose column is capped at 720px. Publication and updated dates use `reading-date`, uppercase letters, and tabular numerals. Archive dates retain their separate `date` role and tracking. Reader bylines and captions use 14px Source Sans 3. The enlarged-image toolbar uses `image-toolbar`. Existing article and index typography stays unchanged. Rail links use `reading-rail`; their compact navigation labels use `reading-rail-label`. Series names use 13px medium Geist Sans. The continuation title uses `reading-next-title`, becoming 16px on phones. Its mono navigation label uses 10px type with .04em tracking.
 
@@ -327,7 +327,7 @@ SauceCodePro Nerd Font Mono remains the code family for `pre`, `code`, `kbd`, an
 
 The shared page container is `min(1200px, calc(100% - 96px))`. The header has a separate 1440px maximum width, 48px horizontal padding, and a 64px minimum height. It stays at the top with 80px document scroll padding. Between 701px and 1000px, page gutters become 32px. At 700px and below, they become 20px.
 
-The index keeps compact section spacing and padded cards. Desktop archive grids have three columns and a 32px gap, then two columns through tablet widths and one at 700px and below. Popular cards have a separate tighter grid. The index brief records its composition and pagination.
+The homepage keeps the featured article, three popular cards, and searchable article list in one view on desktop. The article list scrolls independently at widths above 1000px and heights of at least 760px. Smaller viewports allow page scrolling. Tag and author archive grids use three columns on desktop, two on tablets, and one at 700px and below.
 
 The reader has a separate container of `min(1480px, calc(100% - 64px))`. At 1200px and above, its grid has a central 720px column, two equal flexible outside columns, and 36px gaps. Header, prose, and continuation link occupy the center column. The approved reader places the rail in the left column without shifting the prose away from the viewport center. Rail and media widths use the `reading-rail-desktop` and `reading-media-desktop` tokens, switching to their `large` variants at 1440px. The rail sticks at 96px and scrolls within a maximum height of `calc(100dvh - 120px)` with contained overscroll.
 
@@ -347,7 +347,7 @@ The contents marker is a 2px blue line beside the active link. Its vertical tran
 
 ## Shapes
 
-Archive cards have rounded containers and 1px borders. Their image containers keep a 1.6 aspect ratio and use `archive-image` corners inside the outer border. The sharp foreground image fits fully inside the container without cropping. Popular cards remain compact rectangles with softened corners and square image containers; their foreground images also retain their full proportions. Navigation has its own radius; search, tags, and pagination use the smaller control radius. Only the author portrait is circular.
+Tag and author archive cards have rounded containers and 1px borders. Their image containers keep a 1.6 aspect ratio and use `archive-image` corners inside the outer border. The sharp foreground image fits fully inside the container without cropping. Homepage popular cards use 8px corners and full-height artwork panels on the right. Navigation has its own radius; search and tags use the smaller control radius.
 
 Reader feature images use 12px corners and `object-fit: contain`. The desktop reader removes the 440px feature-image maximum height so diagrams keep their full proportions. Below 1200px, the existing feature-image height limit remains. Body images keep their proportions and use 6px corners. Code uses the existing popular-card radius. Callouts have a single blue left border rather than a card outline.
 
@@ -361,23 +361,17 @@ The phone header has a 44px menu button. Its native modal dialog contains the br
 
 ### Popular and archive cards
 
-Popular cards use a filled rectangle with a thumbnail, compact title, and corner arrow. The desktop minimum height is 116px; mobile uses 96px. Their three selections follow the owner-supplied analytics ranking with the front page excluded. Use three columns above 700px and one on phones. The ranking is a fixed selection, not a live analytics feed; do not display snapshot counts. The existing arrow is decorative; local article links must not be documented as external destinations.
+Homepage popular cards use the code background color, compact titles, and full-height artwork on the right. Their minimum height is 132px. Their three selections follow the owner-supplied analytics ranking with the front page excluded. Use three columns above 700px and one on phones. The ranking is a fixed selection, not a live analytics feed; do not display snapshot counts.
 
 Archive cards place up to two non-interactive topic labels above the title and a date opposite Read more below it. Suppress the redundant Artificial Intelligence label when AI is also present. Content has 22px desktop padding, 20px mobile padding, and 30px above metadata. The full card is a local article link with the title as its accessible name; Read more is not a nested link. Hover changes the border and underlines the blue Read more cue.
 
-`CardImage` supplies the same treatment to homepage popular and archive cards and to tag and author archive cards. Both layers use the existing image URL. The foreground uses `object-fit: contain`; the decorative backdrop uses `object-fit: cover`, a 16px blur, scale 1.12, and opacity 0.3. The container clips the backdrop. The backdrop image has `aria-hidden="true"`, empty alternative text, and no pointer events. Card links retain their text labels.
+`CardImage` supplies the same treatment to homepage popular cards and tag and author archive cards. Both layers use the existing image URL. The foreground uses `object-fit: contain`; the decorative backdrop uses `object-fit: cover`, a 16px blur, and scale 1.12. The container clips the backdrop. The backdrop image has `aria-hidden="true"`, empty alternative text, and no pointer events. Card links retain their text labels.
 
-Popular image dimensions use `popular-image`, switching to the tablet variant between 701px and 1000px and the phone variant at 700px and below. Archive aspect ratios, card radii, padding, and grid dimensions do not change. Both layers share the caller's loading policy, which defaults to lazy loading. No image assets are generated or edited for this treatment. Reader images and their zoom behavior stay separate.
+Popular image panels fill the right side of each card at every width. Archive images retain their aspect ratios and card radii. Both layers share the caller's loading policy, which defaults to lazy loading. No image assets are generated or edited for this treatment. Reader images and their zoom behavior stay separate.
 
-### Search and progressive loading
+### Homepage search
 
-The search field sits beside the author introduction above popular articles. It is 420px wide and at least 52px high, becoming full width below the introduction at 1000px and below. Author name and description share a baseline when space allows and wrap otherwise. The archive heading and live count share a baseline with wrapping for longer counts. The bordered search field has an accessible label, search icon, and an inline clear button when text is present. Fuzzy search covers the complete collection, including posts not yet shown. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query.
-
-Load more uses a 46px minimum height and reveals another batch of articles. It disappears when no results remain. Focus moves to the first newly revealed article without forced scrolling. Without JavaScript all articles remain visible and search and loading controls stay hidden. The homepage brief owns the batch size, not the shared tokens.
-
-An active nonblank search hides the popular section at every width and removes
-the archive's extra top margin. Results then follow the search field without
-unrelated cards between them. Clearing the query restores popular articles.
+The search field sits beside the All writing heading and count. It uses the code background color and becomes full width on phones. Fuzzy search filters all 55 rendered article rows by title and tag. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query. The hero and popular cards stay visible while searching. Without JavaScript all articles remain visible and the search control stays hidden.
 
 ### Article reading
 
@@ -435,7 +429,7 @@ Tables scroll inside the article, use 16px text, quiet cell borders, and filled 
 
 - Keep the author's real portrait and published article imagery.
 - Keep publication dates visible and preserve original article metadata.
-- Distinguish compact popular links from larger padded archive cards.
+- Distinguish compact popular cards from the searchable article rows.
 - Keep keyboard focus visible and preserve usable article links without JavaScript.
 - Use Geist Sans for headings and the wordmark, Source Sans 3 for body copy, Geist Mono for navigation, tags, and dates, and SauceCodePro Nerd Font Mono for code.
 - Keep the contents list before prose in document order and allow code and tables to scroll within the reader.

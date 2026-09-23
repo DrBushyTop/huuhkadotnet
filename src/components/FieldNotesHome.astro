@@ -1,0 +1,206 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from './Icon.astro';
+import PopularPosts from './PopularPosts.astro';
+import { getPosts, cardPost, dateFormat } from '../lib/posts';
+import { render } from 'astro:content';
+const entries = await getPosts();
+const featured = entries.find(post => post.data.slug === 'building-your-own-pr-reviewer-with-coding-agents')!.data;
+const posts = await Promise.all(entries.map(async entry => ({
+  ...cardPost(entry), minutes: (await render(entry)).remarkPluginFrontmatter.readingMinutes,
+})));
+// Owner-supplied analytics ranking, excluding the front page.
+const popular = [
+  'building-your-own-pr-reviewer-with-coding-agents',
+  'connecting-opencode-with-microsoft-foundry-models',
+  'browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser',
+].map(slug => posts.find(post => post.slug === slug)!);
+---
+<Base title="Field notes | Pasi Huuhka">
+  <main id="main" class="field-notes page-width">
+    <div class="notes-toolbar">
+      <div class="notes-intro">
+        <a class="notes-author" href="/author/pasi/">Pasi Huuhka</a>
+        <p>DevOps, Azure, and building software with AI.</p>
+      </div>
+    </div>
+    <section class="notes-hero" aria-labelledby="featured-title">
+      <div class="hero-copy">
+        <h1 id="featured-title"><a href={`/${featured.slug}/`}>{featured.title}</a></h1>
+        <p class="hero-description">{featured.description}</p>
+        <div class="hero-actions">
+          <a class="hero-read" href={`/${featured.slug}/`}>Read the post <Icon name="arrow" size={18} /></a>
+          <p><time datetime={featured.publishedAt}>{dateFormat.format(new Date(featured.publishedAt))}</time><span>{popular[0].minutes} min read</span></p>
+        </div>
+      </div>
+      <a class="hero-image" href={`/${featured.slug}/`} aria-label={`Read ${featured.title}`}>
+        <img src={featured.image} alt={featured.imageAlt || 'Architecture of an automated PR reviewer, from triggering event through context gathering and LLM review to posted results.'} width="2000" height="606" fetchpriority="high" />
+      </a>
+    </section>
+    <PopularPosts posts={popular} />
+    <section class="notes-writing" aria-labelledby="notes-heading">
+      <div class="notes-heading">
+        <div class="notes-list-label"><h2 id="notes-heading">All writing</h2>
+        <p id="notes-count" role="status" aria-live="polite" aria-atomic="true">{posts.length} articles</p></div>
+      <form class="search-form" role="search" hidden>
+        <label for="notes-search" class="sr-only">Search articles by title or topic</label>
+        <Icon name="search" />
+        <input id="notes-search" name="q" type="search" placeholder="Search articles or topics..." autocomplete="off" spellcheck="false" aria-controls="notes-list" />
+        <button class="clear-search" type="button" aria-label="Clear search" hidden><Icon name="close" size={18} /></button>
+      </form>
+      </div>
+      <div class="notes-scroll" role="region" aria-label="Scrollable article list" tabindex="0">
+      <ol id="notes-list">
+        {posts.map(post => <li data-slug={post.slug}>
+          <a class="notes-row" href={post.url}>
+            <time datetime={post.publishedAt}>{dateFormat.format(new Date(post.publishedAt))}</time>
+            <span class="notes-minutes" title="Estimated at 200 words per minute">{post.minutes} min</span>
+            <h3>{post.title}</h3>
+            <Icon name="arrow" size={18} />
+          </a>
+        </li>)}
+      </ol>
+      <div class="notes-empty" hidden>
+        <h3>No matching articles</h3>
+        <p>Try a shorter title or a topic such as Azure, Bicep, or OpenCode.</p>
+        <button class="text-button" type="button">Clear search <Icon name="arrow" size={17} /></button>
+      </div>
+      <noscript><p class="no-script">All {posts.length} articles are shown. Enable JavaScript to search by title or topic.</p></noscript>
+      </div>
+    </section>
+
+    <script id="notes-data" type="application/json" set:html={JSON.stringify(posts.map(({slug,title,tags}) => ({slug,title,tags}))).replaceAll('<','\\u003c')} />
+  </main>
+</Base>
+
+<script>
+  import { createArticleSearch } from '../lib/search';
+  const root = document.querySelector<HTMLElement>('.field-notes');
+  if (root) {
+    const search = createArticleSearch(JSON.parse(root.querySelector('#notes-data')!.textContent!));
+    const form = root.querySelector<HTMLFormElement>('form')!;
+    const input = root.querySelector<HTMLInputElement>('#notes-search')!;
+    const clear = root.querySelector<HTMLButtonElement>('.clear-search')!;
+    const scroll = root.querySelector<HTMLElement>('.notes-scroll')!;
+    const list = root.querySelector<HTMLOListElement>('#notes-list')!;
+    const count = root.querySelector<HTMLElement>('#notes-count')!;
+    const heading = root.querySelector<HTMLElement>('#notes-heading')!;
+    const empty = root.querySelector<HTMLElement>('.notes-empty')!;
+    const rows = new Map([...list.querySelectorAll<HTMLElement>('[data-slug]')].map(row => [row.dataset.slug!, row]));
+    function render() {
+      const query = input.value.trim();
+      const matches = search(query);
+      const selected = new Set(matches);
+      for (const [slug, row] of rows) row.hidden = !selected.has(slug);
+      for (const slug of matches) list.append(rows.get(slug)!);
+      list.hidden = matches.length === 0;
+      empty.hidden = matches.length !== 0;
+      clear.hidden = input.value.length === 0;
+      heading.textContent = query ? 'Search results' : 'All writing';
+      const noun = matches.length === 1 ? 'article' : 'articles';
+      count.textContent = query ? `${matches.length} ${noun} found` : `${matches.length} articles`;
+      scroll.scrollTop = 0;
+    }
+    function update() {
+      render();
+      const url = new URL(location.href);
+      if (input.value.trim()) url.searchParams.set('q', input.value.trim());
+      else url.searchParams.delete('q');
+      history.replaceState(null, '', url);
+    }
+    function reset() { input.value = ''; update(); input.focus(); }
+    form.hidden = false;
+    input.value = new URLSearchParams(location.search).get('q') ?? '';
+    form.addEventListener('submit', event => { event.preventDefault(); update(); });
+    input.addEventListener('input', update);
+    input.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); reset(); } });
+    clear.addEventListener('click', reset);
+    empty.querySelector('button')!.addEventListener('click', reset);
+    window.addEventListener('popstate', () => { input.value = new URLSearchParams(location.search).get('q') ?? ''; render(); });
+    render();
+  }
+</script>
+
+<style>
+  :global(body:has(.field-notes)) { background: light-dark(#fff, #24273a); min-height: 100dvh; padding-bottom: 62px; }
+  :global(body:has(.field-notes) .site-footer) { position: fixed; inset: auto 0 0; z-index: 9; margin: 0 auto; padding-block: 12px; min-height: 50px; background: light-dark(#fff, #24273a); align-items: center; font-size: 13px; }
+  .field-notes { --notes-ink: light-dark(#20242b, #cad3f5); --notes-muted: light-dark(#626975, #a5adcb); --notes-line: light-dark(#e1e4e8, #494d64); color: var(--notes-ink); }
+  .notes-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 18px; border-bottom: 1px solid var(--notes-line); }
+  .notes-intro { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .notes-author { font: 550 18px/1.3 var(--brand-font); letter-spacing: -0.02em; }
+  .notes-intro p { color: var(--notes-muted); font-size: 15px; }
+  .notes-hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 48px; padding-block: 24px; }
+  .notes-hero h1 { font: 550 clamp(30px, 2.65vw, 38px)/1.13 var(--brand-font); letter-spacing: -0.03em; text-wrap: balance; }
+  .notes-hero h1 a:hover { color: var(--link); }
+  .hero-description { margin-top: 12px; font-size: 17px; line-height: 1.4; max-width: 55ch; color: var(--notes-muted); }
+  .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; margin-top: 16px; }
+  .hero-read { display: inline-flex; gap: 14px; align-items: center; min-height: 40px; padding: 8px 16px; background: var(--link); color: light-dark(#fff, #24273a); border-radius: 4px; font-size: 14px; }
+  .hero-read:hover { background: var(--notes-ink); }
+  .hero-actions p { display: flex; gap: 12px; color: var(--notes-muted); font-size: 12px; }
+  .hero-actions p span { border-left: 1px solid var(--notes-line); padding-left: 12px; }
+  .hero-image { display: grid; place-items: center; background: #fff; padding: 20px; }
+  .hero-image img { width: 100%; height: auto; }
+  .notes-heading h2 { font: 500 11px/1.5 var(--brand-font); text-transform: uppercase; letter-spacing: 0.14em; }
+  .notes-writing { margin-top: 20px; }
+  .notes-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 12px; }
+  .notes-list-label { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+  #notes-count { color: var(--notes-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .search-form { display: flex; align-items: center; gap: 10px; width: 340px; min-height: 40px; flex-shrink: 0; padding: 0 12px; border: 1px solid var(--control-border); border-radius: 6px; color: var(--muted); background: var(--code-ground); }
+  .search-form:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
+  .search-form > :global(svg) { flex: 0 0 20px; }
+  .search-form input { width: 100%; min-width: 0; padding: 7px 0; border: 0; outline: none; color: var(--ink); background: transparent; font-size: 14px; }
+  .search-form input::placeholder { color: var(--muted); opacity: 1; }
+  .search-form input::-webkit-search-cancel-button { display: none; }
+  .clear-search { display: grid; place-items: center; width: 28px; height: 32px; flex: 0 0 28px; padding: 0; border: 0; color: var(--muted); background: none; }
+  .notes-scroll { height: 55dvh; min-height: 180px; overflow-y: auto; overscroll-behavior-y: auto; scrollbar-gutter: stable; border-top: 1px solid var(--notes-line); scrollbar-color: var(--control-border) transparent; }
+  #notes-list { list-style: none; padding: 0; margin: 0; }
+  #notes-list li { border-bottom: 1px solid var(--notes-line); }
+  .notes-row { display: grid; grid-template-columns: 100px 48px minmax(0, 1fr) 20px; gap: 20px; align-items: center; padding: 12px 10px 12px 0; }
+  .notes-row time, .notes-minutes { color: var(--notes-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .notes-row h3 { font: 450 17px/1.45 var(--brand-font); letter-spacing: -0.015em; }
+  .notes-row > :global(svg) { align-self: center; color: var(--notes-muted); }
+  .notes-row:hover h3 { color: var(--link); text-decoration: underline; text-decoration-thickness: 1px; }
+  .notes-row:focus-visible { outline-offset: -3px; }
+  .notes-empty { padding-block: 24px; }
+  .notes-empty h3 { font-size: 20px; font-weight: 500; }
+  .notes-empty p { margin-block: 8px 12px; color: var(--notes-muted); }
+  .notes-empty button { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; }
+  @media (min-width: 1001px) and (min-height: 760px) {
+    :global(body:has(.field-notes)) { height: 100dvh; overflow: hidden; padding-bottom: 0; }
+    .field-notes { height: calc(100dvh - 64px - 54px); display: flex; flex-direction: column; }
+    .notes-toolbar, .notes-hero { flex-shrink: 0; }
+    .notes-writing { min-height: 0; flex: 1; display: flex; flex-direction: column; padding-bottom: 8px; }
+    .notes-heading { flex-shrink: 0; }
+    .notes-scroll { height: auto; min-height: 0; flex: 1; overscroll-behavior-y: contain; }
+  }
+  @media (min-width: 1001px) and (min-height: 760px) and (max-height: 820px) {
+    .notes-toolbar { padding-block: 12px; }
+    .notes-hero { padding-block: 16px; }
+    .hero-description { font-size: 16px; }
+    .notes-writing { margin-top: 14px; }
+  }
+  @media (max-width: 1000px) {
+    .notes-toolbar { align-items: start; }
+    .notes-intro { display: block; }
+    .notes-intro p { margin-top: 5px; }
+    .notes-hero { gap: 24px; }
+    .notes-row { grid-template-columns: 98px 50px minmax(0, 1fr) 18px; gap: 14px; }
+  }
+  @media (max-width: 700px) {
+    :global(body:has(.field-notes)) { padding-bottom: 96px; }
+    :global(body:has(.field-notes) .site-footer) { width: calc(100% - 40px); align-items: start; gap: 4px; padding-block: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    .field-notes { width: calc(100% - 40px); }
+    .notes-toolbar { display: block; }
+    .notes-hero { grid-template-columns: 1fr; padding-block: 24px; }
+    .notes-hero h1 { font-size: 30px; }
+    .hero-image { padding: 12px; }
+    .hero-description { font-size: 16px; }
+    .notes-heading { flex-direction: column; align-items: stretch; gap: 10px; }
+    .notes-list-label { justify-content: space-between; }
+    .search-form { width: 100%; }
+    .notes-row { grid-template-columns: auto 1fr 18px; gap: 5px 14px; padding-block: 13px; align-items: center; }
+    .notes-row time, .notes-minutes { font-size: 12px; }
+    .notes-row h3 { grid-column: 1 / 3; grid-row: 2; font-size: 16px; }
+    .notes-row > :global(svg) { grid-column: 3; grid-row: 1 / 3; }
+  }
+</style>

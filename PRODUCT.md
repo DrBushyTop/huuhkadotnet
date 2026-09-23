@@ -22,16 +22,16 @@ A personal technical publication. Readers should be able to find a relevant post
 
 - Preserve published article content, exact root-level slugs, timestamps, tags, images, captions, and explicit SEO metadata.
 - Keep local article routes, tag archives, the author page, community activities, RSS, and sitemap. Author information remains global.
-- Search covers the complete post collection. The homepage initially shows 12 posts and loads 12 more at a time; without JavaScript every post is visible.
+- The homepage at `/` uses the fieldnotes layout with the featured article, followed by three compact popular articles and a searchable text list. All 55 entries are available in a keyboard-focusable, independently scrolling region, including without JavaScript. Search filters the list by title and tag while retaining the hero and popular cards. Root `?q=` bookmarks search the homepage directly. The footer stays pinned. On desktops wider than 1000px and at least 760px high, only the list scrolls; smaller viewports also allow page scrolling.
 - Builds use committed MDX and assets.
 - Current work is local only. Do not deploy, change DNS, or modify production Ghost or Azure resources. Keep `noindex, nofollow` and the blocking robots file locally. Umami runs without analytics cookies or a consent banner on public HTTPS domains and honors Do Not Track; previews never load analytics or giscus.
 - Eventual hosting belongs in Microsoft Azure Sponsorship, subscription `ede0939c-80c4-4dfe-bf3d-84521f3f6d1f`. The hosting adapter and DNS provider remain open decisions.
 
 ## Brand commitments
 
-Keep huuhka.net and Pasi Huuhka as the publication and author identities, with the real portrait and published article imagery. Preserve the approved compact, light header and image-led homepage. Use Geist Sans headings and wordmark, Source Sans 3 body copy, Geist Mono navigation and metadata, and SauceCodePro Nerd Font Mono code. DESIGN.md records the visual rules; page briefs record composition.
+Keep huuhka.net and Pasi Huuhka as the publication and author identities, with the real portrait and published article imagery. Preserve the approved compact header and image-led homepage. Use Geist Sans headings and wordmark, Source Sans 3 body copy, Geist Mono navigation and metadata, and SauceCodePro Nerd Font Mono code. DESIGN.md records the shared visual rules; page briefs record composition. The fieldnotes homepage uses popular cards with artwork on the right. Popular cards and homepage search use the same theme-aware background as code blocks, light gray in Latte and dark in Macchiato.
 
-The three popular selections follow the owner-supplied analytics ranking, excluding the front page. They are fixed article links, not a live analytics feed. Keep room for bespoke article visuals and explicitly external destinations without redesigning the shared index.
+The three popular selections follow the owner-supplied analytics ranking, excluding the front page. They are fixed article links, not a live analytics feed. Keep room for bespoke article visuals and explicitly external destinations without redesigning the homepage.
 
 ## Reading and series navigation
 

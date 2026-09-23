@@ -15,9 +15,9 @@ npm run build
 npm test
 ```
 
-The homepage shows 12 articles at a time and searches the full collection. Article,
-tag, author, community, and RSS links resolve locally. JavaScript is optional for
-reading; without it, the archive shows every article.
+The homepage lists every article and searches the full collection. Article, tag,
+author, community, and RSS links resolve locally. JavaScript is optional for
+reading; without it, every article remains visible on the homepage.
 
 ## Write an article
 

@@ -3,63 +3,46 @@ version: 1
 slug: "src-pages-index-astro"
 primary_target: "src/pages/index.astro"
 related_targets:
-  - "src/lib/posts.ts"
-  - "src/lib/search.ts"
-  - "src/components/CardImage.astro"
-  - "src/components/ArticleCard.astro"
-  - "src/styles/global.css"
+  - "src/components/FieldNotesHome.astro"
+  - "src/components/PopularPosts.astro"
 ---
 
 # Homepage
 
-Mode: Read. Preserve the approved homepage composition while replacing the preview entries with the complete local content collection. No deployment.
+The owner selected fieldnotes as the sole homepage on September 23. `/` renders `FieldNotesHome.astro`. The owner also selected the ink popular-card presentation with code-block colors.
 
 ## Direction contract
 
-THESIS: A personal article index with owner-selected popular articles before the dated archive. No oversized introduction, category filters, or excerpts.
+THESIS: A featured article with its original architecture diagram, three compact popular articles, and a searchable text list of all writing.
 
-OWN-WORLD: White header, small blue geometric H, uppercase Geist Mono navigation, slate text, and quiet blue links. Popular cards are compact filled rectangles. Archive cards retain pale fill, fine borders, rounded image corners, 19px medium Geist Sans titles, up to two topic tags, and the date/read-more footer. Geist Sans also sets the wordmark and section headings. Preserve the shared palette, card padding, and code font in DESIGN.md.
+OWN-WORLD: White light-mode ground, dark ink, fine rules, and incumbent Geist titles. Dark mode uses Macchiato. Preserve the shared header and real article content.
 
-STORY: Readers recognize Pasi, choose a suggested article, or search titles and topics across all 55 imported posts. Article cards, community activities, and RSS open local routes. About is hidden from navigation until its content is ready; the author archive is preserved. Presentations links to the owner's GitHub presentations repository. Finland Azure User Group and IglooConf follow it in desktop and mobile navigation. The popular group uses the top three articles from the owner-supplied analytics screenshot, in ranking order, with the front page excluded. The selection is fixed rather than a live analytics feed.
+STORY: Read the featured article, open a popular post, or search all 55 articles by title or tag. Dates and reading estimates come from the content.
 
-FIRST VIEWPORT: A compact header with LinkedIn, GitHub, Sessionize, and RSS links. A small portrait introduction shares the top row with a 420px search field. Name and description sit on one line when they fit. At 1000px and below search moves below the introduction at full width, keeping document and focus order unchanged. Three popular cards follow in three columns above 700px and one on phones, then the dated archive with its heading and live count on one wrapping line. Desktop archive cards use three columns; phone cards stack. At 1240px and below the header stays on one row with only the brand and hamburger button for the full-screen navigation menu. Sessionize and GitHub remain available in that menu.
+FIRST VIEWPORT: The author introduction precedes the hero, popular cards, and search above the independently scrolling list. The footer stays pinned.
 
-FORM: The approved image-led homepage remains the composition reference. Use the real portrait and published post images, with local WebP archive thumbnails. Keep the introduction and search row padding at 24px and the archive separation at 28px on desktop and 24px on phones. Preserve padding inside archive cards. Card images fit fully within the existing containers, with a blurred, muted copy of the same image behind them to fill unused space.
+FORM: One homepage at `/`. The article list needs no pagination.
 
-FINISH: Keep documentation matched to source. Browser evidence covers only its recorded pages, widths, and interactions; do not infer whole-site or keyboard certification.
+FINISH: The build and tests pass. Browser checks confirm that cards and search match the code-block background in light and dark modes, search and Escape reset work, and desktop and phone layouts have no horizontal overflow. The compact desktop list retains two rows above the footer.
 
-## Content and behavior
+## Homepage behavior
 
-- Show 12 articles initially and reveal another 12 with Load more, until the collection is exhausted. Do not switch to automatic infinite scrolling.
-- Search all posts, including hidden batches; retain URL query state, clear actions, live counts, and the empty state.
-- Hide popular articles while a nonblank search is active at every width, placing the result count and archive directly below search. Restore popular articles when the query clears, including Escape and browser history changes.
-- Without JavaScript, show all articles and hide search and loading controls.
-- Keep metadata from the collection. Display at most two non-interactive topic labels on cards; full linked tags belong on article pages.
-- Keep noindex and analytics disabled locally.
+The featured article is "Building your own PR reviewer with coding agents". Its original image, excerpt, date, and reading estimate remain. Three popular selections use the owner-supplied ranking.
 
-## Card images
+All 55 article rows are available in a keyboard-focusable, independently scrolling region, including without JavaScript. There is no homepage pagination or automatic loading. Search filters only the list, leaving the hero and popular cards visible. Root `?q=` bookmarks search this list directly. Clear, Escape reset, query history, and the no-results state remain supported. Each search resets the list scroll position.
 
-`CardImage` is shared by homepage popular and archive cards and by tag and author
-archive cards. The sharp foreground uses contain; the decorative background uses
-cover, a 16px blur, scale 1.12, and opacity 0.3. Both layers use the same existing
-URL and loading policy. No image assets change. Archive containers keep their 1.6
-ratio; popular containers remain 72px on desktop, 56px at tablet widths, and 62px
-on phones. Reader images and zoom are unchanged.
+On desktops wider than 1000px and at least 760px high, the layout fits the viewport and only the list scrolls. The hero, cards, search, and footer stay in place. At desktop heights from 760px to 820px, tighter introduction and hero spacing preserves list space. Narrow or short screens allow page scrolling, with the footer pinned and the list at 55dvh.
 
-The card-image reviewer found the implementation ready to ship, with only stale
-cropping documentation to fix. This refresh resolves that documentation mismatch.
-Captures in `.impeccable/review/card-images/` cover the homepage at 1440 by 1000
-and a portrait-image search result at 390 by 844 CSS pixels.
+## Popular component choice
 
-Browser checks confirmed fuzzy search, empty results, Escape reset, 12 initial
-articles, and 24 after Load more, with focus on the first newly revealed card.
-The dev-server Fuse import fix preserves these behaviors; it does not change
-pagination to infinite scrolling. On September 21, 2026, the owner requested hiding
-About and adding Sessionize to the top right. These navigation changes are now
-implemented without changing the shared visual tokens.
+The selected `PopularPosts.astro` cards place artwork on the right. Cards and image panels use `var(--code-ground)` with `var(--ink)` text; homepage search also uses `var(--code-ground)`. These reuse the code-block colors, light gray in Latte and dark in Macchiato. Card hover uses the existing popular-hover background and link color.
 
-## Appearance
+## Assets and boundaries
 
-Use the shared animated sun/moon toggle and device-theme reset. Dark mode uses Catppuccin
-Macchiato without changing content, image colors, or reading order. The mobile
-top bar remains brand and hamburger only; theme selection stays in its menu.
+The hero reuses `public/images/ghost/8646679fc3845554da55.png` from the article frontmatter. Popular cards reuse existing `CardImage` assets and the pre-existing `public/images/pasi.webp` fallback. Original raster files remain unchanged. No new imagery is needed.
+
+Global DESIGN.md, tokens, and `.impeccable/design.json` remain unchanged. The pre-existing doctor warning that DESIGN.md is newer than its sidecar remains outside this task. Local noindex and preview analytics exclusions remain. No deployment or analytics change accompanies this work.
+
+On phone and short viewports, scrolling past either end of the article list passes to the page through native scroll chaining. Desktop layouts with a fixed page keep list scrolling contained.
+
+Desktop writing rows vertically center dates, reading times, titles, and arrows. Metadata columns are 100px and 48px with 20px gaps, reducing the empty space before titles. Phone rows retain metadata above the title.

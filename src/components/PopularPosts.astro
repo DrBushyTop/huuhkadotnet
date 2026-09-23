@@ -1,0 +1,28 @@
+---
+import CardImage from './CardImage.astro';
+interface Props {
+  posts: {url: string; image?: string; title: string}[];
+}
+const {posts} = Astro.props;
+---
+<section class="notes-popular" aria-labelledby="notes-popular-heading">
+  <h2 id="notes-popular-heading">Popular articles</h2>
+  <div class="popular-grid">
+    {posts.map(post => <a class="popular-card" href={post.url}>
+      <h3>{post.title}</h3>
+      <CardImage src={post.image || '/images/pasi.webp'} compact loading="eager" />
+    </a>)}
+  </div>
+</section>
+<style>
+  .notes-popular { flex-shrink: 0; color: light-dark(#20242b, #cad3f5); }
+  h2 { margin-bottom: 10px; font: 500 11px/1.5 var(--brand-font); text-transform: uppercase; letter-spacing: .14em; }
+  .popular-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .popular-card { display: grid; grid-template-columns: minmax(0,1fr) 38%; align-items: stretch; overflow: hidden; min-height: 132px; border-radius: 8px; background: var(--code-ground); color: var(--ink); }
+  h3 { grid-column: 1; grid-row: 1; display: flex; align-items: center; min-width: 0; padding: 18px 16px; font: 550 15px/1.4 var(--brand-font); letter-spacing: -.012em; }
+  .popular-card :global(.popular-image) { grid-column: 2; grid-row: 1; width: 100%; height: 100%; min-height: 132px; border-radius: 0; background: var(--code-ground); }
+  .popular-card :global(.card-image-backdrop) { opacity: .18; }
+  .popular-card:hover { background: var(--popular-hover); color: var(--link); }
+  @media (max-width: 1000px) { .popular-grid { gap: 12px; } }
+  @media (max-width: 700px) { .popular-grid { grid-template-columns: 1fr; gap: 8px; } }
+</style>

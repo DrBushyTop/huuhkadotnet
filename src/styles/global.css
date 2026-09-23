@@ -145,55 +145,6 @@ html { scroll-padding-top: 80px; }
   to { clip-path: inset(0); }
 }
 
-.homepage-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding-block: 24px; }
-.introduction { display: flex; align-items: center; gap: 19px; min-width: 0; }
-.introduction-copy { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
-.portrait { width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; object-fit: cover; }
-.introduction h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
-.introduction p { color: var(--muted); font-size: 17px; }
-.section-heading { display: flex; align-items: baseline; gap: 18px; margin-bottom: 12px; }
-.section-heading h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
-.popular-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.popular-card {
-  display: flex;
-  align-items: center;
-  position: relative;
-  min-height: 116px;
-  gap: 15px;
-  padding: 16px;
-  background: var(--popular-ground);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  transition: background 160ms ease-out, border-color 160ms ease-out;
-}
-.popular-card:hover { color: var(--link); background: var(--popular-hover); border-color: var(--popular-hover-border); }
-.popular-image { width: 72px; height: 72px; flex: 0 0 72px; border-radius: 6px; }
-.popular-card h3 { font-size: 16px; line-height: 1.4; font-weight: 500; letter-spacing: -0.012em; padding-right: 6px; }
-.popular-arrow { color: var(--muted); position: absolute; top: 9px; right: 9px; }
-
-.archive { margin-top: 28px; }
-.popular-section[hidden] + .archive { margin-top: 0; }
-.archive-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px; margin-bottom: 16px; }
-.archive-heading h2 { font-size: 26px; line-height: 1.5; font-weight: 600; letter-spacing: -0.02em; }
-.search-form {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 420px;
-  flex-shrink: 0;
-  min-height: 52px;
-  padding: 0 12px;
-  border: 1px solid var(--control-border);
-  border-radius: 6px;
-  color: var(--muted);
-}
-.search-form:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
-.search-form > svg { flex: 0 0 20px; }
-.search-form input { padding: 10px 0; width: 100%; min-width: 0; outline: none; border: 0; color: var(--ink); background: transparent; font-size: 16px; }
-.search-form input::placeholder { color: var(--muted); opacity: 1; }
-.search-form input::-webkit-search-cancel-button { display: none; }
-.clear-search { display: grid; place-items: center; padding: 0; width: 28px; height: 32px; flex: 0 0 28px; border: 0; color: var(--muted); background: none; }
-.result-count { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
 .article-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
 .article-card { min-width: 0; }
 .article-card > a { display: flex; flex-direction: column; height: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--article-ground); transition: border-color 160ms ease-out; }
@@ -212,15 +163,9 @@ html { scroll-padding-top: 80px; }
 .article-card > a:hover { border-color: var(--accent); }
 .article-card > a:hover h3 { color: var(--link); }
 .article-card > a:hover .article-read-more { color: var(--link); text-decoration: underline; }
-.empty-state { padding-block: 55px 65px; }
-.empty-state h3 { font-size: 25px; font-weight: 600; }
-.empty-state p { margin-block: 10px 16px; color: var(--muted); }
 .text-button { display: inline-flex; align-items: center; gap: 8px; padding: 0; color: var(--link); background: none; border: 0; }
 .text-button:hover { text-decoration: underline; }
-.archive-pagination { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 48px; }
-.load-more { display: inline-flex; align-items: center; justify-content: center; gap: 16px; min-height: 46px; padding: 9px 22px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--paper); color: var(--ink); font-size: 16px; font-weight: 550; }
-.load-more:hover { color: var(--link); border-color: var(--accent); }
-.pagination-count, .no-script { color: var(--muted); font-size: 14px; }
+.no-script { color: var(--muted); font-size: 14px; }
 .site-footer { margin-top: 68px; padding-block: 26px 36px; border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 24px; color: var(--muted); font-size: 14px; }
 .site-footer nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; margin-left: auto; }
 .site-footer [data-privacy-settings] { min-height: 44px; }
@@ -230,33 +175,11 @@ html { scroll-padding-top: 80px; }
 @media (min-width: 701px) and (max-width: 1000px) {
   .page-width { width: calc(100% - 64px); }
   .header-inner { padding-inline: 32px; gap: 36px; }
-  .popular-grid { gap: 12px; }
-  .popular-card { flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px; }
-  .popular-image { width: 56px; height: 56px; flex-basis: 56px; }
   .article-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 1000px) {
-  .homepage-toolbar { align-items: stretch; flex-direction: column; gap: 18px; }
-  .search-form { width: 100%; }
 }
 
 @media (max-width: 700px) {
   .page-width { width: calc(100% - 40px); }
-  .introduction { gap: 14px; }
-  .portrait { width: 48px; height: 48px; flex-shrink: 0; }
-  .introduction h1 { font-size: 24px; }
-  .introduction p { font-size: 15px; line-height: 1.4; max-width: 29ch; }
-  .section-heading { gap: 12px; flex-wrap: wrap; }
-  .section-heading h2 { font-size: 24px; }
-  .popular-grid { grid-template-columns: 1fr; gap: 10px; }
-  .popular-card { min-height: 96px; padding: 13px; gap: 15px; }
-  .popular-image { width: 62px; height: 62px; flex-basis: 62px; }
-  .popular-card h3 { padding-right: 8px; }
-  .archive { margin-top: 24px; }
-  .archive-heading { column-gap: 12px; }
-  .archive-heading h2 { font-size: 24px; }
-  .search-form { width: 100%; }
   .article-grid { grid-template-columns: 1fr; gap: 28px; }
   .article-content { padding: 20px; }
   .site-footer { margin-top: 45px; gap: 9px; flex-direction: column; padding-bottom: 28px; }

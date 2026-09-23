@@ -5,8 +5,8 @@ import {parseHTML} from 'linkedom';
 
 const {document} = parseHTML(readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8'));
 
-test('popular articles follow the supplied ranking, excluding the front page', () => {
-  const cards = [...document.querySelectorAll('.popular-card')];
+test('popular articles follow the supplied ranking with artwork on the right', () => {
+  const cards = [...document.querySelectorAll('.notes-popular .popular-card')];
   assert.deepEqual(cards.map(card => card.getAttribute('href')), [
     '/building-your-own-pr-reviewer-with-coding-agents/',
     '/connecting-opencode-with-microsoft-foundry-models/',
@@ -18,7 +18,7 @@ test('popular articles follow the supplied ranking, excluding the front page', (
     'Browser verification for coding agents: Chrome DevTools MCP vs agent-browser',
   ]);
   for (const card of cards) {
-    assert.ok(card.querySelector('img[src]'));
-    assert.ok(document.querySelector(`.article-card a[href="${card.getAttribute('href')}"]`));
+    assert.ok(card.querySelector('.popular-image img[src]'));
+    assert.ok(document.querySelector(`#notes-list a[href="${card.getAttribute('href')}"]`));
   }
 });
