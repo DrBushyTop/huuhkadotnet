@@ -52,6 +52,14 @@ The editor can also upload directly and save HTTPS Blob URLs in MDX. These URLs
 are preserved. The editor fork lives at
 https://github.com/DrBushyTop/huuhkadotnet-editor.
 
+## Browser caching
+
+Versioned assets under `/_astro/` use `public, max-age=31536000, immutable`.
+Astro changes their filenames when their content changes. Fonts under `/fonts/`
+keep stable filenames and use `public, max-age=86400` without `immutable`.
+HTML retains the host's short revalidation policy. Blob images retain their
+one-hour lifetime so replacing an image at the same URL remains practical.
+
 ## Current resources
 
 - Subscription: `ede0939c-80c4-4dfe-bf3d-84521f3f6d1f`

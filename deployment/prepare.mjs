@@ -59,6 +59,12 @@ export function prepare({source = 'dist', target = '.deployment', mediaBaseUrl, 
   cpSync(join(site, 'rss'), join(site, 'feed.xml'));
   rmSync(join(site, 'rss'));
   routes.push({route: '/rss', rewrite: '/feed.xml', headers: {'Content-Type': 'application/rss+xml; charset=utf-8'}});
+  // Astro changes these filenames when their content changes. Public fonts keep
+  // stable names, so they get a shorter lifetime without immutable caching.
+  routes.push(
+    {route: '/_astro/*', headers: {'Cache-Control': 'public, max-age=31536000, immutable'}},
+    {route: '/fonts/*', headers: {'Cache-Control': 'public, max-age=86400'}},
+  );
   const config = {
     routes,
     responseOverrides: {'404': {rewrite: '/404.html', statusCode: 404}},
