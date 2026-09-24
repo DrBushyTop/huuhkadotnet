@@ -1,0 +1,15 @@
+{
+  "routes": [
+    {"route": "/.auth/login/github", "statusCode": 404},
+    {"route": "/*", "allowedRoles": ["owner"], "headers": {"Cache-Control": "no-store"}}
+  ],
+  "responseOverrides": {
+    "401": {"statusCode": 302, "redirect": "/.auth/login/aad"}
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Robots-Tag": "noindex, nofollow",
+    "Referrer-Policy": "no-referrer",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+  }
+}

@@ -13,3 +13,4 @@ dist/
 
 .deployment/
 .deployment-outputs.json
+analytics/.output/
