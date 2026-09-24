@@ -2,17 +2,22 @@ import {mkdirSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {translateGa4} from './ga4.mjs';
 
-// One-time: translates the GA4 exports to .output/ga4-baseline.json.
+// One-time: translates a GA4 Data API export to .output/ga4-baseline.json.
 // Upload the result to the reports container (see README).
-const [directory, apiDirectory] = process.argv.slice(2);
+const directory = process.argv[2];
 if (!directory) {
-  console.error('Usage: npm run import:ga4 -- path/to/standard-reports [path/to/data-api-export]');
+  console.error('Usage: npm run import:ga4 -- path/to/ga4-export/data/<run>');
   process.exit(1);
 }
-const read = dir => Object.fromEntries(readdirSync(resolve(dir))
+const files = Object.fromEntries(readdirSync(resolve(directory))
   .filter(name => /\.(csv|json)$/.test(name) && !name.includes('.page-'))
-  .map(name => [name, readFileSync(join(resolve(dir), name), 'utf8')]));
-const baseline = translateGa4(read(directory), {apiFiles: apiDirectory ? read(apiDirectory) : null});
+  .map(name => [name, readFileSync(join(resolve(directory), name), 'utf8')]));
+const baseline = translateGa4(files);
 mkdirSync(resolve('.output'), {recursive: true});
 writeFileSync(resolve('.output/ga4-baseline.json'), JSON.stringify(baseline));
-console.log(JSON.stringify({schemaVersion: baseline.schemaVersion, periods: baseline.periods?.kind.length ?? 0, days: baseline.days.day.length, coverage: baseline.coverage, totals: baseline.totals, paths: baseline.strings.path.length, referrers: baseline.strings.referrer.length}, null, 2));
+const rows = Object.fromEntries(Object.entries(baseline.tables).map(([name, table]) => [name, {
+  daily: table.daily.day.length,
+  periods: table.periods?.period.length ?? 0,
+  values: baseline.strings[name]?.length ?? 0,
+}]));
+console.log(JSON.stringify({coverage: baseline.coverage, totals: baseline.totals, periods: baseline.periods.kind.length, rows}, null, 1));

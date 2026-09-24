@@ -57,8 +57,13 @@ export function channelOf(referrer: string, medium: string, source: string): str
   return 'Referral';
 }
 
+/** Umami records ISO 3166-2 codes (FI-18); GA4 records names keyed as FI|Uusimaa. */
 export function regionName(value: string): string {
   if (!value) return 'Unknown';
+  if (value.includes('|')) {
+    const [country, name] = value.split('|');
+    return `${name} · ${countryName(country)}`;
+  }
   const country = value.split('-')[0];
   return `${value} · ${countryName(country)}`;
 }

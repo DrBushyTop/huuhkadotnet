@@ -7,6 +7,7 @@ import {MetricCards} from '@/components/MetricCards';
 import {Toolbar} from '@/components/Toolbar';
 import {TrafficChart} from '@/components/TrafficChart';
 import {DIMENSIONS, type Filter} from '@/lib/analytics';
+import {BASELINE_DIMENSIONS} from '@/lib/baseline';
 import {contributes, period, series, type Sources} from '@/lib/combined';
 import {allowedUnits, buckets, comparisonRange, floor, resolveRange} from '@/lib/dates';
 import {formatRange} from '@/lib/format';
@@ -94,6 +95,11 @@ export function Dashboard({sources}: {sources: Sources}) {
   const through = new Intl.DateTimeFormat('en', {dateStyle: 'medium', timeStyle: 'short', ...(zone === 'utc' ? {timeZone: 'UTC'} : {})}).format(latest);
   const card = {sources, current, previous, onFilter: addFilter};
   const excluded = current.baseline.excludedBy.length ? current.baseline.excludedBy : previous?.baseline.excludedBy ?? [];
+  const excludedLabels = {
+    names: [...new Set(excluded.map(filter => DIMENSIONS[filter.dimension].label.toLowerCase()))],
+    // Every excluded filter is one GA4 can answer alone; only the combination is the problem.
+    combined: excluded.length > 1 && excluded.every(filter => BASELINE_DIMENSIONS.has(filter.dimension)),
+  };
   const withBaseline = contributes(current.baseline) || Boolean(previous && contributes(previous.baseline));
   const umamiStart = new Intl.DateTimeFormat('en', {dateStyle: 'medium'}).format(data.from);
 
@@ -116,7 +122,10 @@ export function Dashboard({sources}: {sources: Sources}) {
 
       {excluded.length > 0 && (
         <p role="status" className="rounded-lg border border-chart-second/40 bg-chart-second/10 px-4 py-2.5 text-sm">
-          GA4 data from before {umamiStart} can't be filtered by {[...new Set(excluded.map(filter => DIMENSIONS[filter.dimension].label.toLowerCase()))].join(' or ')}. These numbers cover Umami data only.
+          {excludedLabels.combined
+            ? <>GA4 reports each dimension separately, so data from before {umamiStart} can’t combine the {excludedLabels.names.join(' and ')} filters.</>
+            : <>GA4 data from before {umamiStart} can’t be filtered by {excludedLabels.names.join(' or ')}.</>}
+          {' '}These numbers cover Umami data only.
         </p>
       )}
 
@@ -153,12 +162,12 @@ export function Dashboard({sources}: {sources: Sources}) {
         </p>
         {baseline && (
           <p>
-            Before {umamiStart}, numbers come from GA4 ({baseline.data.coverage.daily?.from} to {baseline.data.lastDay}), exported once
-            as daily, weekly, monthly and yearly reports. GA4 counts users and sessions separately in each period, so visitors
-            appear when the GA4 part of a range is a whole GA4 day, ISO week, month, year, or the whole export. Other ranges
-            show views, visits, bounce rate and duration from daily sums. GA4 bounces are sessions without engagement, and GA4
-            and Umami visitors are added together. Hours, browsers, devices and locations are Umami-only. Page rows start on
-            2022-08-15.
+            Before {umamiStart}, numbers come from a one-time GA4 Data API export ({baseline.data.coverage.daily?.from} to {baseline.data.lastDay}):
+            daily reports plus GA4’s own totals for every ISO week, month, year, and the whole export. GA4 counts users and
+            sessions separately in each period, so visitors appear when the GA4 part of a range or chart bucket is one of those
+            periods. GA4 bounces are sessions without engagement. GA4 reports each dimension separately, so filters on two
+            dimensions at once cover Umami only. GA4 regions are names rather than Umami’s codes, and languages are base codes
+            such as “en”, so those rows don’t merge with Umami’s. Hours, exit pages, titles and UTM tags are Umami-only.
           </p>
         )}
       </div>

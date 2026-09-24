@@ -1,6 +1,8 @@
-// One-time translation of the GA4 standard-report CSV export into the viewer's
-// baseline format. GA4 reports are aggregates, so the baseline keeps them as
-// daily counts: no synthetic visitors, sessions, or events are created.
+// One-time translation of the GA4 Data API export (ga4-export/) into the
+// viewer's baseline format. GA4 reports are aggregates, so the baseline keeps
+// them as aggregates: one table per dimension, with additive daily rows and
+// GA4's own totals for each ISO week, month, year, and the whole export. No
+// synthetic visitors, sessions, or events are created.
 
 import {createHash} from 'node:crypto';
 import {parse} from 'csv-parse/sync';
@@ -9,33 +11,57 @@ import {parse} from 'csv-parse/sync';
 export const GA4_LAST_DAY = '2026-09-21';
 
 const OWN_HOSTS = new Set(['huuhka.net', 'blog.huuhka.net', 'huuhkadotnet-prod.azurewebsites.net']);
+const NOT_SET = new Set(['(not set)', '(other)']);
 
-function readCsv(text) {
-  const body = text.split(/\r?\n/).filter(line => !line.startsWith('#')).join('\n');
-  return parse(body, {columns: true, skip_empty_lines: true, bom: true});
-}
-
-const isoDay = value => {
-  if (!/^\d{8}$/.test(value)) throw new Error(`Invalid GA4 date ${value}.`);
-  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+/** GA4 browser and OS names mapped to the identifiers Umami records, so rows merge. */
+const BROWSERS = {
+  'Chrome': 'chrome', 'Edge': 'edge-chromium', 'Firefox': 'firefox', 'Safari': 'safari', 'Safari (in-app)': 'ios-webview',
+  'Opera': 'opera', 'Samsung Internet': 'samsung', 'Android Webview': 'chromium-webview', 'Internet Explorer': 'ie',
+  'YaBrowser': 'yandexbrowser', '(not set)': '',
 };
+const OPERATING_SYSTEMS = {Macintosh: 'Mac OS', Android: 'Android OS', '(not set)': ''};
 
-/** Days since 1970-01-01, which keeps the columns compact. */
+/** GA4 reports language names; Umami records codes. Map names back to ISO 639-1 codes. */
+const LANGUAGE_CODES = (() => {
+  const names = new Intl.DisplayNames(['en'], {type: 'language', fallback: 'none'});
+  const codes = new Map();
+  for (let a = 97; a <= 122; a++) {
+    for (let b = 97; b <= 122; b++) {
+      const code = String.fromCharCode(a, b);
+      const name = names.of(code);
+      if (name && !codes.has(name)) codes.set(name, code);
+    }
+  }
+  return codes;
+})();
+
+const readCsv = text => parse(text, {columns: true, skip_empty_lines: true, bom: true});
+
 const dayNumber = iso => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
+const compactDay = value => {
+  if (!/^\d{8}$/.test(value)) throw new Error(`Invalid GA4 date ${value}.`);
+  return dayNumber(`${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`);
+};
+const dashedDay = value => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`Invalid GA4 date ${value}.`);
+  return dayNumber(value);
+};
+const isoDay = day => new Date(day * 86_400_000).toISOString().slice(0, 10);
 
 const count = value => {
   const number = Number(value);
   if (!Number.isFinite(number) || number < 0) throw new Error(`Invalid GA4 count ${value}.`);
-  return Math.round(number);
+  return number;
 };
 
 /**
- * GA4 records paths without trailing slashes, AMP share parameters, and
- * text fragments. Umami records the canonical Ghost/Astro path with a trailing
- * slash, so normalise to that to merge the two sources' page rows.
+ * GA4 records paths without trailing slashes, AMP share parameters, and text
+ * fragments. Umami records the canonical path with a trailing slash, so
+ * normalise to that to merge the two sources' page rows.
  */
 export function normalizePath(raw) {
   let path = String(raw ?? '').trim();
+  if (!path || NOT_SET.has(path)) return '(not set)';
   path = path.split(/[?#&]|\/:~:|:~:|\/amp_tf=|amp_tf=/)[0];
   if (!path.startsWith('/')) return path || '/';
   if (!path.endsWith('/') && !/\.[a-z0-9]{2,5}$/i.test(path)) path += '/';
@@ -53,6 +79,28 @@ export function normalizeSource(source, medium) {
   return value;
 }
 
+const unset = value => (NOT_SET.has(value) ? '' : value);
+
+/**
+ * Tables and how to key their rows the way Umami keys the same dimension.
+ * `periods` marks reports exported with weekly, monthly, yearly, and total files.
+ */
+const TABLES = {
+  site: {file: 'sessions', key: () => '', periods: true, totalFile: 'session-totals'},
+  path: {file: 'pages', key: row => normalizePath(row.pagePath)},
+  entry: {file: 'landing-pages', key: row => normalizePath(row.landingPagePlusQueryString)},
+  referrer: {file: 'traffic-sources', key: row => row.sessionSourceMedium},
+  country: {file: 'countries', key: row => unset(row.countryId), periods: true},
+  region: {file: 'regions', key: row => (unset(row.region) ? `${unset(row.countryId)}|${row.region}` : ''), periods: true},
+  city: {file: 'cities', key: row => (unset(row.city) ? `${row.city}|${unset(row.countryId)}` : ''), periods: true},
+  browser: {file: 'browsers', key: row => BROWSERS[row.browser] ?? row.browser, periods: true},
+  os: {file: 'operating-systems', key: row => OPERATING_SYSTEMS[row.operatingSystem] ?? row.operatingSystem, periods: true},
+  device: {file: 'devices', key: row => unset(row.deviceCategory), periods: true},
+  screen: {file: 'screen-resolutions', key: row => unset(row.screenResolution), periods: true},
+  language: {file: 'languages', key: row => (NOT_SET.has(row.language) ? '' : LANGUAGE_CODES.get(row.language) ?? row.language), periods: true},
+  event: {file: 'events', key: row => row.eventName},
+};
+
 class Dictionary {
   values = [];
   #index = new Map();
@@ -67,193 +115,126 @@ class Dictionary {
   }
 }
 
-/** Sums rows sharing a key, then writes them as columns. */
-function columns(rows, keyOf, fields) {
+/** Additive counts: bounces and total duration instead of rates. */
+function counts(row) {
+  if (row.eventCount !== undefined) return {count: count(row.eventCount), visitors: count(row.totalUsers)};
+  const out = {views: count(row.screenPageViews), visitors: count(row.totalUsers)};
+  if (row.sessions !== undefined) {
+    const sessions = count(row.sessions);
+    out.visits = sessions;
+    out.bounces = sessions - count(row.engagedSessions);
+    out.duration = Math.round(Number(row.averageSessionDuration) * sessions);
+  }
+  return out;
+}
+
+/** Groups rows by key, summing metrics (keys can merge after normalisation). */
+function columns(rows, keyFields) {
   const grouped = new Map();
   for (const row of rows) {
-    const key = keyOf(row);
+    const key = keyFields.map(field => row[field]).join(':');
     const prior = grouped.get(key);
-    if (prior) for (const field of fields.sums) prior[field] += row[field];
-    else grouped.set(key, {...row});
+    if (!prior) grouped.set(key, {...row});
+    else for (const [field, value] of Object.entries(row)) if (!keyFields.includes(field)) prior[field] += value;
   }
-  const sorted = [...grouped.values()].sort((a, b) => a.day - b.day);
-  return Object.fromEntries([...fields.keys, ...fields.sums].map(field => [field, sorted.map(row => row[field])]));
-}
-
-function coverage(days) {
-  if (!days.length) return null;
-  const sorted = [...days].sort((a, b) => a - b);
-  const iso = day => new Date(day * 86_400_000).toISOString().slice(0, 10);
-  return {from: iso(sorted[0]), through: iso(sorted.at(-1))};
-}
-
-function checkManifest(manifest, files, nameOf) {
-  for (const entry of manifest) {
-    const name = nameOf(entry);
-    const text = files[name];
-    if (text === undefined) continue;
-    const sha = createHash('sha256').update(text).digest('hex');
-    if (sha !== entry.sha256) throw new Error(`${name} does not match the manifest checksum.`);
-  }
-}
-
-const isoFromDashes = value => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`Invalid GA4 date ${value}.`);
-  return value;
-};
-
-/** Session metrics as additive counts: bounces and total duration instead of rates. */
-function sessionCounts(metrics) {
-  const sessions = count(metrics.sessions);
-  const engaged = count(metrics.engagedSessions);
-  return {
-    visits: sessions,
-    bounces: sessions - engaged,
-    views: count(metrics.screenPageViews),
-    visitors: count(metrics.totalUsers),
-    duration: Math.round(Number(metrics.averageSessionDuration) * sessions),
-  };
+  const sorted = [...grouped.values()].sort((a, b) => keyFields.reduce((order, field) => order || a[field] - b[field], 0));
+  const fields = Object.keys(sorted[0] ?? {});
+  return Object.fromEntries(fields.map(field => [field, sorted.map(row => row[field])]));
 }
 
 /**
- * Reads the GA4 Data API export: daily session metrics and exact user counts
- * for ISO weeks, months, years, and the whole export. Users and sessions only
- * add up within one period, so each period keeps GA4's own totals.
+ * @param files map of file name to text: *-daily.csv, *-weekly/monthly/yearly.csv,
+ *   their .periods.json sidecars, *-total.csv, session-totals.csv, manifest.json
  */
-export function translateGa4Api(files, lastDay) {
+export function translateGa4(files, {lastDay = GA4_LAST_DAY} = {}) {
   const manifest = JSON.parse(files['manifest.json']);
-  checkManifest(manifest.reports, files, entry => `${entry.name}.csv`);
-  for (const entry of manifest.reports) {
-    const zone = entry.metadata?.[0]?.timeZone;
-    if (zone && zone !== 'Europe/Helsinki') throw new Error(`${entry.name} uses time zone ${zone}.`);
+  for (const report of manifest.reports) {
+    const text = files[`${report.name}.csv`];
+    if (text === undefined) throw new Error(`${report.name}.csv is missing.`);
+    if (createHash('sha256').update(text).digest('hex') !== report.sha256) throw new Error(`${report.name}.csv does not match the manifest checksum.`);
+    const zone = report.metadata?.[0]?.timeZone;
+    if (zone && zone !== 'Europe/Helsinki') throw new Error(`${report.name} uses time zone ${zone}.`);
   }
   const last = dayNumber(lastDay);
-  const days = [];
-  for (const row of readCsv(files['sessions-daily.csv'])) {
-    const day = dayNumber(isoDay(row.date));
-    if (day <= last) days.push({day, ...sessionCounts(row)});
-  }
+  const strings = Object.fromEntries([...Object.keys(TABLES), 'medium'].map(name => [name, new Dictionary()]));
+  const periodIndex = new Map();
   const periods = [];
-  for (const kind of ['weekly', 'monthly', 'yearly']) {
-    const sidecar = JSON.parse(files[`sessions-${kind}.periods.json`]);
-    const csv = new Map(readCsv(files[`sessions-${kind}.csv`]).map(row => [Object.values(row)[0], row]));
-    for (const period of sidecar.periods) {
-      const row = csv.get(period.key);
-      if (!row || row.totalUsers !== period.metrics.totalUsers || row.sessions !== period.metrics.sessions) {
-        throw new Error(`sessions-${kind} period ${period.key} does not match its CSV row.`);
-      }
-      const from = dayNumber(isoFromDashes(period.queryStart));
-      const to = Math.min(dayNumber(isoFromDashes(period.queryEnd)), last);
-      if (from > last) continue;
-      periods.push({kind, from, to, ...sessionCounts(row)});
+  const periodId = (kind, key, from, to) => {
+    const id = `${kind}:${key}`;
+    if (!periodIndex.has(id)) {
+      periodIndex.set(id, periods.length);
+      periods.push({kind, from, to});
     }
-  }
-  const [totals] = readCsv(files['session-totals.csv']);
-  periods.push({kind: 'total', from: days[0].day, to: days.at(-1).day, ...sessionCounts(totals)});
-  return {
-    days: {
-      day: days.map(row => row.day),
-      ...Object.fromEntries(['views', 'visits', 'visitors', 'bounces', 'duration'].map(key => [key, days.map(row => row[key])])),
-    },
-    periods: Object.fromEntries(['kind', 'from', 'to', 'views', 'visits', 'visitors', 'bounces', 'duration'].map(key => [key, periods.map(row => row[key])])),
-    api: {startedAt: manifest.startedAt, property: manifest.property, assumptions: manifest.integrationAssumptions ?? null},
+    return periodIndex.get(id);
   };
-}
 
-/**
- * @param files map of file name to text (pages-daily.csv, traffic-sources-daily.csv, events-daily.csv, manifest.json)
- * @param apiFiles optional GA4 Data API export (sessions-*.csv, *.periods.json, manifest.json)
- */
-export function translateGa4(files, {lastDay = GA4_LAST_DAY, apiFiles = null} = {}) {
-  const manifest = JSON.parse(files['manifest.json']);
-  checkManifest(manifest.files, files, entry => entry.file);
-  const last = dayNumber(lastDay);
-  const keep = day => day <= last;
-  const strings = {path: new Dictionary(), referrer: new Dictionary(), medium: new Dictionary(), event: new Dictionary()};
-  const dropped = {views: 0, visits: 0};
-
-  const pages = [];
-  for (const row of readCsv(files['pages-daily.csv'])) {
-    const day = dayNumber(isoDay(row.Date));
-    const views = count(row.Views);
-    if (!views) continue;
-    if (!keep(day)) continue;
-    pages.push({day, path: strings.path.id(normalizePath(row['Page path and screen class'])), views});
-  }
-
-  const sources = [];
-  for (const row of readCsv(files['traffic-sources-daily.csv'])) {
-    const day = dayNumber(isoDay(row.Date));
-    const visits = count(row.Sessions);
-    if (!visits) continue;
-    if (!keep(day)) continue;
-    const [source, medium = ''] = row['Session source / medium'].split(' / ');
-    const cleanMedium = /^\((none|not set)\)$/.test(medium.trim()) ? '' : medium.trim().toLowerCase();
-    sources.push({
-      day,
-      referrer: strings.referrer.id(normalizeSource(source, cleanMedium)),
-      medium: strings.medium.id(cleanMedium),
-      visits,
-    });
-  }
-
-  const daily = new Map();
-  const events = [];
-  for (const row of readCsv(files['events-daily.csv'])) {
-    const day = dayNumber(isoDay(row.Date));
-    const name = row['Event name'];
-    const eventCount = count(row['Event count']);
-    const users = count(row['Total users']);
-    if (!keep(day)) {
-      if (name === 'page_view') dropped.views += eventCount;
-      if (name === 'session_start') dropped.visits += eventCount;
-      continue;
+  const tables = {};
+  let firstDay = Infinity;
+  for (const [name, spec] of Object.entries(TABLES)) {
+    const value = row => {
+      if (name !== 'referrer') return strings[name].id(spec.key(row));
+      const [source, medium = ''] = row.sessionSourceMedium.split(' / ');
+      const cleanMedium = /^\((none|not set)\)$/.test(medium.trim()) ? '' : medium.trim().toLowerCase();
+      return strings.referrer.id(normalizeSource(source, cleanMedium));
+    };
+    const medium = row => {
+      const [, raw = ''] = row.sessionSourceMedium.split(' / ');
+      return strings.medium.id(/^\((none|not set)\)$/.test(raw.trim()) ? '' : raw.trim().toLowerCase());
+    };
+    const daily = [];
+    for (const row of readCsv(files[`${spec.file}-daily.csv`])) {
+      const day = compactDay(row.date);
+      if (day > last) continue;
+      firstDay = Math.min(firstDay, day);
+      daily.push({day, ...(name === 'site' ? {} : {value: value(row)}), ...(name === 'referrer' ? {medium: medium(row)} : {}), ...counts(row)});
     }
-    const entry = daily.get(day) ?? {day, views: 0, visits: 0, visitors: 0};
-    // page_view and session_start are GA4's page view and session counts.
-    // Daily "Total users" of page_view is the closest match to Umami's
-    // visitors, but it is only valid for that single day.
-    if (name === 'page_view') {
-      entry.views += eventCount;
-      entry.visitors += users;
+    const keys = name === 'site' ? ['day'] : name === 'referrer' ? ['day', 'value', 'medium'] : ['day', 'value'];
+    const table = {daily: columns(daily, keys)};
+
+    if (spec.periods) {
+      const rows = [];
+      for (const kind of ['weekly', 'monthly', 'yearly']) {
+        const sidecar = JSON.parse(files[`${spec.file}-${kind}.periods.json`]);
+        const csvRows = readCsv(files[`${spec.file}-${kind}.csv`]).length;
+        if (sidecar.periods.length !== csvRows) throw new Error(`${spec.file}-${kind} sidecar has ${sidecar.periods.length} rows, CSV ${csvRows}.`);
+        for (const period of sidecar.periods) {
+          const from = dashedDay(period.queryStart);
+          if (from > last) continue;
+          const to = Math.min(dashedDay(period.queryEnd), last);
+          const row = {...period.dimensions, ...period.metrics};
+          rows.push({period: periodId(kind, period.key, from, to), ...(name === 'site' ? {} : {value: value(row)}), ...counts(row)});
+        }
+      }
+      const totalFile = spec.totalFile ?? `${spec.file}-total`;
+      for (const row of readCsv(files[`${totalFile}.csv`])) {
+        rows.push({period: periodId('total', 'all', -1, -1), ...(name === 'site' ? {} : {value: value(row)}), ...counts(row)});
+      }
+      table.periods = columns(rows, name === 'site' ? ['period'] : ['period', 'value']);
     }
-    if (name === 'session_start') entry.visits += eventCount;
-    daily.set(day, entry);
-    if (eventCount) events.push({day, name: strings.event.id(name), count: eventCount, visitors: users});
+    tables[name] = table;
   }
 
-  const eventDays = columns([...daily.values()].filter(row => row.views || row.visits), row => row.day, {keys: ['day'], sums: ['views', 'visits', 'visitors']});
-  const api = apiFiles ? translateGa4Api(apiFiles, lastDay) : null;
-  // The API export has sessions, engagement and duration; the standard
-  // reports only have page_view and session_start counts.
-  const days = api?.days ?? eventDays;
-  const pageColumns = columns(pages, row => `${row.day}:${row.path}`, {keys: ['day', 'path'], sums: ['views']});
-  const sourceColumns = columns(sources, row => `${row.day}:${row.referrer}:${row.medium}`, {keys: ['day', 'referrer', 'medium'], sums: ['visits']});
-  const eventColumns = columns(events, row => `${row.day}:${row.name}`, {keys: ['day', 'name'], sums: ['count', 'visitors']});
-  const sum = values => values.reduce((total, value) => total + value, 0);
-
+  // The total period spans the whole export.
+  const siteDays = tables.site.daily.day;
+  for (const period of periods) {
+    if (period.kind === 'total') {
+      period.from = siteDays[0];
+      period.to = siteDays.at(-1);
+    }
+  }
+  const sum = values => Math.round(values.reduce((total, value) => total + value, 0));
   return {
-    schemaVersion: api ? 2 : 1,
+    schemaVersion: 3,
     source: 'ga4',
     generatedAt: new Date().toISOString(),
-    exportedAt: manifest.exportedAt,
+    exportedAt: manifest.startedAt,
     property: manifest.property,
     lastDay,
-    coverage: {daily: coverage(days.day), pages: coverage(pageColumns.day), sources: coverage(sourceColumns.day)},
-    totals: {
-      views: sum(days.views),
-      visits: sum(days.visits),
-      pageViews: sum(pageColumns.views),
-      sourceVisits: sum(sourceColumns.visits),
-      droppedAfterLastDay: dropped,
-    },
-    reportTotals: manifest.reportTotals,
-    api: api?.api ?? null,
-    periods: api?.periods ?? null,
-    strings: Object.fromEntries(Object.entries(strings).map(([key, dictionary]) => [key, dictionary.values])),
-    days,
-    pages: pageColumns,
-    sources: sourceColumns,
-    events: eventColumns,
+    coverage: {daily: {from: isoDay(firstDay), through: isoDay(siteDays.at(-1))}},
+    totals: {views: sum(tables.site.daily.views), visits: sum(tables.site.daily.visits)},
+    assumptions: manifest.integrationAssumptions ?? null,
+    periods: {kind: periods.map(period => period.kind), from: periods.map(period => period.from), to: periods.map(period => period.to)},
+    strings: Object.fromEntries(Object.entries(strings).map(([name, dictionary]) => [name, dictionary.values])),
+    tables,
   };
 }

@@ -47,47 +47,63 @@ Run modes, set as container args:
 
 ## GA4 baseline
 
-Before the switch to Umami (2026-09-21 17:50 UTC), the site used GA4. Two
-one-time GA4 exports are combined into `reports/ga4-baseline.json`:
+Before the switch to Umami (2026-09-21 17:50 UTC), the site used GA4. A
+one-time GA4 Data API export (`ga4-export/`, run separately) is translated by
+`src/ga4.mjs` into `reports/ga4-baseline.json`. The export's CSVs, period
+sidecars and manifest are archived in the private `imports` container under
+`ga4-data-api-2026-09-24T17-07-14Z/`. Earlier, superseded exports are archived
+next to it.
 
-- Standard report CSVs (pages, traffic sources, events per day), archived in the
-  private `imports` container under `ga4-baseline-2026-09-24/`.
-- A Data API export (`ga4-export/`, run separately): daily session metrics and
-  GA4's own totals for every ISO week, month, year, and the whole export.
+GA4 reports are aggregates, so the baseline keeps them as aggregates instead of
+inventing visits or visitors. It has one table per dimension, each with
+additive daily rows (views, visits, bounces, total session duration, and users
+for that day). Most tables also have GA4's own totals for every ISO week, month,
+year, and the whole export:
 
-Both are aggregates, so `src/ga4.mjs` keeps them as aggregates instead of
-inventing visits or visitors. GA4 counts users and sessions separately in each
-period, so those only add up within one period. The baseline therefore keeps:
-
-| Table | Source | Used for |
+| Table | GA4 report | Exact periods |
 | --- | --- | --- |
-| Days | API daily rows, 2021-10-12 to 2026-09-21 | Views, visits, bounces, duration, and one-day visitors |
-| Periods | API weekly, monthly, yearly, and total rows | Exact visitors, visits, and bounce rate when the GA4 part of a range is one of them |
-| Pages | Pages report, paths normalised to Umami's trailing slash, from 2022-08-15 | Page views per path |
-| Sources | Session source / medium | Visits per referrer and channel |
-| Events | Event name counts | Event table |
+| site | sessions | yes |
+| path, entry | pages, landing pages (paths normalised to Umami's trailing slash) | no |
+| referrer (and channel) | session source / medium | no |
+| country, region, city | locations | yes |
+| browser, os, device, screen | technology | yes |
+| language | languages | yes |
+| event | event names | no |
 
-GA4 bounces are sessions without engagement, which differs from Umami's
-single-page-view bounce; the viewer notes this whenever GA4 days are included.
-GA4 rows after 2026-09-21 are dropped. They are a handful of views from cached
-pages of the old site and would otherwise overlap Umami. The owner confirmed
+GA4 counts users and sessions separately in each period, so visitors are exact
+only when the GA4 part of a range or chart bucket is one GA4 day, ISO week,
+month, year, or the whole export. GA4 reports each dimension separately, so a
+filter on one GA4 dimension works (Country is Finland), but filters on two at
+once (Finland and Chrome) leave GA4 out of the view with a notice. So do filters
+GA4 lacks, such as hour or title.
+
+Values are mapped to Umami's keys where they correspond: country codes, cities
+as `city|country`, device categories, screen sizes, and browser and OS names
+translated to Umami's identifiers (GA4 "Edge" is Umami `edge-chromium`,
+"Macintosh" is `Mac OS`). GA4 regions are names (`FI|Uusimaa`) and languages are
+converted to base codes (`en`), while Umami records `FI-18` and `en-US`, so those
+rows don't merge. Page views before 2022-08-15 have no page path in GA4 and
+appear as "(not set)". GA4 bounces are sessions without engagement, which
+differs from Umami's single-page-view bounce; the viewer notes this. GA4 rows
+after 2026-09-21 are dropped, since they would overlap Umami. The owner confirmed
 that GA4 and Umami visitors don't overlap, so they are added together.
 
 To rebuild the baseline, which should not normally be needed:
 
 ```sh
 cd analytics
-npm run import:ga4 -- ../.deployment/ga4-baseline-2026-09-24 ../ga4-export/data/<run>
+npm run import:ga4 -- ../ga4-export/data/<run>
 gzip -9 -c .output/ga4-baseline.json > .output/ga4-baseline.json.gz
 az storage blob upload --auth-mode login --account-name huuhkametcep4lunoep3hw \
   -c reports -n ga4-baseline.json -f .output/ga4-baseline.json.gz \
   --content-type application/json --content-encoding gzip --content-cache-control no-cache --overwrite
 ```
 
-The script checks every CSV against its export manifest's SHA-256 and every
-period row against its CSV. It has no unit tests, since it runs once; the
-reconciliation is the check. Uploading needs a temporary Storage Blob Data
-Contributor role on the container.
+The script checks every CSV against the export manifest's SHA-256 and every
+period sidecar against its CSV's row count. It has no unit tests, since it runs
+once; the reconciliation is the check. The result is about 9 MB of JSON, 1.9 MB
+gzipped. Uploading needs a temporary Storage Blob Data Contributor role on the
+container.
 
 ## Viewer
 
@@ -162,7 +178,7 @@ Apply `deployment/main.bicep` by hand when it changes.
 cd analytics
 npm ci && npm test
 npm run build:report -- --export ../.deployment/umami-export.zip
-npm run import:ga4 -- ../.deployment/ga4-baseline-2026-09-24
+npm run import:ga4 -- ../ga4-export/data/2026-09-24T17-07-14.485Z
 cd viewer
 npm ci && npm test && npm run build
 npm run dev -- --host 127.0.0.1
