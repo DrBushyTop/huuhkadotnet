@@ -40,7 +40,7 @@ const axisValue = (metric: MetricKey, value: number) =>
   metric === 'bounceRate' ? formatPercent(value) : metric === 'duration' ? formatDuration(value) : formatCompact(value);
 
 export function TrafficChart({metric, range, zone, starts, series, previousStarts, previousSeries, ga4, onDrill}: Props) {
-  const [kind, setKind] = useState<'bar' | 'line'>('bar');
+  const [kind, setKind] = useState<'bar' | 'line'>('line');
   const points: Point[] = starts.map((t, i) => ({
     t,
     current: series[i] ?? null,
@@ -70,8 +70,8 @@ export function TrafficChart({metric, range, zone, starts, series, previousStart
           )}
         </div>
         <ToggleGroup className="shrink-0" type="single" variant="outline" size="sm" value={kind} onValueChange={value => value && setKind(value as 'bar' | 'line')} aria-label="Chart style">
-          <ToggleGroupItem value="bar">Bars</ToggleGroupItem>
           <ToggleGroupItem value="line">Line</ToggleGroupItem>
+          <ToggleGroupItem value="bar">Bars</ToggleGroupItem>
         </ToggleGroup>
       </CardHeader>
       <CardContent className="px-2 sm:px-4">
