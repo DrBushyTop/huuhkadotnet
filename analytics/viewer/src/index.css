@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Catppuccin Latte / Macchiato, the same palette as the blog (docs/appearance.md).
+   public/theme-init.js sets <html data-theme> before first paint. */
+:root {
+  color-scheme: light;
+  --background: #eff1f5;
+  --foreground: #4c4f69;
+  --card: #f5f6f9;
+  --card-foreground: #4c4f69;
+  --popover: #f5f6f9;
+  --popover-foreground: #4c4f69;
+  --primary: #7631cf;
+  --primary-foreground: #ffffff;
+  --secondary: #e6e9ef;
+  --secondary-foreground: #4c4f69;
+  --muted: #e6e9ef;
+  --muted-foreground: #5c5f77;
+  --accent: #e9e0f3;
+  --accent-foreground: #4c4f69;
+  --destructive: #d20f39;
+  --border: #ccd0da;
+  --input: #6c6f85;
+  --ring: #8839ef;
+  --good: #2f7d18;
+  --bad: #c3123a;
+  --chart-current: #8839ef;
+  --chart-second: #1e66f5;
+  --chart-previous: #9ca0b0;
+  --heat-0: #e6e9ef;
+  --heat: #8839ef;
+  --radius: 0.5rem;
+}
+
+/* Macchiato. Only data-theme decides, so the toggle can override the device setting. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #24273a;
+  --foreground: #cad3f5;
+  --card: #1e2030;
+  --card-foreground: #cad3f5;
+  --popover: #1e2030;
+  --popover-foreground: #cad3f5;
+  --primary: #c6a0f6;
+  --primary-foreground: #1e2030;
+  --secondary: #363a4f;
+  --secondary-foreground: #cad3f5;
+  --muted: #363a4f;
+  --muted-foreground: #a5adcb;
+  --accent: #37304b;
+  --accent-foreground: #cad3f5;
+  --destructive: #ed8796;
+  --border: #494d64;
+  --input: #8087a2;
+  --ring: #c6a0f6;
+  --good: #a6da95;
+  --bad: #ed8796;
+  --chart-current: #c6a0f6;
+  --chart-second: #8aadf4;
+  --chart-previous: #6e738d;
+  --heat-0: #2b2e42;
+  --heat: #c6a0f6;
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-chart-current: var(--chart-current);
+  --color-chart-second: var(--chart-second);
+  --color-chart-previous: var(--chart-previous);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { scrollbar-color: var(--input) var(--background); }
+  body { @apply bg-background text-foreground antialiased; font-synthesis: none; }
+  ::selection { background: var(--accent); }
+}
+
+/* The CSP forbids inline <style>, so chart series colours live here instead of ChartStyle. */
+[data-slot="chart"] {
+  --color-current: var(--chart-current);
+  --color-second: var(--chart-second);
+  --color-previous: var(--chart-previous);
+}
+
+/* Heatmap cells set --level (0..1) through the CSSOM, which CSP allows. */
+.heat-cell {
+  background: color-mix(in oklab, var(--heat) calc(var(--level, 0) * 100%), var(--heat-0));
+}
+
+/* Breakdown row bars set --share (0..1). */
+.share-bar {
+  transform-origin: left;
+  transform: scaleX(var(--share, 0));
+}
+
+/* Theme control, copied from the blog's src/styles/global.css. */
+.theme-control { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); }
+.theme-toggle { position: relative; width: 64px; height: 44px; padding: 0; border: 0; border-radius: 22px; background: transparent; cursor: pointer; }
+.theme-toggle::before { content: ''; position: absolute; inset: 4px 0; border: 1px solid var(--input); border-radius: 18px; background: var(--accent); }
+.theme-toggle-thumb { position: absolute; top: 8px; left: 4px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--background); background: var(--foreground); transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1); }
+.theme-toggle-thumb svg { grid-area: 1 / 1; transition: transform 220ms ease-out, opacity 150ms ease-out; }
+.theme-moon { opacity: 0; transform: rotate(-45deg) scale(.65); }
+.theme-toggle[aria-checked="true"] .theme-toggle-thumb { transform: translateX(28px); }
+.theme-toggle[aria-checked="true"] .theme-sun { opacity: 0; transform: rotate(45deg) scale(.65); }
+.theme-toggle[aria-checked="true"] .theme-moon { opacity: 1; transform: rotate(0) scale(1); }
+.theme-toggle:hover::before { border-color: var(--ring); }
+.theme-system { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid transparent; border-radius: 9px; color: var(--muted-foreground); background: transparent; cursor: pointer; }
+.theme-system[aria-pressed="true"] { border-color: var(--input); color: var(--foreground); background: var(--accent); }
+.theme-system:hover { color: var(--primary); background: var(--accent); }
+.theme-toggle:focus-visible, .theme-system:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-thumb, .theme-toggle-thumb svg { transition: none; }
+}

@@ -14,3 +14,7 @@ dist/
 .deployment/
 .deployment-outputs.json
 analytics/.output/
+analytics/viewer/dist/
+# Public viewer build settings (IDs, not secrets).
+!analytics/viewer/.env.production
+!analytics/viewer/.env.development

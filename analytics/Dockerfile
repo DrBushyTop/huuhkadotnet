@@ -3,5 +3,4 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY src ./src
-COPY viewer ./viewer
 CMD ["node", "src/run.mjs"]

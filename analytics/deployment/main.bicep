@@ -10,6 +10,11 @@ param storageName string = 'huuhkamet${uniqueString(resourceGroup().id)}'
 param siteName string = 'huuhkadotnet-metrics'
 @description('Address that receives a short email when the scheduled export job fails.')
 param alertEmail string
+@description('Entra object ID of the viewer owner. Gets read access to the reports container.')
+param viewerPrincipalId string
+@description('Resource ID of the GitHub Actions identity that deploys the viewer and job image.')
+param deployerIdentityId string = '/subscriptions/${subscription().subscriptionId}/resourceGroups/huuhkadotnet-identity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/huuhkadotnet-github'
+param customDomain string = 'metrics.huuhka.net'
 
 resource vault 'Microsoft.KeyVault/vaults@2025-05-01' existing = {
   name: keyVaultName
@@ -37,6 +42,18 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01'
     isVersioningEnabled: true
     deleteRetentionPolicy: {enabled: true, days: 30}
     containerDeleteRetentionPolicy: {enabled: true, days: 30}
+    // The viewer reads reports straight from Blob Storage with the owner's Entra token.
+    cors: {
+      corsRules: [
+        {
+          allowedOrigins: ['https://${customDomain}', 'https://${site.properties.defaultHostname}']
+          allowedMethods: ['GET', 'HEAD', 'OPTIONS']
+          allowedHeaders: ['authorization', 'x-ms-version', 'x-ms-client-request-id']
+          exposedHeaders: ['content-length', 'content-encoding', 'etag', 'last-modified']
+          maxAgeInSeconds: 3600
+        }
+      ]
+    }
   }
 }
 
@@ -46,11 +63,57 @@ resource archive 'Microsoft.Storage/storageAccounts/blobServices/containers@2025
   properties: {publicAccess: 'None'}
 }
 
+// Published reports. Only the viewer owner can read; only the job writes.
+resource reports 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-01-01' = {
+  parent: blobService
+  name: 'reports'
+  properties: {publicAccess: 'None'}
+}
+
+// One-time raw imports, such as the GA4 baseline export. Not readable by the viewer.
+resource imports 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-01-01' = {
+  parent: blobService
+  name: 'imports'
+  properties: {publicAccess: 'None'}
+}
+
 resource site 'Microsoft.Web/staticSites@2024-11-01' = {
   name: siteName
   location: location
   sku: {name: 'Free', tier: 'Free'}
   properties: {provider: 'Custom', allowConfigFileUpdates: true}
+}
+
+resource domain 'Microsoft.Web/staticSites/customDomains@2024-11-01' = {
+  parent: site
+  name: customDomain
+  properties: {validationMethod: 'cname-delegation'}
+}
+
+resource reportsReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(reports.id, viewerPrincipalId, 'Storage Blob Data Reader')
+  scope: reports
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')
+    principalId: viewerPrincipalId
+    principalType: 'User'
+  }
+}
+
+resource deployer 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: last(split(deployerIdentityId, '/'))
+  scope: resourceGroup(split(deployerIdentityId, '/')[2], split(deployerIdentityId, '/')[4])
+}
+
+module acrPush './acr-pull.bicep' = {
+  name: 'huuhkadotnet-metrics-acr-push'
+  scope: resourceGroup(registryResourceGroup)
+  params: {
+    registryName: registryName
+    identityId: deployer.id
+    principalId: deployer.properties.principalId
+    role: 'AcrPush'
+  }
 }
 
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -83,16 +146,6 @@ resource blobWriter 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: storage
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-    principalId: identity.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource siteDeployer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(site.id, identity.id, 'Contributor')
-  scope: site
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
     principalId: identity.properties.principalId
     principalType: 'ServicePrincipal'
   }
@@ -142,7 +195,6 @@ resource job 'Microsoft.App/jobs@2025-01-01' = {
           env: [
             {name: 'AZURE_CLIENT_ID', value: identity.properties.clientId}
             {name: 'AZURE_STORAGE_ACCOUNT', value: storage.name}
-            {name: 'AZURE_STATIC_SITE_RESOURCE_ID', value: site.id}
             {name: 'ALERT_EMAIL', value: alertEmail}
             {name: 'UMAMI_EMAIL', secretRef: 'umami-email'}
             {name: 'UMAMI_PASSWORD', secretRef: 'umami-password'}
@@ -152,10 +204,11 @@ resource job 'Microsoft.App/jobs@2025-01-01' = {
       ]
     }
   }
-  dependsOn: [vaultReader, blobWriter, siteDeployer, acrPull]
+  dependsOn: [vaultReader, blobWriter, acrPull]
 }
 
 output storageName string = storage.name
-output siteUrl string = 'https://${site.properties.defaultHostname}'
+output siteUrl string = 'https://${customDomain}'
+output reportsUrl string = '${storage.properties.primaryEndpoints.blob}reports'
 output siteResourceId string = site.id
 output jobName string = job.name
