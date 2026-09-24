@@ -1,9 +1,11 @@
 targetScope = 'resourceGroup'
 
-@description('Immutable public container image built from analytics/Dockerfile.')
+@description('Immutable image in the existing shared Azure Container Registry.')
 param image string
 param location string = resourceGroup().location
 param keyVaultName string = 'huuhkadotnet-metrics'
+param registryName string = 'huuhka'
+param registryResourceGroup string = 'containerregistry'
 param storageName string = 'huuhkamet${uniqueString(resourceGroup().id)}'
 param siteName string = 'huuhkadotnet-metrics'
 @description('Address that receives a short email when the scheduled export job fails.')
@@ -56,6 +58,16 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' 
   location: location
 }
 
+module acrPull './acr-pull.bicep' = {
+  name: 'huuhkadotnet-metrics-acr-pull'
+  scope: resourceGroup(registryResourceGroup)
+  params: {
+    registryName: registryName
+    identityId: identity.id
+    principalId: identity.properties.principalId
+  }
+}
+
 resource vaultReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(vault.id, identity.id, 'Key Vault Secrets User')
   scope: vault
@@ -103,6 +115,9 @@ resource job 'Microsoft.App/jobs@2025-01-01' = {
     environmentId: environment.id
     configuration: {
       triggerType: 'Schedule'
+      registries: [
+        {server: '${registryName}.azurecr.io', identity: identity.id}
+      ]
       scheduleTriggerConfig: {
         cronExpression: '0 */6 * * *'
         parallelism: 1
@@ -137,7 +152,7 @@ resource job 'Microsoft.App/jobs@2025-01-01' = {
       ]
     }
   }
-  dependsOn: [vaultReader, blobWriter, siteDeployer]
+  dependsOn: [vaultReader, blobWriter, siteDeployer, acrPull]
 }
 
 output storageName string = storage.name

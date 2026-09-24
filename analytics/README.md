@@ -3,7 +3,9 @@
 This application archives Umami Cloud Hobby exports and publishes a private,
 static traffic report. It has its own Azure Storage account, Container Apps job,
 managed identity, and Free Static Web App in `huuhkadotnet-prod`. It does not use
-the public blog's Static Web App or media storage.
+the public blog's Static Web App or media storage. Its image lives in the
+existing shared `huuhka` Azure Container Registry, so the metrics stack adds
+no registry subscription cost.
 
 ## How it runs
 
@@ -49,14 +51,15 @@ a code change. The vault must allow the job identity to read secrets through
 Azure RBAC. The Bicep template grants that role, Blob Data Contributor on its
 own storage account, and Contributor on its own viewer for deployment.
 
-1. Run the manual `Analytics image` GitHub workflow from the commit to deploy.
-   Make the resulting GHCR container package public in GitHub package settings.
-   Use its immutable digest for `image`. This avoids a monthly Azure Container
-   Registry charge.
+1. Build the image in the shared registry with `az acr build -r huuhka -t
+   huuhkadotnet-analytics:<commit> -f analytics/Dockerfile analytics`. Use the
+   resulting immutable digest for `image`. The job identity gets `AcrPull` on
+   that registry through `acr-pull.bicep`.
 2. Apply `analytics/deployment/main.bicep` to `huuhkadotnet-prod`, supplying
    `image` and `alertEmail`. The deploying identity needs permission to create
-   role assignments. Azure RBAC can take a few minutes to propagate; rerun the
-   deployment if the first Container Apps job creation reaches Key Vault early.
+   role assignments in both `huuhkadotnet-prod` and `containerregistry`.
+   Azure RBAC can take a few minutes to propagate; rerun the deployment if the
+   first Container Apps job creation reaches Key Vault or ACR early.
 3. In the new Static Web App's **Role Management**, invite the intended Microsoft
    Entra account to the `owner` role. Accept the invitation through the same
    domain used to view the report.
