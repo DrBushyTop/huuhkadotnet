@@ -27,8 +27,10 @@ export function App() {
       <header className="border-b">
         <div className="mx-auto flex h-14 max-w-[1240px] items-center justify-between gap-4 px-4 sm:px-8">
           <div className="flex items-center gap-3 text-[15px] font-semibold tracking-tight whitespace-nowrap">
-            <span aria-hidden="true" className="text-[23px] font-bold tracking-tighter text-chart-second">h.</span>
-            <span>huuhka.net</span>
+            <svg className="text-chart-second" width="22" height="25" viewBox="0 0 30 34" aria-hidden="true">
+              <path fill="currentColor" d="M2 3 9 1v13l12-4V3l7-2v30l-7 2V18L9 22v9l-7 2Z" />
+            </svg>
+            <span>Huuhka.net</span>
             <span aria-hidden="true" className="hidden h-5 w-px bg-border sm:block" />
             <span className="hidden font-medium text-muted-foreground sm:inline">Traffic archive</span>
           </div>
