@@ -66,7 +66,7 @@ test('breakdowns count views, visits and visitors per value', () => {
 test('series buckets by day and heatmap by weekday and hour', () => {
   const selection = data.select(all, [], 'utc');
   const current = period({data, baseline: null}, all, [], 'utc');
-  const daily = series(current, buckets(all, 'utc'));
+  const daily = series(current, buckets(all, 'utc'), 'utc');
   assert.deepEqual(daily.views, [2, 1, 1]);
   assert.deepEqual(daily.bounceRate, [0, 1, 1]);
   const heat = data.heatmap(selection, 'utc');

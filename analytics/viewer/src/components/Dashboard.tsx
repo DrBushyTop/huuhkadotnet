@@ -80,8 +80,8 @@ export function Dashboard({sources}: {sources: Sources}) {
 
   const starts = useMemo(() => buckets(range, zone), [range, zone]);
   const previousStarts = useMemo(() => previousRange ? buckets(previousRange, zone) : null, [previousRange, zone]);
-  const currentSeries = useMemo(() => series(current, starts, latest), [current, starts, latest]);
-  const previousSeries = useMemo(() => previous && previousStarts ? series(previous, previousStarts) : null, [previous, previousStarts]);
+  const currentSeries = useMemo(() => series(current, starts, zone, latest), [current, starts, zone, latest]);
+  const previousSeries = useMemo(() => previous && previousStarts ? series(previous, previousStarts, zone) : null, [previous, previousStarts, zone]);
 
   // A metric GA4 can't provide would leave the chart empty; show views instead.
   const metric = currentSeries[state.metric].every(value => value === null) ? 'views' : state.metric;

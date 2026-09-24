@@ -86,15 +86,18 @@ test('filters use the GA4 table that can answer them, or exclude GA4', () => {
 test('series buckets use exact GA4 days and periods', () => {
   const r = range('2026-09-20', '2026-09-23');
   const current = period(sources, r, [], 'utc');
-  const values = series(current, buckets(r, 'utc'));
+  const values = series(current, buckets(r, 'utc'), 'utc');
   assert.deepEqual(values.views, [10, 7, 1]);
   assert.deepEqual(values.visitors, [7, 5, 1]);
   assert.deepEqual(values.bounceRate, [4 / 8, 2 / 5, 1]);
   // Buckets after the newest data are empty, not zero.
-  assert.deepEqual(series(current, buckets(r, 'utc'), Date.parse('2026-09-21T12:00:00Z')).views, [10, 7, null]);
-  const weeks = series(current, [Date.parse('2026-09-14T00:00:00Z'), Date.parse('2026-09-21T00:00:00Z')]);
-  // Each week bucket's GA4 part is a single exported day (Sep 20, then Sep 21).
+  assert.deepEqual(series(current, buckets(r, 'utc'), 'utc', Date.parse('2026-09-21T12:00:00Z')).views, [10, 7, null]);
+  const weekly = period(sources, {...r, unit: 'week'}, [], 'utc');
+  const weeks = series(weekly, buckets(weekly.range, 'utc'), 'utc');
+  // Buckets are whole ISO weeks (Sep 14-20 and Sep 21-27) even though the range
+  // starts on Sunday Sep 20. Each week's GA4 part is one exported day.
   assert.deepEqual(weeks.visitors, [7, 4 + 2]);
+  assert.deepEqual(weeks.views, [10, 5 + 3]);
   const noPeriod = {...sources, baseline: new BaselineData({...baseline, periods: null})};
   const rolling = period(noPeriod, r, [], 'utc');
   // Two GA4 days with no matching period: daily sums for sessions, no visitors.

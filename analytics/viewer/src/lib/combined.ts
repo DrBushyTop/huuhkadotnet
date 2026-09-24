@@ -9,7 +9,7 @@
 
 import type {Dataset, Dimension, Filter, MetricKey} from './analytics.ts';
 import type {BaselineData} from './baseline.ts';
-import type {Range, Zone} from './dates.ts';
+import {add, type Range, type Zone} from './dates.ts';
 
 export type Value = number | null;
 export type DisplayMetrics = Record<MetricKey, Value>;
@@ -151,17 +151,20 @@ export function period(sources: Sources, range: Range, filters: Filter[], zone: 
 
 /**
  * Per-bucket display values for every metric, answered exactly like whole
- * periods. Buckets starting after `latest` (the newest data) are left empty
- * rather than drawn as zero traffic.
+ * periods. Buckets always cover whole days, weeks, or months, even where they
+ * reach past the range's first or last day: a clipped week would have no exact
+ * GA4 visitor count and would not line up with the comparison period. Buckets
+ * starting after `latest` (the newest data) are left empty rather than drawn
+ * as zero traffic.
  */
-export function series(current: Period, starts: number[], latest = Infinity): Record<MetricKey, Value[]> {
+export function series(current: Period, starts: number[], zone: Zone, latest = Infinity): Record<MetricKey, Value[]> {
   const result: Record<MetricKey, Value[]> = {visitors: [], visits: [], views: [], bounceRate: [], duration: []};
   starts.forEach((start, i) => {
     if (start > latest) {
       for (const key of Object.keys(result) as MetricKey[]) result[key].push(null);
       return;
     }
-    const bucket = {start: Math.max(start, current.range.start), end: Math.min(starts[i + 1] ?? current.range.end, current.range.end), unit: current.range.unit};
+    const bucket = {start, end: starts[i + 1] ?? add(start, current.range.unit, 1, zone), unit: current.range.unit};
     const values = display(sum(current.contributors.map(contributor => contributor.counts(bucket))));
     for (const key of Object.keys(result) as MetricKey[]) result[key].push(values[key]);
   });
