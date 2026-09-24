@@ -42,7 +42,7 @@ export function BreakdownCard({title, tabs, sources, current, previous: previous
   const result = useMemo(() => breakdown(current, tab.dimension), [current, tab.dimension]);
   const previousResult = useMemo(() => previousPeriod ? breakdown(previousPeriod, tab.dimension) : null, [previousPeriod, tab.dimension]);
   // Only metrics every contributing source provides for this dimension stay selectable.
-  const available: CountKey[] = result.available;
+  const available = (Object.keys(COUNT_LABELS) as CountKey[]).filter(key => result.available.includes(key));
   const chosen = metrics[tab.dimension] ?? tab.metric;
   const metric = available.includes(chosen) ? chosen : available[0];
   const rows = result.rows;
@@ -52,9 +52,11 @@ export function BreakdownCard({title, tabs, sources, current, previous: previous
   const total = result.partial ? rowTotal : current.metrics[metric] ?? rowTotal;
   const umamiStart = new Intl.DateTimeFormat('en', {dateStyle: 'medium'}).format(sources.data.from);
   const withGa4 = current.contributors.length > 1;
+  const missing = (Object.keys(COUNT_LABELS) as CountKey[]).filter(key => !available.includes(key));
   const note = !withGa4 ? null : result.partial
     ? `GA4 data has no ${info.label.toLowerCase()} breakdown. Showing Umami data from ${umamiStart}.`
-    : `Includes GA4 ${result.available.join(' and ')} from before ${umamiStart}.`;
+    : `Includes GA4 ${result.available.join(' and ')} from before ${umamiStart}.`
+      + (missing.length ? ` GA4 has no ${missing.map(key => COUNT_LABELS[key].toLowerCase()).join(' or ')} per ${info.label.toLowerCase()}, so only ${COUNT_LABELS[metric].toLowerCase()} are shown while the range includes GA4 days.` : '');
 
   const sorted = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -72,17 +74,21 @@ export function BreakdownCard({title, tabs, sources, current, previous: previous
           <CardTitle className="text-base">{title}</CardTitle>
           {note && <InfoTip label={`About ${title.toLowerCase()}`}>{note}</InfoTip>}
         </div>
-        <ToggleGroup
-          type="single"
-          size="sm"
-          value={metric}
-          onValueChange={value => value && setMetrics(current => ({...current, [tab.dimension]: value as CountKey}))}
-          aria-label={`${title} metric`}
-        >
-          {(Object.keys(COUNT_LABELS) as CountKey[]).map(key => (
-            <ToggleGroupItem key={key} value={key} disabled={!available.includes(key)} className="h-7 px-2 text-xs">{COUNT_LABELS[key]}</ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {available.length > 1 ? (
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={metric}
+            onValueChange={value => value && setMetrics(current => ({...current, [tab.dimension]: value as CountKey}))}
+            aria-label={`${title} metric`}
+          >
+            {available.map(key => (
+              <ToggleGroupItem key={key} value={key} className="h-7 px-2 text-xs">{COUNT_LABELS[key]}</ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        ) : (
+          <span className="px-2 text-xs text-muted-foreground">{COUNT_LABELS[metric]}</span>
+        )}
       </CardHeader>
       <CardContent className="grid min-w-0 grid-cols-1 gap-3 px-5">
         <Tabs value={tab.dimension} onValueChange={value => { setActive(value as Dimension); setQuery(''); }}>
