@@ -21,7 +21,14 @@ export async function loadReports(): Promise<Loaded> {
     'x-ms-version': '2023-11-03',
   };
   async function get<T>(name: string, optional: boolean): Promise<T | null> {
-    const response = await fetch(`${base}/${name}`, {headers, cache: 'no-store'});
+    let response: Response;
+    try {
+      response = await fetch(`${base}/${name}`, {headers, cache: 'no-store'});
+    } catch {
+      // A network-level failure, not an HTTP error. Content blockers such as
+      // uBlock Origin commonly block *.blob.core.windows.net.
+      throw new LoadError(`The browser could not reach Blob Storage for ${name}. If a content blocker is running, allow ${new URL(base, location.href).host} for this site.`);
+    }
     if (response.status === 404 && optional) return null;
     if (response.status === 403) throw new LoadError('This account cannot read the reports container. It needs the Storage Blob Data Reader role.');
     if (!response.ok) throw new LoadError(`Loading ${name} returned HTTP ${response.status}.`);

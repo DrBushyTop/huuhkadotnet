@@ -231,6 +231,9 @@ previous `umami.json` in place.
   approaches the 2 GiB job memory limit.
 - The viewer computes everything in the browser. At a few hundred thousand page
   views this stays fast; beyond about 10–20 MB of JSON, split the report by year.
+- Content blockers such as uBlock Origin may block `*.blob.core.windows.net`.
+  The viewer then reports that it could not reach Blob Storage; allow the
+  storage host for `metrics.huuhka.net`.
 - Storage is reachable over the internet but accepts only Entra tokens with the
   reader role. The Static Web App is private by role on the Free tier, not
   network isolated.
