@@ -149,10 +149,18 @@ export function period(sources: Sources, range: Range, filters: Filter[], zone: 
   return {range, selection: data.select(range, filters, zone), contributors, metrics, notes, baseline: state};
 }
 
-/** Per-bucket display values for every metric, answered exactly like whole periods. */
-export function series(current: Period, starts: number[]): Record<MetricKey, Value[]> {
+/**
+ * Per-bucket display values for every metric, answered exactly like whole
+ * periods. Buckets starting after `latest` (the newest data) are left empty
+ * rather than drawn as zero traffic.
+ */
+export function series(current: Period, starts: number[], latest = Infinity): Record<MetricKey, Value[]> {
   const result: Record<MetricKey, Value[]> = {visitors: [], visits: [], views: [], bounceRate: [], duration: []};
   starts.forEach((start, i) => {
+    if (start > latest) {
+      for (const key of Object.keys(result) as MetricKey[]) result[key].push(null);
+      return;
+    }
     const bucket = {start: Math.max(start, current.range.start), end: Math.min(starts[i + 1] ?? current.range.end, current.range.end), unit: current.range.unit};
     const values = display(sum(current.contributors.map(contributor => contributor.counts(bucket))));
     for (const key of Object.keys(result) as MetricKey[]) result[key].push(values[key]);
