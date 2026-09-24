@@ -4,7 +4,7 @@ import {archiveClient, readArchives, readJson, saveArchive, writeJson} from './s
 import {requestUmamiExport} from './umami.mjs';
 import {downloadExport, findExportEmail} from './resend.mjs';
 import {buildReport} from './report.mjs';
-import {publishViewer, writeViewer} from './publish.mjs';
+import {publishReport, REPORT_CONTAINER} from './publish.mjs';
 
 const websiteId = '3f673ea9-160f-4880-8d92-226feaa1e6d9';
 const websiteName = 'huuhkadotnet';
@@ -20,9 +20,22 @@ function priorMonth(now) {
   return first.toISOString().slice(0, 7);
 }
 
-export async function run({bootstrap = false, now = new Date()} = {}) {
+/** Rebuilds the report from every archived export and publishes it. */
+async function rebuild(container, state) {
+  const report = buildReport(await readArchives(container, state.snapshots), {websiteId});
+  if (report.totals.views === 0) throw new Error('Export has no page views; previous report remains published.');
+  await publishReport(archiveClient(required('AZURE_STORAGE_ACCOUNT'), REPORT_CONTAINER), report);
+  return report;
+}
+
+export async function run({bootstrap = false, rebuildOnly = false, now = new Date()} = {}) {
   const container = archiveClient(required('AZURE_STORAGE_ACCOUNT'));
   const state = await readJson(container, 'state.json', {months: {}, snapshots: []});
+  if (rebuildOnly) {
+    const report = await rebuild(container, state);
+    console.log(`Republished ${report.totals.views} page views from ${state.snapshots.length} archived export(s).`);
+    return;
+  }
   const month = priorMonth(now);
   let run = state.months[month];
 
@@ -80,22 +93,18 @@ export async function run({bootstrap = false, now = new Date()} = {}) {
     state.snapshots.push({hash, path, createdAt: email.created_at, emailId: email.id});
     await writeJson(container, 'state.json', state);
   }
-  const report = buildReport(await readArchives(container, state.snapshots), {websiteId});
-  if (report.all.views === 0) throw new Error('Export has no page views; previous report remains published.');
-  const directory = fileURLToPath(new URL('../.output/viewer/', import.meta.url));
-  writeViewer(report, directory);
-  await publishViewer(required('AZURE_STATIC_SITE_RESOURCE_ID'), directory);
+  await rebuild(container, state);
   if (bootstrap) state.months[month] = {status: 'completed', requestedAt: email.created_at, completedAt: new Date().toISOString(), bootstrap: true};
   else {
     run.status = 'completed';
     run.completedAt = new Date().toISOString();
   }
   await writeJson(container, 'state.json', state);
-  console.log(`Published ${report.all.views} deduplicated page views from ${state.snapshots.length} export(s).`);
+  console.log(`Published ${report.totals.views} deduplicated page views from ${state.snapshots.length} export(s).`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  run({bootstrap: process.argv.includes('--bootstrap')}).catch(error => {
+  run({bootstrap: process.argv.includes('--bootstrap'), rebuildOnly: process.argv.includes('--rebuild')}).catch(error => {
     console.error(error.message);
     const key = process.env.RESEND_API_KEY;
     const recipient = process.env.ALERT_EMAIL;

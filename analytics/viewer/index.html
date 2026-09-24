@@ -4,56 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#eff1f5">
   <title>Traffic archive | huuhka.net</title>
-  <link rel="stylesheet" href="/style.css">
-  <script type="module" src="/app.js"></script>
+  <script src="/theme-init.js"></script>
+  <script type="module" src="/src/main.tsx"></script>
 </head>
 <body>
-  <a class="skip" href="#content">Skip to report</a>
-  <header class="site-header">
-    <div class="header-inner">
-      <div class="identity"><span class="mark" aria-hidden="true">h.</span><span>huuhka.net</span><span class="identity-divider" aria-hidden="true"></span><span class="identity-detail">Traffic archive</span></div>
-      <a class="sign-out" href="/.auth/logout">Sign out <span aria-hidden="true">↗</span></a>
-    </div>
-  </header>
-
-  <main id="content" class="shell">
-    <div class="heading-row">
-      <div>
-        <h1>Site traffic</h1>
-        <p class="lede">A private, long-term view of visits to huuhka.net.</p>
-      </div>
-      <div class="period-control">
-        <label for="period">Period</label>
-        <select id="period" disabled><option>Loading…</option></select>
-      </div>
-    </div>
-
-    <p id="status" class="status" role="status">Loading archived traffic…</p>
-    <div id="report" hidden>
-      <section class="totals" aria-label="Traffic totals">
-        <div><span class="metric-label">Page views</span><strong id="views">0</strong></div>
-        <div><span class="metric-label">Visits</span><strong id="visits">0</strong></div>
-        <div><span class="metric-label">Visitors</span><strong id="visitors">0</strong></div>
-      </section>
-
-      <section class="trend section" aria-labelledby="trend-title">
-        <div class="section-head"><h2 id="trend-title">Monthly history</h2><span id="trend-note" class="section-note"></span></div>
-        <div id="trend-bars" class="trend-bars"></div>
-      </section>
-
-      <div class="detail-grid">
-        <section class="section" aria-labelledby="pages-title">
-          <div class="section-head"><h2 id="pages-title">Popular pages</h2><span class="section-note">Page views</span></div>
-          <div class="table-wrap"><table><thead><tr><th scope="col">Page</th><th scope="col">Views</th></tr></thead><tbody id="pages"></tbody></table></div>
-        </section>
-        <section class="section" aria-labelledby="referrers-title">
-          <div class="section-head"><h2 id="referrers-title">Referrers</h2><span class="section-note">Visits</span></div>
-          <div class="table-wrap"><table><thead><tr><th scope="col">Source</th><th scope="col">Visits</th></tr></thead><tbody id="referrers"></tbody></table></div>
-        </section>
-      </div>
-      <p id="footnote" class="footnote"></p>
-    </div>
-  </main>
+  <div id="root"></div>
 </body>
 </html>
