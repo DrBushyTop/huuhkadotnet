@@ -90,6 +90,8 @@ test('series buckets use exact GA4 days and periods', () => {
   assert.deepEqual(values.views, [10, 7, 1]);
   assert.deepEqual(values.visitors, [7, 5, 1]);
   assert.deepEqual(values.bounceRate, [4 / 8, 2 / 5, 1]);
+  // Buckets after the newest data are empty, not zero.
+  assert.deepEqual(series(current, buckets(r, 'utc'), Date.parse('2026-09-21T12:00:00Z')).views, [10, 7, null]);
   const weeks = series(current, [Date.parse('2026-09-14T00:00:00Z'), Date.parse('2026-09-21T00:00:00Z')]);
   // Each week bucket's GA4 part is a single exported day (Sep 20, then Sep 21).
   assert.deepEqual(weeks.visitors, [7, 4 + 2]);
