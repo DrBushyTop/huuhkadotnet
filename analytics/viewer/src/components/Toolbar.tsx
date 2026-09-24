@@ -58,6 +58,8 @@ export function Toolbar({state, range, units, earliest, latest, update}: Props) 
 
   return (
     <div className="flex flex-1 flex-wrap items-center gap-2">
+      {/* On phones this row takes the full width, so the toggles below always wrap instead of squeezing the range. */}
+      <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
       <div className="flex min-w-0 flex-1 items-center sm:flex-none">
         <Button variant="outline" size="icon" className="rounded-r-none" aria-label="Previous period" disabled={!canShift(preset)} onClick={() => shift(-1)}>
           <ChevronLeft />
@@ -119,7 +121,7 @@ export function Toolbar({state, range, units, earliest, latest, update}: Props) 
 
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" aria-label={`Comparison: ${COMPARE_LABELS[state.compare]}`}>
+          <Button variant="outline" className="shrink-0" aria-label={`Comparison: ${COMPARE_LABELS[state.compare]}`}>
             <GitCompareArrows />
             <span className="hidden sm:inline">{COMPARE_LABELS[state.compare]}</span>
             <ChevronDown className="opacity-60" />
@@ -134,6 +136,7 @@ export function Toolbar({state, range, units, earliest, latest, update}: Props) 
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
         <ToggleGroup
