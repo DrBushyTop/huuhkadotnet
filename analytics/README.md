@@ -64,10 +64,21 @@ own storage account, and Contributor on its own viewer for deployment.
    Entra account to the `owner` role. Accept the invitation through the same
    domain used to view the report.
 4. Start the Container Apps job manually to request the first export. It will
-   poll for the email at the next scheduled run. If the September 24 link is
-   still valid, `az containerapp job start -g huuhkadotnet-prod -n
-   huuhkadotnet-metrics-export --args src/run.mjs --bootstrap` can import a
-   recent export email within the last 72 hours without another Umami request.
+   poll for the email at the next scheduled run. To import an export email from
+   the last 72 hours without requesting a new one, start an execution with the
+   current job template and set its container args to
+   `["src/run.mjs", "--bootstrap"]`. The Azure CLI treats `--bootstrap` as its
+   own flag when passed through `--args`, so use `az containerapp job start
+   --yaml` with the modified template.
+
+   ```sh
+   mkdir -p .deployment
+   az containerapp job show -g huuhkadotnet-prod -n huuhkadotnet-metrics-export \
+     --query properties.template -o json > .deployment/metrics-job-template.json
+   node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(".deployment/metrics-job-template.json")); x.containers[0].args=["src/run.mjs","--bootstrap"]; fs.writeFileSync(".deployment/metrics-bootstrap.yaml",JSON.stringify(x));'
+   az containerapp job start -g huuhkadotnet-prod -n huuhkadotnet-metrics-export \
+     --yaml .deployment/metrics-bootstrap.yaml
+   ```
 5. Check the new app as the owner, then use a signed-out browser and a different
    account to confirm that neither `/` nor `/report.json` reveals data. The
    report should show the same page-view total as the source export. Check the
