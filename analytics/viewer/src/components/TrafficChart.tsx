@@ -2,7 +2,8 @@ import {useState} from 'react';
 import {Area, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis} from 'recharts';
 import {ChangeBadge} from '@/components/ChangeBadge';
 import {METRIC_LABELS} from '@/components/MetricCards';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {InfoTip} from '@/components/InfoTip';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {ChartContainer, ChartTooltip, type ChartConfig} from '@/components/ui/chart';
 import {ToggleGroup, ToggleGroupItem} from '@/components/ui/toggle-group';
 import type {MetricKey} from '@/lib/analytics';
@@ -59,13 +60,13 @@ export function TrafficChart({metric, range, zone, starts, series, previousStart
   return (
     <Card className="gap-3 py-4">
       <CardHeader className="flex items-start justify-between gap-3 px-5">
-        <div className="grid min-w-0 gap-1">
+        <div className="flex min-w-0 items-center gap-1.5">
           <CardTitle>{label} by {range.unit}</CardTitle>
           {(previousSeries || (ga4 && series.some(value => value === null))) && (
-            <CardDescription>
-              {previousSeries && (kind === 'bar' ? 'Grey bars show the comparison period.' : 'The dashed line shows the comparison period.')}
-              {ga4 && series.some(value => value === null) && ` Gaps: GA4 can't provide ${label.toLowerCase()} for those periods.`}
-            </CardDescription>
+            <InfoTip label="About this chart">
+              {previousSeries && <p>{kind === 'bar' ? 'Grey bars show the comparison period.' : 'The dashed line shows the comparison period.'}</p>}
+              {ga4 && series.some(value => value === null) && <p className="mt-1">Gaps are periods where GA4 data can’t provide {label.toLowerCase()}.</p>}
+            </InfoTip>
           )}
         </div>
         <ToggleGroup className="shrink-0" type="single" variant="outline" size="sm" value={kind} onValueChange={value => value && setKind(value as 'bar' | 'line')} aria-label="Chart style">

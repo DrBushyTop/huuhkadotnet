@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import {ArrowUpRight, Search} from 'lucide-react';
 import {ChangeBadge} from '@/components/ChangeBadge';
+import {InfoTip} from '@/components/InfoTip';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
@@ -67,7 +68,10 @@ export function BreakdownCard({title, tabs, sources, current, previous: previous
   return (
     <Card className="min-w-0 gap-3 py-5">
       <CardHeader className="flex flex-wrap items-center justify-between gap-3 px-5">
-        <CardTitle className="text-base">{title}</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-base">{title}</CardTitle>
+          {note && <InfoTip label={`About ${title.toLowerCase()}`}>{note}</InfoTip>}
+        </div>
         <ToggleGroup
           type="single"
           size="sm"
@@ -88,8 +92,6 @@ export function BreakdownCard({title, tabs, sources, current, previous: previous
             ))}
           </TabsList>
         </Tabs>
-
-        {note && <p className="text-xs text-muted-foreground">{note}</p>}
 
         {expanded && (
           <label className="relative">

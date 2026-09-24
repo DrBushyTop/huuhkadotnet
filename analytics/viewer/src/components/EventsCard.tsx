@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {InfoTip} from '@/components/InfoTip';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {events, type Period} from '@/lib/combined';
 import {formatNumber} from '@/lib/format';
@@ -9,12 +10,12 @@ export function EventsCard({current}: {current: Period}) {
   return (
     <Card className="min-w-0 gap-3 py-5">
       <CardHeader className="px-5">
-        <CardTitle className="text-base">Events</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-base">Events</CardTitle>
+          {mixed && <InfoTip label="About events">Includes GA4’s automatic events, such as page_view and scroll. GA4 counts users per day, so visitors are not shown.</InfoTip>}
+        </div>
       </CardHeader>
       <CardContent className="grid gap-2 px-5">
-        {mixed && (
-          <p className="text-xs text-muted-foreground">Includes GA4's automatic events, such as page_view and scroll. GA4 counts users per day, so visitors are not shown.</p>
-        )}
         {rows.length ? (
           <>
             <div className="flex justify-between px-2 text-[11px] font-medium text-muted-foreground">

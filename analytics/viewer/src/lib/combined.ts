@@ -143,8 +143,8 @@ export function period(sources: Sources, range: Range, filters: Filter[], zone: 
   const metrics = display(sum(contributors.map(contributor => contributor.counts(range))));
   const notes: Partial<Record<MetricKey, string>> = {};
   if (contributors.length > 1) {
-    if (metrics.bounceRate !== null) notes.bounceRate = 'GA4: sessions without engagement';
-    if (metrics.duration !== null) notes.duration = 'GA4: session duration';
+    if (metrics.bounceRate !== null) notes.bounceRate = 'Includes GA4 days, where a bounce is a session without engagement rather than a single-page visit.';
+    if (metrics.duration !== null) notes.duration = 'Includes GA4 days, which use GA4\'s average session duration.';
   }
   return {range, selection: data.select(range, filters, zone), contributors, metrics, notes, baseline: state};
 }

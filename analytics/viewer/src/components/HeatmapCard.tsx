@@ -1,4 +1,5 @@
 import {useMemo, useState} from 'react';
+import {InfoTip} from '@/components/InfoTip';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {ToggleGroup, ToggleGroupItem} from '@/components/ui/toggle-group';
 import type {Dataset, Filter} from '@/lib/analytics';
@@ -29,10 +30,12 @@ export function HeatmapCard({data, selection, zone, onFilter, ga4, umamiStart}: 
     <Card className="min-w-0 gap-3 py-5">
       <CardHeader className="flex flex-wrap items-center justify-between gap-3 px-5">
         <div className="grid gap-1">
-          <CardTitle className="text-base">Traffic by weekday and hour</CardTitle>
+          <div className="flex items-center gap-1.5">
+            <CardTitle className="text-base">Traffic by weekday and hour</CardTitle>
+            {ga4 && <InfoTip label="About this heatmap">Hourly data starts {umamiStart}. GA4 days have no hours, so they are not included.</InfoTip>}
+          </div>
           <CardDescription className="text-xs">
             {peak.value ? `Busiest: ${WEEKDAYS[peak.day]} ${hourName(peak.hour)} (${zone === 'utc' ? 'UTC' : 'local time'})` : 'No hourly traffic in this range.'}
-            {ga4 && ` Hourly data starts ${umamiStart}; GA4 days are not included.`}
           </CardDescription>
         </div>
         <ToggleGroup type="single" size="sm" value={metric} onValueChange={value => value && setMetric(value as typeof metric)} aria-label="Heatmap metric">
