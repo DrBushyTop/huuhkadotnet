@@ -10,8 +10,9 @@ work here. The older application in the parent folder is not part of this build.
 - Read `.impeccable/surfaces/src-pages-index-astro.md` for homepage decisions.
 - Keep `.impeccable/design.json` consistent with approved design-system changes.
 - Preserve real article titles, publication dates, images, and destination URLs.
-- Keep the site local. Do not deploy, remove `noindex`, or add analytics without
-  an explicit request. Never modify production Ghost during ordinary development.
+- Deploy when the requested work needs Azure verification. Do not remove
+  `noindex` or add analytics to the public site without an explicit request.
+  Never modify production Ghost during ordinary development.
 
 Run the skill launcher from this directory:
 

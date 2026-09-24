@@ -23,7 +23,7 @@ export function mountComments(window: Window & typeof globalThis) {
   }
 
   let loaded = false;
-  let timeout: ReturnType<typeof setTimeout>;
+  let timeout: number;
   const showError = () => {
     window.clearTimeout(timeout);
     status.textContent = 'Comments could not load. You can read or join the discussion on GitHub.';
