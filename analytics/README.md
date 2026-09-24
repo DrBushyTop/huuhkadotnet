@@ -127,7 +127,11 @@ Access has two layers:
    disabled on the account.
 
 MSAL v5 runs every flow through `redirect.html`, its redirect bridge. That page
-must stay registered as an SPA redirect URI for both hostnames. Tokens are kept
+must stay registered as an SPA redirect URI for both hostnames. It and its MSAL
+code in `/msal/` are the only public paths, with `favicon.svg`: Firefox-based
+browsers don't send the Static Web App's auth cookie in MSAL's hidden sign-in
+iframe, so an owner-only bridge would bounce to the Static Web App login host,
+which the CSP refuses to frame. Neither path contains app code or data. Tokens are kept
 in session storage. The CSP allows `login.microsoftonline.com` and the storage
 account for fetches, and same-origin framing for silent token renewal. It still
 forbids inline `<style>`, so chart colours live in `viewer/src/index.css`

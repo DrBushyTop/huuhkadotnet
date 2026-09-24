@@ -1,6 +1,9 @@
 {
   "routes": [
     {"route": "/.auth/login/github", "statusCode": 404},
+    {"route": "/redirect.html", "allowedRoles": ["anonymous"], "headers": {"Cache-Control": "no-store"}},
+    {"route": "/msal/*", "allowedRoles": ["anonymous"]},
+    {"route": "/favicon.svg", "allowedRoles": ["anonymous"]},
     {"route": "/*", "allowedRoles": ["owner"], "headers": {"Cache-Control": "no-store"}}
   ],
   "responseOverrides": {

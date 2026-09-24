@@ -29,6 +29,15 @@ export default defineConfig({
   build: {
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 1200,
-    rollupOptions: {input: {main: 'index.html', redirect: 'redirect.html'}},
+    rollupOptions: {
+      input: {main: 'index.html', redirect: 'redirect.html'},
+      output: {
+        // redirect.html must load before the Static Web App knows who you are
+        // (Firefox drops the auth cookie in MSAL's hidden iframe), so it and
+        // its MSAL code live in /msal/, the only public folder. See staticwebapp.config.json.
+        entryFileNames: chunk => chunk.name === 'redirect' ? 'msal/[name]-[hash].js' : 'assets/[name]-[hash].js',
+        chunkFileNames: 'msal/[name]-[hash].js',
+      },
+    },
   },
 });
