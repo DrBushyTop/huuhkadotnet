@@ -117,6 +117,51 @@ Set `SITE_INDEXABLE=true` only after domain cutover. Rerun a previous successful
 GitHub Actions run to roll back the site. Image uploads are additive; previous
 images remain available, but overwriting the same blob path is not versioned.
 
+## Availability monitoring
+
+`monitoring.bicep` deploys independently into `huuhkadotnet-prod`. Ordinary blog
+deployments do not change monitoring or notification contacts.
+
+- `huuhkadotnet-availability-logs`: Log Analytics workspace, 30-day retention
+  and a 1 GB daily ingestion cap.
+- `huuhkadotnet-availability`: workspace-backed Application Insights for synthetic
+  results only. No browser tracker is added to the blog.
+- `huuhkadotnet-www-availability`: Standard availability test, GET
+  `https://www.huuhka.net/` every five minutes from West Europe, North Europe,
+  France Central, East US, and Southeast Asia. Requires HTTP 200 within
+  30 seconds, does not follow redirects or fetch dependent assets, and retries
+  failures. TLS validation also requires at least one day before certificate expiry.
+- `huuhkadotnet-www-unavailable`: severity 1 alert when at least three locations
+  fail within the five-minute window, evaluated every minute. Automatically
+  resolves after recovery.
+- `huuhkadotnet-availability-notifications`: email and SMS receivers.
+  Contact values are supplied as secure deployment parameters, not committed.
+
+Deploy with a private ARM parameters file outside this repository:
+
+```sh
+az deployment group create -g huuhkadotnet-prod --name blog-monitoring \
+  --template-file deployment/monitoring.bicep --parameters @/private/path/monitoring.parameters.json
+```
+
+The parameters file must provide `alertEmail`, `smsCountryCode`, and
+`smsPhoneNumber`. Split the international number into country code and national
+number without `+`, spaces, or a domestic leading zero. Do not commit this file.
+
+Standard test executions, telemetry ingestion, metric alerts, and SMS can incur
+Azure Monitor charges. This tests the homepage's HTTP availability, not article
+images, client-side functionality, analytics, or comments.
+
+Deployment was verified on October 6, 2026. All five test locations reported
+successful runs. Azure reported a successful SMS test send. The email receiver
+was enabled, but email-only notification tests returned
+`There are no valid receivers in the request`; email delivery remains unverified.
+No production outage was induced to test alert firing or recovery.
+
+References: [availability tests](https://learn.microsoft.com/en-us/azure/azure-monitor/app/availability),
+[action groups](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/action-groups),
+[Azure Monitor pricing](https://azure.microsoft.com/en-us/pricing/details/monitor/).
+
 ## Analytics and comments
 
 Umami and giscus are configured in source, not deployment secrets. They activate

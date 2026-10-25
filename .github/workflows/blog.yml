@@ -31,7 +31,9 @@ jobs:
         env:
           MEDIA_BASE_URL: https://example.blob.core.windows.net/images
       - name: Compile infrastructure
-        run: az bicep build --file deployment/main.bicep --stdout > /dev/null
+        run: |
+          az bicep build --file deployment/main.bicep --stdout > /dev/null
+          az bicep build --file deployment/monitoring.bicep --stdout > /dev/null
       - uses: actions/upload-artifact@v4
         with:
           name: blog
