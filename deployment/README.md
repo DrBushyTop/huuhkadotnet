@@ -26,7 +26,9 @@ The environment contains the client, tenant and subscription IDs as variables.
 There are no stored Azure credentials or deployment-token secrets in GitHub.
 
 The Blog workflow builds and tests pull requests. Pushes to `master` and manual
-runs on `master` also deploy. The deploy job signs in with OIDC, applies Bicep,
+runs on `master` also deploy. An hourly scheduled run releases posts with a
+future `publishedAt`: a check job compares the content with the live sitemap and
+only builds and deploys when a post has become due. The deploy job signs in with OIDC, applies Bicep,
 uploads images, retrieves the Static Web Apps deployment token at runtime and
 publishes the site. It masks that token in Actions logs. A final HTTP check covers
 all pages, image URLs, AMP redirects, RSS, sitemap and the 404 response.

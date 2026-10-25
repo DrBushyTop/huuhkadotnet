@@ -5,15 +5,16 @@ import ReadingRail from '../components/ReadingRail.astro';
 import ImageViewer from '../components/ImageViewer.astro';
 import Icon from '../components/Icon.astro';
 import Comments from '../components/Comments.astro';
-import { getPosts, dateFormat } from '../lib/posts';
+import { getPosts, dateFormat, buildTime } from '../lib/posts';
+import { isPublished, seriesParts } from '../lib/publishing';
 import { contentsHeadings } from '../lib/reading';
 import author from '../data/author.json';
 import seriesGroups from '../data/series.json';
 
 export async function getStaticPaths() {
-  // Drafts render under `astro dev` for previewing, never in a build.
-  const drafts = import.meta.env.DEV ? await getCollection('blog', ({data}) => data.draft) : [];
-  return [...await getPosts(), ...drafts, ...await getCollection('pages', ({data}) => !data.draft)]
+  // Drafts and scheduled posts render under `astro dev` for previewing, never in a build.
+  const unpublished = import.meta.env.DEV ? await getCollection('blog', ({data}) => !isPublished(data, buildTime)) : [];
+  return [...await getPosts(), ...unpublished, ...await getCollection('pages', ({data}) => !data.draft)]
     .map(post => ({params: {slug: post.data.slug}, props: {post}}));
 }
 const { post } = Astro.props;
@@ -21,21 +22,22 @@ const { data } = post;
 const { Content, headings, remarkPluginFrontmatter } = await render(post);
 const contents = contentsHeadings(headings);
 const posts = await getPosts();
-const bySlug = new Map(posts.map(post => [post.data.slug, post.data]));
+const preview = post.collection === 'blog' && !isPublished(data, buildTime);
+// Every build lists the whole series, so earlier parts link a new part as soon as it's out.
+const allEntries = new Map((await getCollection('blog')).map(entry => [entry.data.slug, entry.data]));
 const series = seriesGroups.filter(group => data.series.includes(group.id)).map(group => ({
   ...group,
-  posts: group.posts.flatMap(slug => {
-    const entry = bySlug.get(slug);
-    return entry ? [{slug, title: entry.title}] : [];
-  }),
+  posts: seriesParts(group.posts, allEntries, buildTime),
 }));
 const primarySeries = series[0];
 const seriesIndex = primarySeries?.posts.findIndex(post => post.slug === data.slug) ?? -1;
 const nextInSeries = seriesIndex >= 0 ? primarySeries.posts[seriesIndex + 1] : undefined;
 const index = posts.findIndex(post => post.data.slug === data.slug);
 const older = index >= 0 ? posts[index + 1]?.data : undefined;
-const next = nextInSeries || older;
+const upcoming = nextInSeries && !nextInSeries.published ? nextInSeries : undefined;
+const next = upcoming ? undefined : nextInSeries || older;
 const nextLabel = nextInSeries ? `Next in ${primarySeries.title}` : 'Older article';
+const releaseText = (releaseAt?: string) => releaseAt ? `Coming ${dateFormat.format(new Date(releaseAt))}` : 'Coming soon';
 const updated = new Date(data.updatedAt).toDateString() !== new Date(data.publishedAt).toDateString();
 const structured = {
   '@context': 'https://schema.org', '@type': post.collection === 'blog' ? 'BlogPosting' : 'WebPage',
@@ -57,6 +59,7 @@ const structured = {
           <time datetime={data.publishedAt}>{dateFormat.format(new Date(data.publishedAt))}</time>
           {post.collection === 'blog' && <span class="reading-time" title="Estimated at 200 words per minute">{remarkPluginFrontmatter.readingMinutes} min read</span>}
           {updated && <span class="updated-date">Updated <time datetime={data.updatedAt}>{dateFormat.format(new Date(data.updatedAt))}</time></span>}
+          {preview && <span class="preview-flag">{data.draft ? 'Draft' : 'Scheduled'}</span>}
         </div>
         <ul class="article-tags reading-tags" aria-label="Topics">
           {data.tags.map((tag, i) => <li><a href={`/tag/${data.tagSlugs[i]}/`}>{tag}</a></li>)}
@@ -72,6 +75,11 @@ const structured = {
             <Icon name="arrow" size={22} />
           </a>
         </nav>}
+        {upcoming && <aside class="article-end" aria-label="Next in this series">
+          <div class="next-article next-upcoming">
+            <span><span class="next-label">{nextLabel} · {releaseText(upcoming.releaseAt)}</span><span class="next-title">{upcoming.title}</span></span>
+          </div>
+        </aside>}
         {post.collection === 'blog' && <Comments slug={data.slug} />}
       </div>
     </article>

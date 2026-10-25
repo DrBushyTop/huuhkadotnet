@@ -5,8 +5,12 @@ import PopularPosts from './PopularPosts.astro';
 import { getPosts, cardPost, dateFormat } from '../lib/posts';
 import { render } from 'astro:content';
 const entries = await getPosts();
-// The lead story and its image size. Swap both when featuring another post.
-const lead = {slug: 'talking-to-coding-agents-with-openwhispr-and-microsoft-foundry', width: 2016, height: 446};
+// Lead stories in order of preference, with their image sizes. The first published one leads,
+// so a scheduled post can be listed first and takes over on its release day.
+const leads = [
+  {slug: 'talking-to-coding-agents-with-openwhispr-and-microsoft-foundry', width: 2016, height: 446},
+];
+const lead = leads.find(candidate => entries.some(post => post.data.slug === candidate.slug))!;
 const featured = entries.find(post => post.data.slug === lead.slug)!.data;
 const posts = await Promise.all(entries.map(async entry => ({
   ...cardPost(entry), minutes: (await render(entry)).remarkPluginFrontmatter.readingMinutes,

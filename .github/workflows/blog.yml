@@ -5,6 +5,9 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+  # Releases scheduled posts. The check job skips the build when nothing has become due.
+  schedule:
+    - cron: '7 * * * *'
 
 permissions:
   contents: read
@@ -14,7 +17,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      due: ${{ steps.due.outputs.due }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: due
+        run: node --experimental-strip-types scripts/due-posts.mjs
   build:
+    needs: check
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || needs.check.outputs.due == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -40,7 +58,7 @@ jobs:
           path: dist
           retention-days: 7
   deploy:
-    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    if: ${{ !cancelled() && needs.build.result == 'success' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20

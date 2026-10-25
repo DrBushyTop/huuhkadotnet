@@ -1,9 +1,10 @@
 ---
 import type { MarkdownHeading } from 'astro';
+import { dateFormat } from '../lib/posts';
 interface SeriesGroup {
   id: string;
   title: string;
-  posts: { slug: string; title: string }[];
+  posts: { slug: string; title: string; published: boolean; releaseAt?: string }[];
 }
 interface Props { contents: MarkdownHeading[]; series: SeriesGroup[]; currentSlug: string }
 const { contents, series, currentSlug } = Astro.props;
@@ -18,8 +19,10 @@ const contentsDepth = Math.min(...contents.map(heading => heading.depth));
       </summary>
       <nav aria-label={`${group.title} series`}>
         <ol class="series-list">
-          {group.posts.map((post, index) => (
+          {group.posts.map((post, index) => post.published || post.slug === currentSlug ? (
             <li><a href={`/${post.slug}/`} aria-current={post.slug === currentSlug ? 'page' : undefined}><span class="series-number" aria-hidden="true">{index + 1}</span><span>{post.title}</span></a></li>
+          ) : (
+            <li class="series-upcoming"><span class="series-number" aria-hidden="true">{index + 1}</span><span>{post.title}<span class="series-release">{post.releaseAt ? <>Coming <time datetime={post.releaseAt}>{dateFormat.format(new Date(post.releaseAt))}</time></> : 'Coming soon'}</span></span></li>
           ))}
         </ol>
       </nav>

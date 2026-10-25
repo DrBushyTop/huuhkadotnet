@@ -29,5 +29,15 @@
       "shipping-signed-config-updates-to-local-ai-tooling",
       "designing-a-shared-opentelemetry-contract-for-ai-services-on-azure"
     ]
+  },
+  {
+    "id": "no-slop-engineer",
+    "title": "The no slop engineer",
+    "posts": [
+      "the-no-slop-engineer-before-any-code",
+      "planning-tools-for-coding-agents",
+      "the-no-slop-engineer-verify-and-review",
+      "the-no-slop-engineer-after-merge"
+    ]
   }
 ]

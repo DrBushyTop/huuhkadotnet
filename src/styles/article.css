@@ -15,6 +15,7 @@
 .reading-meta a:hover { color: var(--link); text-decoration: underline; }
 .reading-meta time { font-family: var(--nav-font); font-size: 11px; font-variant-numeric: tabular-nums; text-transform: uppercase; letter-spacing: .02em; }
 .updated-date { font-size: 12px; }
+.preview-flag { padding: 1px 8px; border: 1px dashed var(--muted); border-radius: 4px; font-family: var(--nav-font); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 .article-header .reading-tags { margin-top: 14px; flex-wrap: wrap; }
 .reading-tags a { display: inline-block; padding-block: 3px; }
 .reading-tags a:hover { text-decoration: underline; }
@@ -62,6 +63,8 @@ figcaption a { color: var(--link); text-decoration: underline; }
 .series-number { flex: 0 0 12px; font-family: var(--nav-font); font-size: 10px; padding-top: 2px; }
 .series-list a[aria-current] { color: var(--link); font-weight: 600; }
 .series-list a:hover { color: var(--link); text-decoration: underline; }
+.series-upcoming { display: flex; gap: 10px; padding: 7px 0; color: var(--muted); }
+.series-release { display: block; margin-top: 2px; font-family: var(--nav-font); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
 .toc-track { position: relative; margin-top: 10px; border-left: 1px solid var(--line); }
 .toc-list { list-style: none; margin: 0; padding: 0; }
 .toc-list a { display: block; padding: 7px 8px 7px 14px; color: var(--muted); text-decoration: none; }
@@ -76,6 +79,7 @@ figcaption a { color: var(--link); text-decoration: underline; }
 .next-label { display: block; font-family: var(--nav-font); font-size: 10px; line-height: 1.6; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .next-title { display: block; margin-top: 6px; font-family: var(--brand-font); font-size: 17px; font-weight: 500; line-height: 1.45; }
 .next-article:hover .next-title { color: var(--link); text-decoration: underline; }
+.next-upcoming .next-title, .next-upcoming:hover .next-title { color: var(--muted); text-decoration: none; }
 body.reading-view .reading-footer { width: min(720px, calc(100% - 48px)); margin-top: 36px; padding-block: 18px 24px; gap: 12px 24px; font-size: 12px; }
 
 /* Media and top-level code cross the text measure without taking rail space. */
@@ -100,7 +104,7 @@ body.reading-view .reading-footer { width: min(720px, calc(100% - 48px)); margin
   .series-name { margin-top: 0; }
   .rail-label { flex-shrink: 0; }
   .series-list,.toc-track { margin-bottom: 14px; }
-  .series-list a,.toc-list a { min-height: 38px; padding-block: 9px; }
+  .series-list a,.series-upcoming,.toc-list a { min-height: 38px; padding-block: 9px; }
 }
 @media (max-width: 600px) {
   .reading-page { width: calc(100% - 40px); padding-top: 24px; }

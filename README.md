@@ -25,6 +25,13 @@ Add `src/content/blog/your-slug.mdx` using an existing post as a template. Keep
 `publishedAt` and `updatedAt` as quoted ISO timestamps. The filename and frontmatter
 slug should match. `draft: true` excludes a post from public routes and feeds.
 
+To schedule a post, set `draft: false` and a future `publishedAt`. Builds leave it
+out until that time passes. The Blog workflow runs every hour, checks the live
+sitemap and deploys when a post has become due, usually within the hour. Keep a post
+as a draft until it's ready: a draft never publishes, even after its date. Run
+`PUBLISH_NOW=2026-11-20T09:00:00Z npm run build` to build the site as it will look
+then. `astro dev` shows drafts and scheduled posts at their URLs with a label.
+
 Use `tags` for display names and matching `tagSlugs` for archive URLs. Define any
 new tags in `src/data/tags.json`. Store new images under `public/images/` and use
 root-relative paths. Author information lives in `src/data/author.json`.
@@ -32,6 +39,8 @@ root-relative paths. Author information lives in `src/data/author.json`.
 For a series, add its ID to the post's `series` array and add the post slug to the
 ordered definition in `src/data/series.json`. Keep both in sync. Series links
 appear in the reader's collapsible navigation, not in an opening callout.
+Unpublished parts stay listed without a link, with their release date, so earlier
+parts pick up a new part on the build that publishes it.
 Contents includes section headings and their immediate subheadings in article
 order, starting at the shallowest heading depth of two or greater. The contents
 disclosure appears when that list has more than one entry.

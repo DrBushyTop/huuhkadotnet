@@ -58,7 +58,7 @@ FINISH: Record source-backed reader rules without claiming all articles, externa
 - Render the original MDX content and metadata. Do not invent excerpts, headings, tags, or editorial transitions.
 - Keep original heading anchors. Contents includes the shallowest eligible depth of two or greater and its immediate subheading depth, in article order. Show it when the combined list has more than one entry. Primary links have a 14px left inset; immediate subheadings have 24px.
 - Keep header, prose, continuation, and footer aligned to the centered 720px reading width. Center wider media independently and cap captions at the prose width. Code and tables scroll horizontally without widening the page.
-- Series memberships come from frontmatter arrays and ordered groups in `src/data/series.json`, including overlapping themes. Only explicit theme-navigation callouts move into the rail. Warnings and other author notes stay in the body.
+- Series memberships come from frontmatter arrays and ordered groups in `src/data/series.json`, including overlapping themes. Unpublished parts stay listed with their release date and no link. Only explicit theme-navigation callouts move into the rail. Warnings and other author notes stay in the body.
 - Remaining callouts use blockquotes; bookmark links retain their title and description. Embedded video remains external.
 - Keep canonical and SEO metadata, while noindex and blocking robots remain in place for this local pass.
 - Blog posts include click-to-load giscus comments after the continuation link.

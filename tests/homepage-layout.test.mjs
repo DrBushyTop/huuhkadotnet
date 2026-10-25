@@ -1,18 +1,26 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
+import {frontmatterField, isPublished} from '../src/lib/publishing.ts';
 
 const html = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
 const {document} = parseHTML(html);
+const blog = new URL('../src/content/blog/', import.meta.url);
+const published = readdirSync(blog).filter(file => file.endsWith('.mdx')).map(file => {
+  const source = readFileSync(new URL(file, blog), 'utf8');
+  return {slug: frontmatterField(source, 'slug'), title: '', publishedAt: frontmatterField(source, 'publishedAt'), draft: frontmatterField(source, 'draft') === 'true'};
+}).filter(post => isPublished(post, Date.now()));
+const publishedCount = published.length;
 
 test('homepage keeps the featured story, popular articles, and complete writing list', () => {
   const main = document.querySelector('main.field-notes');
   assert.ok(main);
-  assert.ok(main.querySelector('.notes-hero h1 a[href="/talking-to-coding-agents-with-openwhispr-and-microsoft-foundry/"]'));
+  const lead = main.querySelector('.notes-hero h1 a')?.getAttribute('href');
+  assert.ok(published.some(post => lead === `/${post.slug}/`), 'the lead story is a published post');
   assert.equal(main.querySelectorAll('.notes-popular .popular-card').length, 3);
-  assert.equal(main.querySelectorAll('#notes-list li[data-slug]').length, 56);
-  assert.equal(main.querySelector('#notes-count').textContent, '56 articles');
+  assert.equal(main.querySelectorAll('#notes-list li[data-slug]').length, publishedCount);
+  assert.equal(main.querySelector('#notes-count').textContent, `${publishedCount} articles`);
   assert.equal(main.querySelector('.notes-scroll').getAttribute('tabindex'), '0');
   assert.ok(main.querySelector('.notes-scroll[role="region"][aria-label]'));
   assert.ok(main.querySelector('form[role="search"][hidden]'), 'the list remains usable without JavaScript');
@@ -52,9 +60,9 @@ test('homepage search filters the complete list without hiding the featured or p
   assert.equal(popular.hidden, false);
 
   document.querySelector('.clear-search').dispatchEvent(new Event('click'));
-  assert.equal(count.textContent, '56 articles');
+  assert.equal(count.textContent, `${publishedCount} articles`);
   assert.equal(list.hidden, false);
-  assert.equal([...list.children].filter(row => !row.hidden).length, 56);
+  assert.equal([...list.children].filter(row => !row.hidden).length, publishedCount);
   assert.equal(location.search, '');
 
   location.search = '?q=azure';
