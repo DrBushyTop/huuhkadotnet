@@ -29,7 +29,7 @@ are capped at 720px. Feature images, standalone inline-image figures, and wide
 
 The build groups standalone image paragraphs and adjacent captions into semantic
 figures without editing imported MDX. JavaScript wraps unlinked images outside
-`ReaderFigure` blocks in buttons with accessible names, visible focus rings, and a
+`ReaderFigure` blocks, and inside blocks marked `zoom`, in buttons with accessible names, visible focus rings, and a
 zoom-in cursor. No visible Zoom label, icon, or other overlay cue remains. The
 native dialog preserves the caption, offers the original image, and supports
 Close, Escape, backdrop dismissal, focus return, and document scroll locking.

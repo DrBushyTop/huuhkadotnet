@@ -9,10 +9,10 @@ const {document} = parseHTML(html);
 test('homepage keeps the featured story, popular articles, and complete writing list', () => {
   const main = document.querySelector('main.field-notes');
   assert.ok(main);
-  assert.ok(main.querySelector('.notes-hero h1 a[href="/building-your-own-pr-reviewer-with-coding-agents/"]'));
+  assert.ok(main.querySelector('.notes-hero h1 a[href="/talking-to-coding-agents-with-openwhispr-and-microsoft-foundry/"]'));
   assert.equal(main.querySelectorAll('.notes-popular .popular-card').length, 3);
-  assert.equal(main.querySelectorAll('#notes-list li[data-slug]').length, 55);
-  assert.equal(main.querySelector('#notes-count').textContent, '55 articles');
+  assert.equal(main.querySelectorAll('#notes-list li[data-slug]').length, 56);
+  assert.equal(main.querySelector('#notes-count').textContent, '56 articles');
   assert.equal(main.querySelector('.notes-scroll').getAttribute('tabindex'), '0');
   assert.ok(main.querySelector('.notes-scroll[role="region"][aria-label]'));
   assert.ok(main.querySelector('form[role="search"][hidden]'), 'the list remains usable without JavaScript');
@@ -52,9 +52,9 @@ test('homepage search filters the complete list without hiding the featured or p
   assert.equal(popular.hidden, false);
 
   document.querySelector('.clear-search').dispatchEvent(new Event('click'));
-  assert.equal(count.textContent, '55 articles');
+  assert.equal(count.textContent, '56 articles');
   assert.equal(list.hidden, false);
-  assert.equal([...list.children].filter(row => !row.hidden).length, 55);
+  assert.equal([...list.children].filter(row => !row.hidden).length, 56);
   assert.equal(location.search, '');
 
   location.search = '?q=azure';

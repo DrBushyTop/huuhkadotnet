@@ -1,0 +1,241 @@
+---
+// The route a phone dictation takes, and the credential checked at each hop.
+// Everything is readable without JavaScript; the script only plays the trip.
+import DiagramIcon from './DiagramIcon.astro';
+type Line = {text: string; mono?: boolean; id?: string};
+type Role = 'client' | 'network' | 'server' | 'cloud';
+const nodes: {id: string; name: string; role: Role; icon: 'phone' | 'network' | 'server' | 'foundry'; lines: Line[]}[] = [
+  {id: 'phone', name: 'Phone', role: 'client', icon: 'phone', lines: [{text: 'Whispr Mic'}, {text: 'records a WAV'}]},
+  {id: 'tailnet', name: 'Tailnet', role: 'network', icon: 'network', lines: [{text: 'Tailscale Service'}, {text: 'whispr.<tailnet>.ts.net', mono: true}]},
+  {id: 'home', name: 'Home server', role: 'server', icon: 'server', lines: [{text: 'OpenWhispr Patched', id: 'app'}, {text: 'Foundry shim', id: 'shim'}]},
+  {id: 'azure', name: 'Microsoft Foundry', role: 'cloud', icon: 'foundry', lines: [{text: 'LLM Speech / MAI-Transcribe-2', id: 'stt'}, {text: 'gpt-5.4-mini', id: 'llm'}]},
+];
+const gates = ['Tailnet grant', 'Bearer token', 'Entra ID token'];
+const steps = [
+  {label: 'Record', text: 'Tap the mic above the keyboard and talk. The phone records the audio.'},
+  {label: 'Into the tailnet', text: 'The recording goes to a Tailscale Service address. Only my own devices that have a grant to that service get through.'},
+  {label: 'Home server', text: 'Tailscale Serve passes it to OpenWhispr Patched, which listens on localhost and checks the token.'},
+  {label: 'Transcribe', text: 'OpenWhispr runs its normal dictation pipeline. The shim sends the audio to Foundry with my Entra ID token from az login.'},
+  {label: 'Clean up', text: 'The raw transcript goes back out to gpt-5.4-mini with my cleanup prompt and dictionary.'},
+  {label: 'Typed in', text: 'The cleaned text comes back the same way and is typed at the cursor.'},
+];
+---
+<figure class="reader-figure voice-path" data-width="wide" data-voice-path aria-label="The route of a phone dictation">
+  <div class="vp-stage">
+    <div class="vp-track" aria-hidden="true"></div>
+    {nodes.map((node, i) => (
+      <div class="vp-node" data-node={node.id} data-i={i} style={`--hue: var(--diagram-${node.role})`}>
+        <span class="vp-head"><DiagramIcon name={node.icon} /><span class="vp-name">{node.name}</span></span>
+        {node.lines.map(line => <span class:list={['vp-line', {mono: line.mono}]} data-line={line.id}>{line.text}</span>)}
+      </div>
+    ))}
+    {gates.map((gate, i) => (
+      <span class="vp-gate" data-gate={i}>
+        <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        {gate}
+      </span>
+    ))}
+    <span class="vp-token" data-form="audio" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22">
+        <g class="vp-wave">{[4, 8, 12, 16, 20].map((x, i) => <rect x={x - 1} y={[9, 5, 3, 6, 9][i]} width="2" height={[6, 14, 18, 12, 6][i]} rx="1" />)}</g>
+        <g class="vp-text">{[7, 12, 17].map((y, i) => <rect x="4" y={y - 1} width={[16, 16, 10][i]} height="2" rx="1" />)}</g>
+      </svg>
+    </span>
+  </div>
+  <ol class="vp-steps">
+    {steps.map((step, i) => <li data-step={i}><strong>{step.label}.</strong> {step.text}</li>)}
+  </ol>
+  <figcaption>
+    <span>The route from the phone to Foundry and back, with the auth checks along the way. The actual round trip takes a few seconds.</span>
+    <button type="button" class="vp-replay" hidden>Play again</button>
+  </figcaption>
+</figure>
+
+<style>
+  .voice-path { margin-block: 40px; }
+  .vp-stage {
+    position: relative; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-rows: 56px auto; font-family: var(--brand-font);
+  }
+  .vp-track { grid-row: 1; grid-column: 2 / 8; align-self: center; height: 2px; background: var(--line); border-radius: 1px; }
+  .vp-node {
+    grid-row: 2; display: flex; flex-direction: column; gap: 4px; margin-inline: 6px; padding: 14px 16px;
+    background: color-mix(in oklab, var(--hue) 6%, var(--popular-ground));
+    border: 1px solid color-mix(in oklab, var(--hue) 30%, var(--line)); border-radius: 12px;
+    transition: border-color 200ms ease-out, background-color 200ms ease-out;
+  }
+  .vp-node[data-i="0"] { grid-column: 1 / span 2; }
+  .vp-node[data-i="1"] { grid-column: 3 / span 2; }
+  .vp-node[data-i="2"] { grid-column: 5 / span 2; }
+  .vp-node[data-i="3"] { grid-column: 7 / span 2; }
+  .vp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .vp-name { color: var(--ink); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .vp-line { color: var(--muted); font-family: var(--body-font); font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; transition: color 200ms ease-out; }
+  .vp-line.mono { font-family: var(--nav-font); font-size: 12px; }
+  .vp-gate svg { color: var(--diagram-auth); }
+  .vp-gate {
+    grid-row: 1; align-self: center; justify-self: center; z-index: 1; display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; background: var(--paper); color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+    font-family: var(--nav-font); font-size: 11px; letter-spacing: 0.02em; white-space: nowrap;
+    transition: color 200ms ease-out, border-color 200ms ease-out, background-color 200ms ease-out;
+  }
+  .vp-gate[data-gate="0"] { grid-column: 2 / span 2; }
+  .vp-gate[data-gate="1"] { grid-column: 4 / span 2; }
+  .vp-gate[data-gate="2"] { grid-column: 6 / span 2; }
+  .vp-token {
+    position: absolute; left: 0; top: 0; z-index: 2; display: none; place-items: center;
+    width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
+    background: var(--accent); color: var(--paper); outline: 4px solid var(--paper);
+  }
+  .vp-token svg { fill: currentColor; overflow: visible; }
+  .vp-token g { transition: opacity 180ms ease-out; }
+  .vp-token .vp-text, .vp-token[data-form="text"] .vp-wave { opacity: 0; }
+  .vp-token[data-form="text"] .vp-text { opacity: 1; }
+  .vp-wave rect { transform-box: fill-box; transform-origin: center; }
+
+  .vp-steps {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px;
+    margin: 24px 0 0; padding: 0; list-style: none; counter-reset: vp;
+    font-size: 15px; line-height: 1.5; color: var(--muted);
+  }
+  .vp-steps li { counter-increment: vp; padding: 10px 12px; border-radius: 9px; transition: color 200ms ease-out, background-color 200ms ease-out; }
+  .vp-steps li::before { content: counter(vp); display: block; margin-bottom: 2px; font-family: var(--nav-font); font-size: 11px; color: var(--muted); }
+  .vp-steps strong { color: var(--ink); font-weight: 600; }
+  .voice-path figcaption { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 16px; margin-inline: auto; max-width: 720px; }
+  .vp-replay {
+    min-height: 32px; padding: 4px 12px; border: 1px solid var(--control-border); border-radius: 6px;
+    background: var(--paper); color: var(--ink); font: 13px var(--nav-font); cursor: pointer;
+    transition: background-color 150ms ease-out;
+  }
+  .vp-replay:hover { background: var(--nav-highlight); }
+  .vp-replay:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  /* Active states, set by the script while the trip plays. */
+  .vp-node[data-active] { border-color: var(--hue); background: color-mix(in oklab, var(--hue) 14%, var(--popular-ground)); }
+  .vp-line[data-active] { color: var(--link); }
+  .vp-gate[data-active] { color: var(--ink); border-color: var(--diagram-auth); background: color-mix(in oklab, var(--diagram-auth) 14%, var(--paper)); }
+  .vp-steps li[aria-current] { color: var(--ink); background: var(--nav-highlight); }
+  .voice-path[data-ready] .vp-token { display: grid; }
+
+  @media (max-width: 760px) {
+    .vp-stage { grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: none; row-gap: 0; }
+    .vp-track { grid-column: 1; grid-row: 1 / span 7; justify-self: center; align-self: stretch; width: 2px; height: auto; margin-block: 34px; }
+    .vp-stage > :is(.vp-node, .vp-gate) { grid-column: 2; margin-inline: 0; }
+    .vp-node[data-i="0"] { grid-row: 1; } .vp-gate[data-gate="0"] { grid-row: 2; }
+    .vp-node[data-i="1"] { grid-row: 3; } .vp-gate[data-gate="1"] { grid-row: 4; }
+    .vp-node[data-i="2"] { grid-row: 5; } .vp-gate[data-gate="2"] { grid-row: 6; }
+    .vp-node[data-i="3"] { grid-row: 7; }
+    .vp-gate { justify-self: start; margin: 8px 0 8px 12px; }
+    .vp-steps { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vp-node, .vp-line, .vp-gate, .vp-steps li, .vp-token g { transition-duration: 1ms; }
+  }
+</style>
+
+<script>
+  import { animate, inView, stagger } from 'motion';
+
+  const ease = [0.16, 1, 0.3, 1] as const;
+  const order = ['phone', 'tailnet', 'home', 'azure'];
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-voice-path]')) setup(root);
+
+  function setup(root: HTMLElement) {
+    const stage = root.querySelector<HTMLElement>('.vp-stage')!;
+    const track = root.querySelector<HTMLElement>('.vp-track')!;
+    const token = root.querySelector<HTMLElement>('.vp-token')!;
+    const bars = [...token.querySelectorAll<SVGRectElement>('.vp-wave rect')];
+    const replay = root.querySelector<HTMLButtonElement>('.vp-replay')!;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const node = (id: string) => root.querySelector<HTMLElement>(`[data-node="${id}"]`)!;
+    let run = 0;
+    let at = 'phone';
+    let running: {stop(): void}[] = [];
+    let moving = false;
+    let played = false;
+
+    // The track runs across on wide screens and down on phones; place the token on it.
+    function point(id: string) {
+      const s = stage.getBoundingClientRect(), t = track.getBoundingClientRect(), n = node(id).getBoundingClientRect();
+      return t.width >= t.height
+        ? {x: n.left + n.width / 2 - s.left, y: t.top + t.height / 2 - s.top}
+        : {x: t.left + t.width / 2 - s.left, y: n.top + n.height / 2 - s.top};
+    }
+    function place(id: string) { const p = point(id); animate(token, {x: p.x, y: p.y}, {duration: 0}); at = id; }
+
+    function mark(selector: string, on: boolean) {
+      root.querySelectorAll(selector).forEach(el => on ? el.setAttribute('data-active', '') : el.removeAttribute('data-active'));
+    }
+    function clear() {
+      root.querySelectorAll('[data-active]').forEach(el => el.removeAttribute('data-active'));
+      root.querySelectorAll('[aria-current]').forEach(el => el.removeAttribute('aria-current'));
+    }
+    function step(i: number) {
+      clear();
+      root.querySelector(`[data-step="${i}"]`)?.setAttribute('aria-current', 'step');
+    }
+    const keep = <T extends {stop(): void}>(a: T) => (running.push(a), a);
+    const pause = (ms: number) => new Promise(r => setTimeout(r, reduced.matches ? ms * 1.4 : ms));
+
+    // Move one node at a time, lighting the credential checked at each boundary.
+    async function travel(to: string, live: () => boolean) {
+      let from = order.indexOf(at);
+      const end = order.indexOf(to);
+      while (from !== end && live()) {
+        const next = from + Math.sign(end - from);
+        const gate = root.querySelector(`[data-gate="${Math.min(from, next)}"]`);
+        gate?.setAttribute('data-active', '');
+        const p = point(order[next]);
+        moving = true;
+        await keep(animate(token, {x: p.x, y: p.y}, {duration: reduced.matches ? 0 : 0.7, ease}));
+        moving = false;
+        if (!live()) return;
+        at = order[next];
+        mark(`[data-node="${at}"]`, true);
+        if (next !== end) { await pause(250); mark(`[data-node="${at}"]`, false); }
+        from = next;
+      }
+    }
+
+    async function play() {
+      const id = ++run;
+      const live = () => id === run;
+      running.forEach(a => a.stop());
+      running = [];
+      moving = false;
+      clear();
+      token.dataset.form = 'audio';
+      place('phone');
+
+      step(0); mark('[data-node="phone"]', true);
+      if (!reduced.matches) keep(animate(bars, {scaleY: [1, 0.35, 1, 0.55, 1]}, {duration: 1.1, repeat: 1, delay: stagger(0.09)}));
+      await pause(1500); if (!live()) return;
+
+      step(1); await travel('tailnet', live); await pause(700); if (!live()) return;
+      step(2); await travel('home', live); mark('[data-line="app"]', true); await pause(800); if (!live()) return;
+
+      step(3); mark('[data-line="shim"]', true); await travel('azure', live); mark('[data-line="stt"]', true);
+      await pause(500); if (!live()) return;
+      token.dataset.form = 'text';
+      await pause(700); if (!live()) return;
+
+      step(4); await travel('home', live); mark('[data-line="app"]', true); await pause(400); if (!live()) return;
+      await travel('azure', live); mark('[data-line="llm"]', true); await pause(1000); if (!live()) return;
+
+      step(5);
+      await travel('phone', live);
+      if (!live()) return;
+      mark('[data-node="phone"]', true);
+      await keep(animate(token, {scale: [1, 1.18, 1]}, {duration: reduced.matches ? 0 : 0.4, ease}));
+    }
+
+    root.setAttribute('data-ready', '');
+    place('phone');
+    replay.hidden = false;
+    replay.addEventListener('click', () => play());
+    new ResizeObserver(() => { if (!moving) place(at); }).observe(stage);
+    // Play once on the first visit; the button replays it.
+    inView(root, () => { if (!played) { played = true; play(); } }, {amount: 0.6});
+  }
+</script>

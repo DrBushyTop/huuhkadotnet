@@ -17,7 +17,7 @@ THESIS: A featured article with its original architecture diagram, three compact
 
 OWN-WORLD: White light-mode ground, dark ink, fine rules, and incumbent Geist titles. Dark mode uses Macchiato. Preserve the shared header and real article content.
 
-STORY: Read the featured article, open a popular post, or search all 55 articles by title or tag. Dates and reading estimates come from the content.
+STORY: Read the featured article, open a popular post, or search all articles by title or tag. Dates and reading estimates come from the content.
 
 FIRST VIEWPORT: The author introduction precedes the hero, popular cards, and search above the independently scrolling list. The footer stays pinned.
 
@@ -27,9 +27,9 @@ FINISH: The build and tests pass. Browser checks confirm that cards and search m
 
 ## Homepage behavior
 
-The featured article is "Building your own PR reviewer with coding agents". Its original image, excerpt, date, and reading estimate remain. Three popular selections use the owner-supplied ranking.
+The featured article is set by `lead` in `FieldNotesHome.astro`, currently "Talking to my coding agents with OpenWhispr and Microsoft Foundry". Its frontmatter image, excerpt, date, and reading estimate are shown. The previous lead, "Building your own PR reviewer with coding agents", stays first in the popular ranking. Three popular selections use the owner-supplied ranking.
 
-All 55 article rows are available in a keyboard-focusable, independently scrolling region, including without JavaScript. There is no homepage pagination or automatic loading. Search filters only the list, leaving the hero and popular cards visible. Root `?q=` bookmarks search this list directly. Clear, Escape reset, query history, and the no-results state remain supported. Each search resets the list scroll position.
+All article rows are available in a keyboard-focusable, independently scrolling region, including without JavaScript. There is no homepage pagination or automatic loading. Search filters only the list, leaving the hero and popular cards visible. Root `?q=` bookmarks search this list directly. Clear, Escape reset, query history, and the no-results state remain supported. Each search resets the list scroll position.
 
 On desktops wider than 1000px and at least 760px high, the layout fits the viewport and only the list scrolls. The hero, cards, search, and footer stay in place. At desktop heights from 760px to 820px, tighter introduction and hero spacing preserves list space. Narrow or short screens allow page scrolling, with the footer pinned and the list at 55dvh.
 
@@ -39,7 +39,7 @@ The selected `PopularPosts.astro` cards place artwork on the right. Cards and im
 
 ## Assets and boundaries
 
-The hero reuses `public/images/ghost/8646679fc3845554da55.png` from the article frontmatter. Popular cards reuse existing `CardImage` assets and the pre-existing `public/images/pasi.webp` fallback. Original raster files remain unchanged. No new imagery is needed.
+The hero reuses the featured article's frontmatter image, currently `public/images/openwhispr-foundry/voice-route.png`, a still of the article's route diagram, framed with a hairline border and 12px radius. Popular cards reuse existing `CardImage` assets and the pre-existing `public/images/pasi.webp` fallback. Original raster files remain unchanged. No new imagery is needed.
 
 Global DESIGN.md, tokens, and `.impeccable/design.json` remain unchanged. The pre-existing doctor warning that DESIGN.md is newer than its sidecar remains outside this task. Local noindex and preview analytics exclusions remain. No deployment or analytics change accompanies this work.
 

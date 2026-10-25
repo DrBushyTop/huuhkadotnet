@@ -5,7 +5,9 @@ import PopularPosts from './PopularPosts.astro';
 import { getPosts, cardPost, dateFormat } from '../lib/posts';
 import { render } from 'astro:content';
 const entries = await getPosts();
-const featured = entries.find(post => post.data.slug === 'building-your-own-pr-reviewer-with-coding-agents')!.data;
+// The lead story and its image size. Swap both when featuring another post.
+const lead = {slug: 'talking-to-coding-agents-with-openwhispr-and-microsoft-foundry', width: 2016, height: 446};
+const featured = entries.find(post => post.data.slug === lead.slug)!.data;
 const posts = await Promise.all(entries.map(async entry => ({
   ...cardPost(entry), minutes: (await render(entry)).remarkPluginFrontmatter.readingMinutes,
 })));
@@ -33,11 +35,11 @@ const popular = [
         <p class="hero-description">{featured.description}</p>
         <div class="hero-actions">
           <a class="hero-read" href={`/${featured.slug}/`}>Read the post <Icon name="arrow" size={18} /></a>
-          <p><time datetime={featured.publishedAt}>{dateFormat.format(new Date(featured.publishedAt))}</time><span>{popular[0].minutes} min read</span></p>
+          <p><time datetime={featured.publishedAt}>{dateFormat.format(new Date(featured.publishedAt))}</time><span>{posts.find(post => post.slug === lead.slug)!.minutes} min read</span></p>
         </div>
       </div>
       <a class="hero-image" href={`/${featured.slug}/`} aria-label={`Read ${featured.title}`}>
-        <img src={featured.image} alt={featured.imageAlt || 'Architecture of an automated PR reviewer, from triggering event through context gathering and LLM review to posted results.'} width="2000" height="606" fetchpriority="high" />
+        <img src={featured.image} alt={featured.imageAlt} width={lead.width} height={lead.height} fetchpriority="high" />
       </a>
     </section>
     <PopularPosts posts={popular} />
@@ -143,8 +145,8 @@ const popular = [
   .hero-read:hover { background: var(--notes-ink); }
   .hero-actions p { display: flex; gap: 12px; color: var(--notes-muted); font-size: 12px; }
   .hero-actions p span { border-left: 1px solid var(--notes-line); padding-left: 12px; }
-  .hero-image { display: grid; place-items: center; background: #fff; padding: 20px; }
-  .hero-image img { width: 100%; height: auto; }
+  .hero-image { display: grid; place-items: center; }
+  .hero-image img { width: 100%; height: auto; border: 1px solid var(--notes-line); border-radius: 12px; }
   .notes-heading h2 { font: 500 11px/1.5 var(--brand-font); text-transform: uppercase; letter-spacing: 0.14em; }
   .notes-writing { margin-top: 20px; }
   .notes-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 12px; }

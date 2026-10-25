@@ -1,7 +1,8 @@
 ---
-interface Props { width?: 'text' | 'wide'; label: string }
-const { width = 'wide', label } = Astro.props;
+// `zoom` opts plain image figures into the image viewer; other children keep their own interactions.
+interface Props { width?: 'text' | 'wide'; label: string; zoom?: boolean }
+const { width = 'wide', label, zoom = false } = Astro.props;
 ---
-<figure class="reader-figure" data-width={width} aria-label={label}>
+<figure class="reader-figure" data-width={width} data-zoom={zoom ? '' : undefined} aria-label={label}>
   <slot />
 </figure>

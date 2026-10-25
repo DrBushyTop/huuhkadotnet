@@ -21,6 +21,12 @@
 .article-body { grid-column: 2; grid-row: 2; min-width: 0; }
 .feature-image { margin: 0 0 32px; }
 .reader-figure { margin: 32px 0; }
+.phone-shots { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 24px; }
+.phone-shots :is(img, .image-zoom) { width: min(300px, calc((100% - 48px) / 3)); }
+@media (max-width: 600px) { .phone-shots :is(img, .image-zoom) { width: calc(50% - 12px); } }
+.phone-shots img { height: auto; border: 1px solid var(--line); border-radius: 12px; }
+.phone-shots .image-zoom { border-radius: 12px; }
+.phone-shots .image-zoom img { width: 100%; }
 .feature-image img { width: 100%; max-height: 440px; object-fit: contain; border-radius: 12px; }
 figcaption { margin-top: 10px; color: var(--muted); font-size: 14px; line-height: 1.5; text-align: center; }
 figcaption a { color: var(--link); text-decoration: underline; }

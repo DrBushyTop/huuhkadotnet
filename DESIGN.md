@@ -15,6 +15,11 @@ colors:
   nav-highlight: "#eef1f3"
   article-ground: "#f7f9fa"
   image-backdrop: "rgb(20 29 40 / 82%)"
+  diagram-client: "#b4418f"
+  diagram-network: "#117d84"
+  diagram-server: "#c4510a"
+  diagram-auth: "#9a6410"
+  diagram-cloud: "#1e66f5"
 typography:
   brand:
     fontFamily: "'Geist Variable', sans-serif"
@@ -311,6 +316,18 @@ The palette uses cool neutrals with a small blue accent. Frontmatter holds the n
 - `control-border` outlines search, pagination, and image controls. `popular-hover-border` defines the popular-card hover edge.
 - `image-backdrop` dims the article behind an enlarged image. It does not change the page or diagram palette.
 
+### Diagrams
+
+Article diagrams use color, rather than following the page's neutrals. Each node takes a hue from its role, so the same kind of thing looks the same across diagrams:
+
+- `diagram-client` (Latte pink, darkened; Macchiato pink): the device or app making the request.
+- `diagram-network` (teal): networks in between, such as a tailnet.
+- `diagram-server` (peach): the author's own machines and glue code.
+- `diagram-auth` (yellow): credential checks, drawn as lock chips.
+- `diagram-cloud` (blue): cloud services such as Microsoft Foundry.
+
+Hues tint the icon tile, the border, and the active fill (6%, 30%, and 14% mixes). Text stays `ink` or `muted`. The moving request token keeps the mauve accent. Latte values are darkened so icons reach 3:1 on their tiles; tokens live in `global.css`. Icons are authored SVG in one 1.7px stroke, except product logos such as the Azure Foundry icon (see `docs/icon-sources.md`).
+
 **The restrained accent Rule.** Keep the header light. Concentrate blue in the logo, links, and keyboard focus rather than a full-width pastel band.
 
 ## Typography
@@ -371,7 +388,7 @@ Popular image panels fill the right side of each card at every width. Archive im
 
 ### Homepage search
 
-The search field sits beside the All writing heading and count. It uses the code background color and becomes full width on phones. Fuzzy search filters all 55 rendered article rows by title and tag. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query. The hero and popular cards stay visible while searching. Without JavaScript all articles remain visible and the search control stays hidden.
+The search field sits beside the All writing heading and count. It uses the code background color and becomes full width on phones. Fuzzy search filters all rendered article rows by title and tag. Counts are announced politely. No matches show a short explanation and a Clear search action. Escape clears the query and restores input focus; the URL reflects the query. The hero and popular cards stay visible while searching. Without JavaScript all articles remain visible and the search control stays hidden.
 
 ### Article reading
 
@@ -391,7 +408,7 @@ The centered reader is the only layout. Its rules live in `src/styles/article.cs
 
 Standalone image paragraphs become semantic figures at build time. An adjacent imported caption joins the figure without editing MDX or changing its text. Linked images retain their authored destinations. `ReaderFigure` defaults to wide media and preserves its children's interactions; `width="text"` keeps a figure in the prose column.
 
-JavaScript wraps unlinked article images outside authored `ReaderFigure` blocks in buttons with accessible names. The image itself is the control, with a zoom-in cursor and visible keyboard focus. Do not add a visible Zoom label, icon, or other image overlay cue. Without JavaScript, images and captions remain readable without inactive controls.
+JavaScript wraps unlinked article images outside authored `ReaderFigure` blocks, and inside blocks marked `zoom`, in buttons with accessible names. The image itself is the control, with a zoom-in cursor and visible keyboard focus. Do not add a visible Zoom label, icon, or other image overlay cue. Without JavaScript, images and captions remain readable without inactive controls.
 
 The native image dialog shows the enlarged image, its caption when present, Open original, and Close. Open original links to the same full local asset in a new tab. Close, Escape, and a backdrop click dismiss the dialog, restore focus without scrolling, and release the document scroll lock. Toolbar targets are at least 44px high. Caption content and links are retained, with copied IDs removed. Dialog behavior has desktop and phone spot checks, not a full-site keyboard or real Safari audit.
 

@@ -16,13 +16,13 @@ Developers finding and reading Pasi Huuhka's hands-on Azure, DevOps, and AI engi
 
 ## Product purpose
 
-A personal technical publication. Readers should be able to find a relevant post and read explanations, code, and architecture diagrams. The author profile stays secondary to the writing. The site supports its original light appearance and Catppuccin Macchiato dark mode, following the device by default with a saved reader override.
+A personal technical publication. Readers should be able to find a relevant post and read explanations, code, and architecture diagrams. Article diagrams use role colors and icons so they read at a glance, instead of only following the page's neutral palette. The author profile stays secondary to the writing. The site supports its original light appearance and Catppuccin Macchiato dark mode, following the device by default with a saved reader override.
 
 ## Capabilities and constraints
 
 - Preserve published article content, exact root-level slugs, timestamps, tags, images, captions, and explicit SEO metadata.
 - Keep local article routes, tag archives, the author page, community activities, RSS, and sitemap. Author information remains global.
-- The homepage at `/` uses the fieldnotes layout with the featured article, followed by three compact popular articles and a searchable text list. All 55 entries are available in a keyboard-focusable, independently scrolling region, including without JavaScript. Search filters the list by title and tag while retaining the hero and popular cards. Root `?q=` bookmarks search the homepage directly. The footer stays pinned. On desktops wider than 1000px and at least 760px high, only the list scrolls; smaller viewports also allow page scrolling.
+- The homepage at `/` uses the fieldnotes layout with the featured article, followed by three compact popular articles and a searchable text list. All entries are available in a keyboard-focusable, independently scrolling region, including without JavaScript. Search filters the list by title and tag while retaining the hero and popular cards. Root `?q=` bookmarks search the homepage directly. The footer stays pinned. On desktops wider than 1000px and at least 760px high, only the list scrolls; smaller viewports also allow page scrolling.
 - Builds use committed MDX and assets.
 - Current work is local only. Do not deploy, change DNS, or modify production Ghost or Azure resources. Keep `noindex, nofollow` and the blocking robots file locally. Umami runs without analytics cookies or a consent banner on public HTTPS domains and honors Do Not Track; previews never load analytics or giscus.
 - Eventual hosting belongs in Microsoft Azure Sponsorship, subscription `ede0939c-80c4-4dfe-bf3d-84521f3f6d1f`. The hosting adapter and DNS provider remain open decisions.

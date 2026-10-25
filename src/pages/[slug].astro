@@ -11,7 +11,9 @@ import author from '../data/author.json';
 import seriesGroups from '../data/series.json';
 
 export async function getStaticPaths() {
-  return [...await getPosts(), ...await getCollection('pages', ({data}) => !data.draft)]
+  // Drafts render under `astro dev` for previewing, never in a build.
+  const drafts = import.meta.env.DEV ? await getCollection('blog', ({data}) => data.draft) : [];
+  return [...await getPosts(), ...drafts, ...await getCollection('pages', ({data}) => !data.draft)]
     .map(post => ({params: {slug: post.data.slug}, props: {post}}));
 }
 const { post } = Astro.props;

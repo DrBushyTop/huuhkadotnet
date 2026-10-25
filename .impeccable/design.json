@@ -198,6 +198,41 @@
           "oklch(84% 0.02523 253.81 / 82%)",
           "oklch(95% 0.02523 253.81 / 82%)"
         ]
+      },
+      "diagram-client": {
+        "role": "categorical",
+        "displayName": "Diagram client",
+        "canonical": "#b4418f",
+        "dark": "#f5bde6",
+        "usage": "The device or app making the request: the phone, OpenWhispr."
+      },
+      "diagram-network": {
+        "role": "categorical",
+        "displayName": "Diagram network",
+        "canonical": "#117d84",
+        "dark": "#8bd5ca",
+        "usage": "Networks in between, such as the tailnet."
+      },
+      "diagram-server": {
+        "role": "categorical",
+        "displayName": "Diagram server",
+        "canonical": "#c4510a",
+        "dark": "#f5a97f",
+        "usage": "My own machines and glue code: the home server, the shim."
+      },
+      "diagram-auth": {
+        "role": "categorical",
+        "displayName": "Diagram auth",
+        "canonical": "#9a6410",
+        "dark": "#eed49f",
+        "usage": "Credential checks: grants, tokens, sign-ins."
+      },
+      "diagram-cloud": {
+        "role": "categorical",
+        "displayName": "Diagram cloud",
+        "canonical": "#1e66f5",
+        "dark": "#8aadf4",
+        "usage": "Cloud services such as Microsoft Foundry."
       }
     },
     "typographyMeta": {
@@ -422,7 +457,7 @@
       "imageMaxHeight": "calc(100dvh - 220px)",
       "toolbarMinHeight": "44px",
       "layer": "Native modal dialog top layer",
-      "behavior": "Progressively enhance unlinked article images outside ReaderFigure with accessible button names, focus rings, and a zoom-in cursor; no visible overlay cue. Preserve captions and authored links. Close, Escape, and backdrop dismissal return focus without scrolling and restore document overflow."
+      "behavior": "Progressively enhance unlinked article images outside ReaderFigure, and inside ReaderFigure blocks marked zoom, with accessible button names, focus rings, and a zoom-in cursor; no visible overlay cue. Preserve captions and authored links. Close, Escape, and backdrop dismissal return focus without scrolling and restore document overflow."
     },
     "cardImages": {
       "foregroundFit": "contain",
@@ -637,6 +672,11 @@
         "name": "The restrained accent Rule",
         "body": "Keep the header light. Concentrate blue in the logo, links, and keyboard focus rather than a full-width pastel band.",
         "section": "colors"
+      },
+      {
+        "name": "The diagram roles Rule",
+        "section": "colors",
+        "body": "Article diagrams color nodes by role, not by position: client pink, network teal, server peach, auth yellow, cloud blue. Hues tint icon tiles, borders, and active fills only; text stays ink or muted. The moving request keeps the mauve accent."
       }
     ],
     "dos": [

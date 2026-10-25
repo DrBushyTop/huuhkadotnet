@@ -28,6 +28,12 @@
   --selection-ground: light-dark(#e9e0f3, #37304b);
   --scrollbar: light-dark(#6c6f85, #8087a2);
   --image-backdrop: light-dark(rgb(76 79 105 / 82%), rgb(24 25 38 / 90%));
+  /* Diagram roles: Catppuccin accents, Latte ones darkened to keep icons at 3:1 on their tiles. */
+  --diagram-client: light-dark(#b4418f, #f5bde6);
+  --diagram-network: light-dark(#117d84, #8bd5ca);
+  --diagram-server: light-dark(#c4510a, #f5a97f);
+  --diagram-auth: light-dark(#9a6410, #eed49f);
+  --diagram-cloud: light-dark(#1e66f5, #8aadf4);
   scrollbar-color: var(--scrollbar) var(--paper);
 }
 

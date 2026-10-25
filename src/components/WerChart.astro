@@ -1,0 +1,65 @@
+---
+// Word error rates from a Finnish speech comparison, 41 clips and 213 words.
+const max = 40;
+const rows = [
+  {name: 'MAI-Transcribe-2', where: 'Foundry', errors: 13, rate: 6.1, chosen: true},
+  {name: 'GPT-Live-Transcribe', where: 'Foundry', errors: 18, rate: 8.5},
+  {name: 'Parakeet TDT 0.6B v3', where: 'on device', errors: 71, rate: 33.3},
+];
+---
+<figure class="reader-figure wer-chart" data-width="text" data-wer-chart aria-label="Word error rate on Finnish speech">
+  <table>
+    <caption class="visually-hidden">Word error rate on 41 Finnish recordings, lower is better</caption>
+    <thead class="visually-hidden"><tr><th scope="col">Model</th><th scope="col">Word error rate</th></tr></thead>
+    <tbody>
+      {rows.map(row => (
+        <tr class:list={{chosen: row.chosen}}>
+          <th scope="row"><span class="wer-name">{row.name}</span><span class="wer-where">{row.where}</span></th>
+          <td>
+            <span class="wer-bar" aria-hidden="true"><span class="wer-fill" style={`--w:${row.rate / max * 100}%`}></span></span>
+            <span class="wer-value">{row.rate.toFixed(1)} %</span>
+            <span class="wer-count">{row.errors} / 213 words</span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <figcaption>Word error rate on 41 short Finnish recordings, before any cleanup. Lower is better.</figcaption>
+</figure>
+
+<style>
+  .wer-chart { margin-block: 32px; }
+  .wer-chart table { width: 100%; border-collapse: collapse; font-size: 15px; display: table; overflow: visible; }
+  .wer-chart tr { border: 0; }
+  .wer-chart :is(th, td) { padding: 10px 0; border: 0; background: none; vertical-align: middle; text-align: left; font-weight: 400; }
+  .wer-chart th { width: 34%; padding-right: 16px; }
+  .wer-name { display: block; color: var(--ink); font-family: var(--brand-font); font-weight: 500; line-height: 1.3; }
+  .wer-where { display: block; color: var(--muted); font-size: 13px; }
+  .wer-chart td { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+  .wer-bar { height: 14px; border-radius: 3px; background: var(--popular-ground); overflow: hidden; }
+  .wer-fill { display: block; width: var(--w); height: 100%; background: var(--control-border); border-radius: 3px; transform-origin: left center; }
+  .chosen .wer-fill { background: var(--accent); }
+  .wer-value { font-family: var(--nav-font); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink); min-width: 6ch; text-align: right; }
+  .wer-count { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 600px) {
+    .wer-chart th { width: 42%; }
+  }
+</style>
+
+<script>
+  import { animate, inView, stagger } from 'motion';
+
+  // Bars are drawn at full length; only ones still below the fold grow in.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const chart of document.querySelectorAll<HTMLElement>('[data-wer-chart]')) {
+      if (chart.getBoundingClientRect().top < innerHeight) continue;
+      const fills = chart.querySelectorAll<HTMLElement>('.wer-fill');
+      animate(fills, {scaleX: 0}, {duration: 0});
+      const stop = inView(chart, () => {
+        stop();
+        animate(fills, {scaleX: [0, 1]}, {duration: 0.8, delay: stagger(0.12), ease: [0.16, 1, 0.3, 1]});
+      }, {amount: 0.7});
+    }
+  }
+</script>

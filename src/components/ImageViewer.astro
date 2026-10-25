@@ -26,7 +26,7 @@ import '../styles/image-viewer.css';
 
   document.querySelectorAll<HTMLImageElement>('.article-body img').forEach((image, index) => {
     // Linked images keep their authored destination. Never nest controls.
-    if (image.closest('a, button, [role="button"], .reader-figure')) return;
+    if (image.closest('a, button, [role="button"], .reader-figure:not([data-zoom])')) return;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'image-zoom';
