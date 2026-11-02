@@ -93,7 +93,7 @@ export async function run({bootstrap = false, rebuildOnly = false, now = new Dat
     state.snapshots.push({hash, path, createdAt: email.created_at, emailId: email.id});
     await writeJson(container, 'state.json', state);
   }
-  await rebuild(container, state);
+  const report = await rebuild(container, state);
   if (bootstrap) state.months[month] = {status: 'completed', requestedAt: email.created_at, completedAt: new Date().toISOString(), bootstrap: true};
   else {
     run.status = 'completed';
