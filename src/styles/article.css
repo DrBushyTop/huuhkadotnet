@@ -46,6 +46,9 @@ figcaption a { color: var(--link); text-decoration: underline; }
 .article-prose blockquote { margin: 24px 0; padding: 16px 24px; border-left: 1px solid var(--blue); background: var(--popular-ground); }
 .article-prose blockquote p:last-child { margin-bottom: 0; }
 .article-prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 16px; margin-block: 24px; }
+.article-prose .table-scroll { max-width: 100%; overflow-x: auto; margin-block: 24px; }
+.article-prose .table-scroll > table { display: table; margin: 0; }
+@media (max-width: 600px) { .article-prose .table-scroll > table { width: 100%; } }
 .article-prose th,.article-prose td { text-align: left; padding: 10px 14px; border: 1px solid var(--line); }
 .article-prose th { background: var(--popular-ground); }
 .article-prose iframe { border: 0; width: 100%; aspect-ratio: 16 / 9; height: auto; margin-block: 24px; }

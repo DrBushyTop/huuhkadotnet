@@ -37,3 +37,14 @@ test('leaves mixed text and nested images in their original layout', () => {
   assert.equal(mixed.tagName, 'p');
   assert.equal(nested.children[0].tagName, 'p');
 });
+
+test('wraps markdown tables once in a scrollable region', () => {
+  const table = {type: 'element', tagName: 'table', properties: {}, children: []};
+  const tree = {type: 'root', children: [table]};
+  rehypeContent()(tree);
+  const wrapper = tree.children[0];
+  assert.equal(wrapper.tagName, 'div');
+  assert.deepEqual(wrapper.properties.className, ['table-scroll']);
+  assert.equal(wrapper.properties.role, 'region');
+  assert.equal(wrapper.children[0], table);
+});

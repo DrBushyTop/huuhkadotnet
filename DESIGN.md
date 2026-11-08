@@ -438,7 +438,7 @@ The shared visual tokens are unchanged.
 
 Code blocks retain the existing light fallback fill, quiet border, padding, radius, and vertical margins. Top-level code blocks share the wider image measure: 800px from 1200px and 960px from 1440px. Nested blocks stay within their parent. Shiki emits contrast-adjusted Catppuccin Latte and Catppuccin Macchiato palettes; CSS selects the current theme without replacing code or loading a highlighter at runtime. Preserve whitespace, two-space tabs, and horizontal scrolling within the available width. Nested code does not add another fill or padding. Inline code can wrap long tokens.
 
-Tables scroll inside the article, use 16px text, quiet cell borders, and filled header cells. Callouts use the `reading-callout` treatment with a blue left border. Embedded video keeps a 16:9 ratio; playback still depends on the external host.
+Tables scroll inside the article and fill the prose width at 600px and below. They use 16px text, quiet cell borders, and filled header cells. Callouts use the `reading-callout` treatment with a blue left border. Embedded video keeps a 16:9 ratio; playback still depends on the external host.
 
 ## Do's and Don'ts
 

@@ -42,6 +42,13 @@ export default function rehypeContent() {
           }
         }
       }
+      // Markdown tables get a scroll wrapper, so the table itself can fill the column on phones.
+      const wrapper = node.properties?.className?.includes?.('table-scroll');
+      if (!wrapper) node.children?.forEach((child, i) => {
+        if (child.type === 'element' && child.tagName === 'table') {
+          node.children[i] = {type: 'element', tagName: 'div', properties: {className: ['table-scroll'], tabIndex: 0, role: 'region', 'aria-label': 'Table'}, children: [child]};
+        }
+      });
       if (node.type === 'element') {
         if (node.tagName === 'pre') {
           node.properties.tabIndex = 0;
