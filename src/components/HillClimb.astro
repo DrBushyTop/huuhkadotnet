@@ -1,0 +1,208 @@
+---
+// Hill climbing in one picture: two peaks, a climber that only sees what's near it.
+// 'intro' climbs in fog, stops on the lower peak and then lifts the fog.
+// 'fog' starts at the end of the run, closes the fog in and lists what could explain it.
+// Without JavaScript, or with reduced motion, both show their final state.
+interface Props { variant?: 'intro' | 'fog' }
+const { variant = 'intro' } = Astro.props;
+const f = (t: number) => 0.5 * Math.exp(-((t - 0.32) ** 2) / 0.018) + 0.92 * Math.exp(-((t - 0.76) ** 2) / 0.014) + 0.05 * Math.sin(t * 9);
+const y = (t: number) => 92 - f(t) * 72;
+const points = Array.from({length: 121}, (_, i) => `${(i / 1.2).toFixed(2)} ${y(i / 120).toFixed(2)}`);
+const line = `M${points.join(' L')}`;
+const local = 0.3;
+const fogNotes = [
+  {title: 'A local peak', text: 'The rules fenced the climb: a fixed look, one search box, the Reader as an opt-in.'},
+  {title: 'Noise', text: 'A blind round added about 0.01. Two scores of the same build differ by about 0.1.'},
+  {title: 'The top of the scale', text: 'A strict, blind reviewer may not go much higher for any real product.'},
+];
+---
+<figure class="reader-figure hill-climb" data-width="wide" data-hill-climb data-variant={variant} aria-label={variant === 'intro' ? 'A climber stuck on a lower peak while a higher one hides in the fog' : 'The run ends in fog with three possible explanations'}>
+  <div class="hc-plot">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path class="hc-area" d={`${line} L100 100 L0 100 Z`} />
+      <path class="hc-line" d={line} vector-effect="non-scaling-stroke" />
+    </svg>
+    <span class="hc-flag" style={`left:76%;top:${y(0.76)}%`} aria-hidden="true">Higher peak</span>
+    <div class="hc-fog" aria-hidden="true"></div>
+    <span class="hc-ghost" aria-hidden="true"></span>
+    <span class="hc-climber" style={`left:${local * 100}%;top:${y(local)}%`} aria-hidden="true"><span class="hc-score">{variant === 'intro' ? (5 + f(local) * 5.2).toFixed(1) : '8.7'}</span></span>
+  </div>
+  {variant === 'intro' ? (
+    <div class="hc-loop">
+      {['Change', 'Measure', 'Keep if better'].map((step, i) => <><span class="hc-chip" data-step={i}>{step}</span>{i < 2 && <span class="hc-arrow" aria-hidden="true">→</span>}</>)}
+      <span class="hc-status" data-status>Stuck on a lower peak</span>
+    </div>
+  ) : (
+    <ol class="hc-notes">
+      {fogNotes.map(note => <li><strong>{note.title}</strong><span>{note.text}</span></li>)}
+    </ol>
+  )}
+  <figcaption>
+    <span>{variant === 'intro'
+      ? 'The climber tries a step, measures it and keeps it only if the score goes up. It stops where no step nearby is higher.'
+      : 'Where the run ended: flat, and unable to see what’s around it. The data can’t tell these three apart.'}</span>
+    <button type="button" class="hc-replay" hidden>Play again</button>
+  </figcaption>
+</figure>
+
+<style>
+  .hill-climb { margin-block: 36px; }
+  .hc-plot {
+    position: relative; aspect-ratio: 16 / 7; min-height: 220px; border-radius: 12px; overflow: hidden;
+    background: var(--popular-ground); --hue: var(--diagram-network);
+  }
+  .hc-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hc-area { fill: color-mix(in oklab, var(--hue) 22%, var(--popular-ground)); }
+  .hc-line { fill: none; stroke: var(--hue); stroke-width: 3; }
+  .hc-fog {
+    position: absolute; inset: 0; background: var(--popular-ground); opacity: 0;
+    -webkit-mask-image: radial-gradient(circle var(--fr, 120px) at var(--fx, 30%) var(--fy, 50%), transparent 0 55%, #000 100%);
+    mask-image: radial-gradient(circle var(--fr, 120px) at var(--fx, 30%) var(--fy, 50%), transparent 0 55%, #000 100%);
+  }
+  .hc-climber, .hc-ghost { position: absolute; translate: -50% -50%; border-radius: 50%; }
+  .hc-climber { width: 20px; height: 20px; background: var(--ink); box-shadow: 0 0 0 3px var(--popular-ground); }
+  .hc-score {
+    position: absolute; left: 50%; bottom: calc(100% + 6px); translate: -50% 0;
+    font: 600 13px var(--nav-font); color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .hc-ghost { width: 18px; height: 18px; border: 3px solid var(--hue); opacity: 0; }
+  .hc-ghost[data-failed] { border-color: var(--diagram-client); }
+  .hc-flag {
+    position: absolute; translate: calc(-100% + 2px) calc(-100% - 8px); padding: 2px 8px; border-right: 3px solid var(--diagram-client);
+    font: 12px var(--nav-font); text-transform: uppercase; letter-spacing: .04em; color: var(--ink); white-space: nowrap;
+  }
+  .hc-loop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 14px; font-size: 15px; }
+  .hc-chip { padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out; }
+  .hc-chip[data-active] { background: var(--diagram-network); border-color: var(--diagram-network); color: var(--paper); }
+  .hc-arrow { color: var(--muted); }
+  .hc-status { margin-left: auto; font-weight: 600; color: var(--diagram-client); }
+  .hc-notes { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 0; padding: 0; counter-reset: note; }
+  .hc-notes li {
+    counter-increment: note; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 10px;
+    background: color-mix(in oklab, var(--diagram-auth) 10%, var(--popular-ground)); border: 1px solid color-mix(in oklab, var(--diagram-auth) 35%, var(--popular-ground));
+    font-size: 15px; line-height: 1.45; color: var(--ink);
+  }
+  .hc-notes li::before { content: counter(note); font: 600 12px var(--nav-font); color: var(--diagram-auth); }
+  .hc-notes strong { font-family: var(--brand-font); font-weight: 600; }
+  .hill-climb figcaption { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 16px; margin-inline: auto; max-width: 720px; }
+  .hc-replay {
+    min-height: 32px; padding: 4px 12px; border: 1px solid var(--control-border); border-radius: 6px;
+    background: var(--paper); color: var(--ink); font: 13px var(--nav-font); cursor: pointer; transition: background-color 150ms ease-out;
+  }
+  .hc-replay:hover { background: var(--nav-highlight); }
+  .hc-replay:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  @media (max-width: 760px) {
+    .hc-plot { aspect-ratio: 4 / 3; }
+    .hc-notes { grid-template-columns: 1fr; }
+    .hc-status { margin-left: 0; width: 100%; }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  const f = (t: number) => 0.5 * Math.exp(-((t - 0.32) ** 2) / 0.018) + 0.92 * Math.exp(-((t - 0.76) ** 2) / 0.014) + 0.05 * Math.sin(t * 9);
+  const y = (t: number) => 92 - f(t) * 72;
+  const score = (t: number) => (5 + f(t) * 5.2).toFixed(1);
+  const STEP = 0.038;
+  // Directions the climber tries, in order. Some steps go down and are thrown away.
+  const tries = [1, 1, -1, 1, 1, -1, 1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
+  const ease = [0.16, 1, 0.3, 1] as const;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-hill-climb]')) setup(root);
+
+  function setup(root: HTMLElement) {
+    if (reduced.matches) return;
+    const variant = root.dataset.variant;
+    const plot = root.querySelector<HTMLElement>('.hc-plot')!;
+    const fog = root.querySelector<HTMLElement>('.hc-fog')!;
+    const climber = root.querySelector<HTMLElement>('.hc-climber')!;
+    const label = root.querySelector<HTMLElement>('.hc-score')!;
+    const ghost = root.querySelector<HTMLElement>('.hc-ghost')!;
+    const flag = root.querySelector<HTMLElement>('.hc-flag')!;
+    const chips = [...root.querySelectorAll<HTMLElement>('.hc-chip')];
+    const status = root.querySelector<HTMLElement>('[data-status]');
+    const notes = [...root.querySelectorAll<HTMLElement>('.hc-notes li')];
+    const replay = root.querySelector<HTMLButtonElement>('.hc-replay')!;
+    let run = 0;
+
+    const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
+    const setFog = (t: number, radius: number) => {
+      fog.style.setProperty('--fx', `${t * 100}%`);
+      fog.style.setProperty('--fy', `${y(t)}%`);
+      fog.style.setProperty('--fr', `${radius}px`);
+    };
+    const put = (el: HTMLElement, t: number) => { el.style.left = `${t * 100}%`; el.style.top = `${y(t)}%`; };
+    const active = (i: number) => chips.forEach((chip, j) => chip.toggleAttribute('data-active', i === j));
+    // The fog opens or closes evenly, just past the far corner of the plot, so the reveal isn't a jump.
+    const smooth = [0.65, 0, 0.35, 1] as const;
+    const cover = () => { const r = plot.getBoundingClientRect(); return Math.hypot(r.width, r.height) * 1.6; };
+    const lift = (from: number, to: number, t: number, seconds: number) =>
+      animate(from, to, {duration: seconds, ease: smooth, onUpdate: radius => setFog(t, radius)});
+
+    async function intro(id: number) {
+      const live = () => id === run;
+      let t = 0.07;
+      put(climber, t); label.textContent = score(t);
+      setFog(t, 130); fog.style.opacity = '1'; flag.style.opacity = '0';
+      status!.textContent = ''; active(-1);
+      await pause(500);
+      for (let n = 0; live(); n++) {
+        const next = Math.min(1, Math.max(0, t + tries[n % tries.length] * STEP));
+        const failed = f(next) < f(t);
+        active(0); put(ghost, next); ghost.toggleAttribute('data-failed', failed);
+        animate(ghost, {opacity: [0, 1], scale: [0.4, 1]}, {duration: 0.3, ease});
+        await pause(380); if (!live()) return;
+        active(1); await pause(320); if (!live()) return;
+        active(2);
+        if (!failed) {
+          const from = t; t = next;
+          animate(0, 1, {duration: 0.35, ease, onUpdate: p => {
+            const at = from + (t - from) * p;
+            put(climber, at); setFog(at, 130);
+          }});
+          label.textContent = score(t);
+        }
+        animate(ghost, {opacity: 0}, {duration: 0.25});
+        await pause(420); if (!live()) return;
+        if (Math.max(f(t - STEP), f(t + STEP)) <= f(t) || t >= 0.34) break;
+      }
+      active(-1);
+      status!.textContent = 'No step is higher';
+      await pause(1100); if (!live()) return;
+      animate(flag, {opacity: [0, 1]}, {duration: 1, delay: 1.6});
+      await lift(130, cover(), t, 3.2);
+      if (!live()) return;
+      status!.textContent = 'Stuck on a lower peak';
+    }
+
+    async function closing(id: number) {
+      const live = () => id === run;
+      const t = 0.3;
+      put(climber, t);
+      notes.forEach(note => { note.style.opacity = '0'; });
+      setFog(t, cover()); fog.style.opacity = '1'; flag.style.opacity = '1';
+      await pause(400); if (!live()) return;
+      animate(flag, {opacity: 0}, {duration: 1.2});
+      await lift(cover(), 120, t, 3);
+      for (const note of notes) {
+        if (!live()) return;
+        await animate(note, {opacity: [0, 1], y: [12, 0]}, {duration: 0.5, ease});
+        await pause(250);
+      }
+    }
+
+    function play() {
+      const id = ++run;
+      (variant === 'fog' ? closing : intro)(id);
+    }
+
+    replay.hidden = false;
+    replay.addEventListener('click', play);
+    // Set the starting state before it scrolls into view, then play once.
+    if (variant === 'fog') { setFog(0.3, cover()); fog.style.opacity = '1'; }
+    else { put(climber, 0.07); label.textContent = score(0.07); setFog(0.07, 130); fog.style.opacity = '1'; flag.style.opacity = '0'; status!.textContent = ''; }
+    const stop = inView(plot, () => { stop(); play(); }, {amount: 0.6});
+  }
+</script>

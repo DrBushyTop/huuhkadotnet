@@ -1,0 +1,92 @@
+---
+// The council's score sheet: one row per main job in the app, each with a named rival.
+// The numbers are Opus's first review. Everything is a real table; the script only grows the bars.
+const rows = [
+  {name: 'Capturing observations', rival: 'Frame.io', app: 5.5, best: 8.8},
+  {name: 'Reading a session', rival: 'Sentry', app: 6.0, best: 8.3},
+  {name: 'Sessions list', rival: 'Sentry', app: 7.6, best: 7.7},
+  {name: 'Findings triage', rival: 'Linear', app: 6.6, best: 8.9},
+  {name: 'Task results', rival: 'Maze', app: 5.7, best: 8.4},
+  {name: 'Evidence and transcript', rival: 'Condens', app: 6.5, best: 8.4},
+  {name: 'Search', rival: 'Condens', app: 6.9, best: 7.8},
+  {name: 'Shell and navigation', rival: 'Linear', app: 6.9, best: 9.0},
+  {name: 'Setup', rival: null, app: 7.3, best: null},
+];
+const min = 4;
+const pct = (s: number) => ((s - min) / (10 - min)) * 100;
+---
+<figure class="reader-figure score-sheet" data-width="wide" data-score-sheet>
+  <div class="ssh-legend" aria-hidden="true"><span class="app">The app</span><span class="rival">Best rival</span></div>
+  <table>
+    <caption class="visually-hidden">Opus's first review: score for each part of the app and the best rival's score, out of 10</caption>
+    <thead class="visually-hidden"><tr><th scope="col">Part of the app</th><th scope="col">Scores</th></tr></thead>
+    <tbody>
+      {rows.map(row => (
+        <tr>
+          <th scope="row"><span class="ssh-name">{row.name}</span><span class="ssh-rival">{row.rival ? `vs ${row.rival}` : 'No rival'}</span></th>
+          <td>
+            <span class="ssh-track" aria-hidden="true">
+              {row.best && <span class="ssh-gap" style={`left:${pct(row.app)}%;width:${pct(row.best) - pct(row.app)}%`}></span>}
+              <span class="ssh-bar" style={`width:${pct(row.app)}%`}></span>
+              {row.best && <span class="ssh-tick" style={`left:${pct(row.best)}%`}></span>}
+            </span>
+            <span class="ssh-value">{row.app.toFixed(1)}{row.best && <span class="ssh-best"> / {row.best.toFixed(1)}</span>}</span>
+            <span class="visually-hidden">{row.best ? `The app ${row.app}, ${row.rival} ${row.best}` : `The app ${row.app}, no rival`}</span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <figcaption>Opus's first review, row by row, against the best rival for each job. Every row was scored on clarity, density, speed, feedback and craft. The bars start at 4.</figcaption>
+</figure>
+
+<style>
+  .score-sheet { margin-block: 36px; }
+  .ssh-legend { display: flex; gap: 18px; margin-bottom: 6px; font: 13px var(--nav-font); color: var(--ink); }
+  .ssh-legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .ssh-legend .app::before { content: ''; width: 14px; height: 10px; border-radius: 2px; background: var(--diagram-network); }
+  .ssh-legend .rival::before { content: ''; width: 3px; height: 14px; border-radius: 1px; background: var(--diagram-client); }
+  .score-sheet table { width: 100%; border-collapse: collapse; font-size: 15px; display: table; overflow: visible; }
+  .score-sheet tr { border: 0; }
+  .score-sheet :is(th, td) { padding: 6px 0; border: 0; background: none; vertical-align: middle; text-align: left; font-weight: 400; }
+  .score-sheet th { width: 34%; padding-right: 16px; }
+  .ssh-name { display: block; color: var(--ink); font-family: var(--brand-font); font-weight: 500; line-height: 1.3; }
+  .ssh-rival { display: block; color: var(--muted); font-size: 13px; }
+  .score-sheet td { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+  .ssh-track { position: relative; height: 16px; border-radius: 3px; background: var(--popular-ground); }
+  .ssh-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--diagram-network); transform-origin: left center; }
+  .ssh-gap { position: absolute; top: 3px; bottom: 3px; background: color-mix(in oklab, var(--diagram-client) 28%, transparent); transform-origin: left center; }
+  .ssh-tick { position: absolute; top: -3px; bottom: -3px; width: 3px; translate: -50% 0; border-radius: 1px; background: var(--diagram-client); }
+  .ssh-value { min-width: 9ch; white-space: nowrap; font: 13px var(--nav-font); font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+  .ssh-best { color: var(--diagram-client); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 600px) {
+    .score-sheet tr { display: block; padding-block: 4px; }
+    .score-sheet :is(th, td) { padding: 0; }
+    .score-sheet th { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; width: auto; padding: 0 0 4px; }
+    .ssh-name, .ssh-rival { display: inline; }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // The app's bars grow first, then each rival's mark drops in and the gap fills.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-score-sheet]')) {
+      if (root.getBoundingClientRect().top < innerHeight) continue;
+      const bars = root.querySelectorAll<HTMLElement>('.ssh-bar');
+      const ticks = root.querySelectorAll<HTMLElement>('.ssh-tick, .ssh-best');
+      const gaps = root.querySelectorAll<HTMLElement>('.ssh-gap');
+      animate(bars, {scaleX: 0}, {duration: 0});
+      animate(gaps, {scaleX: 0}, {duration: 0});
+      animate(ticks, {opacity: 0}, {duration: 0});
+      const stop = inView(root, () => {
+        stop();
+        bars.forEach((bar, i) => animate(bar, {scaleX: [0, 1]}, {duration: 0.6, delay: i * 0.08, ease: [0.16, 1, 0.3, 1]}));
+        ticks.forEach((tick, i) => animate(tick, {opacity: [0, 1]}, {duration: 0.3, delay: 1.2 + Math.floor(i / 2) * 0.08}));
+        gaps.forEach((gap, i) => animate(gap, {scaleX: [0, 1]}, {duration: 0.6, delay: 1.4 + i * 0.08, ease: [0.16, 1, 0.3, 1]}));
+      }, {amount: 0.5});
+    }
+  }
+</script>

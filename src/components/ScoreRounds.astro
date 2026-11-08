@@ -1,0 +1,106 @@
+---
+// Council scores per round, one line per reviewer. Rounds 1 to 18 could read earlier
+// reports; from round 19 the reviewers were blind. Numbered markers sit on the lines and
+// the notes live in a key under the chart, so nothing covers the data on a phone.
+import data from '../data/hill-climb.json';
+const rounds = data.opus.length;
+const x = (i: number) => 3 + (i / (rounds - 1)) * 94;
+const y = (s: number) => ((10 - s) / 4) * 100;
+const path = (scores: number[]) => `M${scores.map((s, i) => `${x(i).toFixed(2)} ${y(s).toFixed(2)}`).join(' L')}`;
+const notes = [
+  {round: 4, text: 'Over 8 in three rounds', at: 'top'},
+  {round: 18, text: '9.22 and 9.06, the goal looks reachable', at: 'top'},
+  {round: 19, text: 'Blind: 8.64 and 8.65', at: 'low'},
+];
+const blindAt = x(18) - (x(18) - x(17)) / 2;
+---
+<figure class="reader-figure score-rounds" data-width="wide" data-score-rounds aria-label="Council scores by round">
+  <div class="sr-legend" aria-hidden="true">
+    <span style="--hue: var(--diagram-server)">Opus 5.5</span>
+    <span style="--hue: var(--diagram-cloud)">GPT-6.1 Sol</span>
+  </div>
+  <div class="sr-plot">
+    <div class="sr-blind" style={`left:${blindAt}%`} aria-hidden="true"><span>Blind</span></div>
+    <span class="sr-memory" style={`right:${100 - blindAt}%`} aria-hidden="true">Could see earlier rounds</span>
+    {[7, 8, 9].map(s => <span class="sr-grid" style={`top:${y(s)}%`} aria-hidden="true"><span>{s}</span></span>)}
+    <span class="sr-goal" style={`top:${y(9.5)}%`} aria-hidden="true"><span>Goal 9.5</span></span>
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path class="sr-line" style="--hue: var(--diagram-server)" d={path(data.opus)} vector-effect="non-scaling-stroke" />
+      <path class="sr-line" style="--hue: var(--diagram-cloud)" d={path(data.sol)} vector-effect="non-scaling-stroke" />
+    </svg>
+    {notes.map((note, n) => {
+      const i = note.round - 1;
+      const score = note.at === 'top' ? Math.max(data.opus[i], data.sol[i]) : Math.min(data.opus[i], data.sol[i]);
+      return <span class="sr-mark" data-at={x(i)} style={`left:${x(i)}%;top:${y(score)}%`} aria-hidden="true">{n + 1}</span>;
+    })}
+  </div>
+  <div class="sr-axis" aria-hidden="true"><span>Round 1</span><span>Round 22</span></div>
+  <ol class="sr-key">
+    {notes.map(note => <li><span class="sr-round">Round {note.round}</span> {note.text}</li>)}
+  </ol>
+  <table class="visually-hidden">
+    <caption>Overall score per round, out of 10</caption>
+    <thead><tr><th scope="col">Round</th><th scope="col">Opus 5.5</th><th scope="col">GPT-6.1 Sol</th></tr></thead>
+    <tbody>{data.opus.map((s, i) => <tr><th scope="row">{i + 1}</th><td>{s}</td><td>{data.sol[i]}</td></tr>)}</tbody>
+  </table>
+  <figcaption>Overall score from each reviewer, round by round. The drop at round 19 is where I stopped them reading their earlier reports.</figcaption>
+</figure>
+
+<style>
+  .score-rounds { margin-block: 36px; }
+  .sr-legend { display: flex; gap: 18px; margin-bottom: 10px; font: 13px var(--nav-font); color: var(--ink); }
+  .sr-legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .sr-legend span::before { content: ''; width: 18px; height: 3px; border-radius: 2px; background: var(--hue); }
+  .sr-plot { position: relative; aspect-ratio: 16 / 7; min-height: 240px; border-radius: 12px; background: var(--popular-ground); overflow: hidden; }
+  .sr-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .sr-line { fill: none; stroke: var(--hue); stroke-width: 3; stroke-linejoin: round; }
+  .sr-grid { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+  .sr-grid span { position: absolute; left: 6px; top: 2px; font: 11px var(--nav-font); color: var(--muted); }
+  .sr-goal { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--diagram-client); }
+  .sr-goal span { position: absolute; left: 6px; bottom: 4px; font: 11px var(--nav-font); color: var(--diagram-client); text-transform: uppercase; letter-spacing: .04em; }
+  /* The blind rounds get a flat tint; the rounds before them stay plain. */
+  .sr-blind { position: absolute; top: 0; bottom: 0; right: 0; border-left: 1px solid var(--control-border); background: color-mix(in oklab, var(--ink) 6%, transparent); }
+  .sr-blind span, .sr-memory { position: absolute; bottom: 8px; font: 11px var(--nav-font); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+  .sr-blind span { left: 8px; color: var(--ink); }
+  .sr-memory { margin-right: 8px; color: var(--muted); }
+  .sr-mark {
+    position: absolute; translate: -50% -50%; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); color: var(--paper); font: 600 11px var(--nav-font); box-shadow: 0 0 0 2px var(--popular-ground);
+  }
+  .sr-axis { display: flex; justify-content: space-between; padding: 6px 3%; font: 11px var(--nav-font); color: var(--muted); }
+  .sr-key { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 6px 0 0; padding: 0; list-style: none; counter-reset: mark; font-size: 15px; color: var(--ink); }
+  .sr-key li { counter-increment: mark; display: flex; align-items: baseline; gap: 8px; }
+  .sr-key li::before {
+    content: counter(mark); flex: 0 0 20px; height: 20px; border-radius: 50%; align-self: center; text-align: center; line-height: 20px;
+    background: var(--ink); color: var(--paper); font: 600 11px/20px var(--nav-font);
+  }
+  .sr-round { font: 12px var(--nav-font); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .score-rounds figcaption { max-width: 720px; margin-inline: auto; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 760px) {
+    .sr-plot { aspect-ratio: 4 / 3; }
+    .sr-key { flex-direction: column; }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // The lines draw left to right and each marker appears as the line reaches its round.
+  // Without motion, all of it shows at once.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-score-rounds]')) {
+      const svg = root.querySelector<SVGElement>('svg')!;
+      const marks = root.querySelectorAll<HTMLElement>('.sr-mark');
+      const blind = root.querySelectorAll<HTMLElement>('.sr-blind, .sr-memory');
+      animate(svg, {clipPath: 'inset(0 100% 0 0)'}, {duration: 0});
+      animate([...marks, ...blind], {opacity: 0}, {duration: 0});
+      const stop = inView(root, () => {
+        stop();
+        animate(svg, {clipPath: ['inset(0 100% 0 0)', 'inset(0 0% 0 0)']}, {duration: 2.4, ease: 'linear'});
+        marks.forEach(mark => animate(mark, {opacity: [0, 1], scale: [0.4, 1]}, {duration: 0.35, delay: 2.4 * Number(mark.dataset.at) / 100 + 0.1}));
+        animate(blind, {opacity: [0, 1]}, {duration: 0.6, delay: 2.2});
+      }, {amount: 0.6});
+    }
+  }
+</script>

@@ -1,0 +1,144 @@
+---
+// One round of the climb as an ordered list. The text is the content; the small pictures
+// are decoration, and the script only walks through the steps once and loops back.
+const steps = [
+  {title: 'Council', who: 'Opus 5.5 and GPT-6.1 Sol', text: 'Each reviews the running app on its own and writes a report: a score per row and up to 15 ranked changes.'},
+  {title: 'Brief', who: 'Orchestrator', text: 'Merges the two reports into one list. It never touches the UI code.'},
+  {title: 'Build', who: 'Agents', text: 'Build the items, each agent in its own worktree, one commit per item.'},
+  {title: 'Land', who: 'CI', text: 'The PRs merge, the checks run and the next council starts.'},
+];
+---
+<figure class="reader-figure round-loop" data-width="wide" data-round-loop>
+  <ol class="rl-steps">
+    {steps.map((step, i) => (
+      <li class="rl-step" data-step={i}>
+        <span class="rl-art" data-art={i} aria-hidden="true">
+          {i === 0 && <>
+            <span class="rl-report" style="--hue: var(--diagram-server)"><i></i><i></i><i></i></span>
+            <span class="rl-report" style="--hue: var(--diagram-cloud)"><i></i><i></i><i></i></span>
+          </>}
+          {i === 1 && <span class="rl-brief">{[0, 1, 2, 3, 4].map(n => <i style={`--hue: var(--diagram-${n % 2 ? 'cloud' : 'server'})`}></i>)}</span>}
+          {i === 2 && <span class="rl-lanes">{[0, 1, 2, 3].map(() => <i><b></b></i>)}</span>}
+          {i === 3 && <span class="rl-prs">{[0, 1, 2, 3].map(() => <i>✓</i>)}</span>}
+        </span>
+        <span class="rl-head"><span class="rl-num">{i + 1}</span><span class="rl-title">{step.title}</span></span>
+        <span class="rl-who">{step.who}</span>
+        <span class="rl-text">{step.text}</span>
+      </li>
+    ))}
+  </ol>
+  <div class="rl-return" aria-hidden="true"><span>Next round</span></div>
+  <figcaption>
+    <span>One round. The orchestrator ran this loop for two days, and my job was writing its rules.</span>
+    <button type="button" class="rl-replay" hidden>Play again</button>
+  </figcaption>
+</figure>
+
+<style>
+  .round-loop { margin-block: 36px; }
+  .rl-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+  .rl-step {
+    position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--popular-ground); transition: border-color 250ms ease-out, background-color 250ms ease-out;
+  }
+  /* Arrows between steps on wide screens. */
+  .rl-step:not(:last-child)::after {
+    content: '→'; position: absolute; z-index: 1; right: -7px; top: 32px; translate: 50% 0; width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--paper); border: 1px solid var(--line); font: 13px var(--nav-font); color: var(--muted);
+  }
+  .rl-step[data-active] { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, var(--popular-ground)); }
+  .rl-art { display: flex; align-items: center; gap: 6px; height: 54px; margin-bottom: 4px; }
+  .rl-head { display: flex; align-items: baseline; gap: 8px; }
+  .rl-num { font: 600 12px var(--nav-font); color: var(--muted); }
+  .rl-title { font-family: var(--brand-font); font-weight: 600; color: var(--ink); }
+  .rl-who { font: 12px var(--nav-font); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .rl-text { font-size: 15px; line-height: 1.45; color: var(--ink); }
+
+  .rl-report { display: flex; flex-direction: column; gap: 5px; width: 40px; padding: 7px 6px; border-radius: 4px; border: 1px solid var(--hue); background: var(--paper); }
+  .rl-report i, .rl-brief i { display: block; height: 3px; border-radius: 2px; background: var(--hue); }
+  .rl-report i:nth-child(2) { width: 70%; }
+  .rl-report i:nth-child(3) { width: 85%; }
+  .rl-brief { display: flex; flex-direction: column; gap: 5px; width: 60px; padding: 7px 6px; border-radius: 4px; border: 1px solid var(--control-border); background: var(--paper); }
+  .rl-brief i:nth-child(odd) { width: 90%; }
+  .rl-lanes { display: flex; flex-direction: column; gap: 5px; width: 80px; }
+  .rl-lanes i { display: block; height: 7px; border-radius: 2px; background: var(--paper); overflow: hidden; }
+  .rl-lanes b { display: block; height: 100%; background: var(--diagram-network); transform-origin: left center; }
+  .rl-prs { display: flex; gap: 5px; }
+  .rl-prs i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--diagram-network); color: var(--paper); font: 600 11px var(--nav-font); font-style: normal; }
+
+  .rl-return {
+    position: relative; height: 22px; margin: 6px 12.5% 0; border: 1px dashed var(--control-border); border-top: 0; border-radius: 0 0 10px 10px;
+  }
+  .rl-return::before { content: '↑'; position: absolute; left: -7px; top: -12px; font: 13px var(--nav-font); color: var(--muted); }
+  .rl-return span { position: absolute; left: 50%; bottom: -9px; translate: -50% 0; padding: 0 8px; background: var(--paper); font: 11px var(--nav-font); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  .round-loop figcaption { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 16px; margin: 16px auto 0; max-width: 720px; }
+  .rl-replay {
+    min-height: 32px; padding: 4px 12px; border: 1px solid var(--control-border); border-radius: 6px;
+    background: var(--paper); color: var(--ink); font: 13px var(--nav-font); cursor: pointer;
+  }
+  .rl-replay:hover { background: var(--nav-highlight); }
+  .rl-replay:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  /* Phones: one column, arrows point down, and the loop back is a plain label. */
+  @media (max-width: 760px) {
+    .rl-steps { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+    .rl-step { display: grid; grid-template-columns: 92px minmax(0, 1fr); column-gap: 12px; align-content: start; }
+    .rl-art { grid-row: 1 / span 3; height: auto; margin: 0; align-self: center; justify-content: center; }
+    .rl-step:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -7px; translate: -50% 50%; }
+    .rl-return { height: auto; margin: 10px 0 0; border: 0; text-align: center; }
+    .rl-return::before { content: none; }
+    .rl-return span { position: static; translate: none; padding: 0; }
+    .rl-return span::before { content: '↺ '; }
+    .rl-return span::after { content: ': back to step 1'; }
+  }
+</style>
+
+<script>
+  import { animate, inView, type DOMKeyframesDefinition } from 'motion';
+
+  // Walk through the four steps once: two reports, merged into one list, built in lanes, landed.
+  for (const root of document.querySelectorAll<HTMLElement>('[data-round-loop]')) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) continue;
+    const steps = [...root.querySelectorAll<HTMLElement>('.rl-step')];
+    const replay = root.querySelector<HTMLButtonElement>('.rl-replay')!;
+    const reports = root.querySelectorAll<HTMLElement>('.rl-report');
+    const brief = root.querySelectorAll<HTMLElement>('.rl-brief i');
+    const lanes = root.querySelectorAll<HTMLElement>('.rl-lanes b');
+    const prs = root.querySelectorAll<HTMLElement>('.rl-prs i');
+    const per = 1.3;
+    let run = 0;
+
+    const wait = (s: number) => new Promise(resolve => setTimeout(resolve, s * 1000));
+    async function play() {
+      const id = ++run;
+      replay.disabled = true;
+      animate(reports, {opacity: 0, y: 6}, {duration: 0});
+      animate(brief, {opacity: 0, scaleX: 0.4}, {duration: 0});
+      animate(lanes, {scaleX: 0}, {duration: 0});
+      animate(prs, {opacity: 0, scale: 0.4}, {duration: 0});
+      const parts: [NodeListOf<HTMLElement>, DOMKeyframesDefinition][] = [
+        [reports, {opacity: [0, 1], y: [6, 0]}],
+        [brief, {opacity: [0, 1], scaleX: [0.4, 1]}],
+        [lanes, {scaleX: [0, 1]}],
+        [prs, {opacity: [0, 1], scale: [0.4, 1]}],
+      ];
+      for (const [i, step] of steps.entries()) {
+        if (id !== run) return;
+        steps.forEach(s => s.toggleAttribute('data-active', s === step));
+        const [els, keyframes] = parts[i];
+        els.forEach((el, n) => animate(el, keyframes, {duration: i === 2 ? 0.5 + n * 0.15 : 0.35, delay: n * (i === 2 ? 0 : 0.12), ease: [0.16, 1, 0.3, 1]}));
+        await wait(per);
+      }
+      if (id !== run) return;
+      steps.forEach(s => s.removeAttribute('data-active'));
+      replay.disabled = false;
+    }
+
+    replay.hidden = false;
+    replay.addEventListener('click', () => play());
+    animate([...reports, ...brief, ...prs], {opacity: 0}, {duration: 0});
+    animate(lanes, {scaleX: 0}, {duration: 0});
+    const stop = inView(root, () => { stop(); play(); }, {amount: 0.5});
+  }
+</script>

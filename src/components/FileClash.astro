@@ -1,0 +1,128 @@
+---
+// Why more agents didn't help: with one agent per item, several agents edit the same file
+// and their PRs collide. With lanes, each file has one owner. The six files are illustrative;
+// the numbers in the text come from rounds 5 to 14.
+const files = [10, 26, 42, 58, 74, 90];
+const hot = 2;
+const fan = [0, 2, 1, 2, 3, 2, 2, 4, 5, 1].map((file, i) => ({x: 5 + i * 10, file}));
+const lanes = [
+  {x: 14, files: [0, 1], hue: 'server'},
+  {x: 38, files: [2], hue: 'cloud'},
+  {x: 62, files: [3, 4], hue: 'network'},
+  {x: 86, files: [5], hue: 'auth'},
+];
+const count = (file: number) => fan.filter(a => a.file === file).length;
+const panels = [
+  {
+    id: 'fan', title: 'One agent per item', stats: '10 agents, 10 PRs, about 55 minutes',
+    text: 'Ten agents each take one item. Four of them edit the session page and two share another file, so their PRs collide when they merge.',
+    agents: fan.map(a => ({x: a.x, hue: 'muted'})),
+    links: fan.map((a, i) => ({from: a.x, to: files[a.file], agent: i, hue: 'muted'})),
+  },
+  {
+    id: 'lanes', title: 'Lanes with one owner per file', stats: '4 agents, 16 PRs, 39 minutes',
+    text: 'Four agents each own a set of files and take several items. No two agents edit the same file, so the PRs merge cleanly.',
+    agents: lanes.map(l => ({x: l.x, hue: l.hue})),
+    links: lanes.flatMap((l, i) => l.files.map(f => ({from: l.x, to: files[f], agent: i, hue: l.hue}))),
+  },
+];
+const owner = (file: number) => lanes.find(l => l.files.includes(file))!.hue;
+---
+<figure class="reader-figure file-clash" data-width="wide" data-file-clash>
+  <div class="fc-panels">
+    {panels.map(panel => (
+      <section class="fc-panel" data-panel={panel.id}>
+        <h4 class="fc-title">{panel.title}</h4>
+        <p class="fc-stats">{panel.stats}</p>
+        <p class="visually-hidden">{panel.text}</p>
+        <div class="fc-plot" aria-hidden="true">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            {panel.links.map(link => <line class="fc-link" data-agent={link.agent} x1={link.from} y1="18" x2={link.to} y2="76" style={`--hue: var(--diagram-${link.hue}, var(--muted))`} vector-effect="non-scaling-stroke" />)}
+          </svg>
+          {panel.agents.map(agent => <span class="fc-agent" style={`left:${agent.x}%;--hue: var(--diagram-${agent.hue}, var(--muted))`}></span>)}
+          {files.map((x, f) => {
+            const clash = panel.id === 'fan' && count(f) > 1;
+            return (
+              <span class:list={['fc-file', {clash}]} data-owner={panel.id === 'lanes' ? lanes.findIndex(l => l.files.includes(f)) : undefined} style={`left:${x}%;${panel.id === 'lanes' ? `--hue: var(--diagram-${owner(f)})` : ''}`}>
+                {clash && <span class="fc-badge">×{count(f)}</span>}
+                {f === hot && <span class="fc-name">Session page</span>}
+              </span>
+            );
+          })}
+          <span class="fc-row-label agents">Agents</span>
+          <span class="fc-row-label files">Files</span>
+        </div>
+      </section>
+    ))}
+  </div>
+  <figcaption>About a third of all PR pairs touched the same file, and the session page was in 33 of 108 commits. The files here are illustrative; the counts are from rounds 5 to 14.</figcaption>
+</figure>
+
+<style>
+  .file-clash { margin-block: 36px; }
+  .fc-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .fc-panel { padding: 14px; border-radius: 12px; background: var(--popular-ground); }
+  .fc-title { margin: 0; font-family: var(--brand-font); font-size: 16px; font-weight: 600; color: var(--ink); }
+  .fc-stats { margin: 2px 0 0; font: 13px var(--nav-font); color: var(--muted); }
+  .fc-plot { position: relative; aspect-ratio: 16 / 9; margin-top: 10px; }
+  .fc-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .fc-link { stroke: var(--hue); stroke-width: 2; opacity: .75; }
+  [data-panel="fan"] .fc-link { stroke: var(--control-border); opacity: 1; }
+  .fc-agent { position: absolute; top: 18%; width: 14px; height: 14px; translate: -50% -50%; border-radius: 50%; background: var(--hue); box-shadow: 0 0 0 2px var(--popular-ground); }
+  [data-panel="fan"] .fc-agent { background: var(--ink); }
+  .fc-file {
+    position: absolute; top: 76%; width: 26px; height: 32px; translate: -50% 0; border-radius: 3px 8px 3px 3px;
+    border: 2px solid var(--hue, var(--control-border)); background: var(--paper);
+  }
+  .fc-file { transition: background-color 300ms ease-out, border-color 300ms ease-out; }
+  [data-panel="lanes"] .fc-file { background: color-mix(in oklab, var(--hue) 22%, var(--paper)); }
+  [data-panel="lanes"] .fc-file.unowned { border-color: var(--control-border); background: var(--paper); }
+  .fc-file.clash { border-color: var(--diagram-client); background: color-mix(in oklab, var(--diagram-client) 22%, var(--paper)); }
+  .fc-badge {
+    position: absolute; right: -12px; top: -12px; padding: 1px 5px; border-radius: 8px; background: var(--diagram-client); color: var(--paper);
+    font: 600 11px var(--nav-font);
+  }
+  .fc-name { position: absolute; left: 50%; top: calc(100% + 4px); translate: -50% 0; font: 11px var(--nav-font); color: var(--muted); white-space: nowrap; }
+  .fc-row-label { position: absolute; left: 0; font: 11px var(--nav-font); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: none; }
+  .file-clash figcaption { max-width: 720px; margin-inline: auto; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 760px) {
+    .fc-panels { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // Left: the agents start one by one and pile onto the same files, which then flag a clash.
+  // Right: four lanes, each drawing only to its own files.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-file-clash]')) {
+      if (root.getBoundingClientRect().top < innerHeight) continue;
+      const fan = root.querySelector<HTMLElement>('[data-panel="fan"]')!;
+      const lanes = root.querySelector<HTMLElement>('[data-panel="lanes"]')!;
+      const hide = [...root.querySelectorAll<Element>('.fc-link, .fc-agent, .fc-badge')];
+      animate(hide, {opacity: 0}, {duration: 0});
+      const clashes = fan.querySelectorAll<HTMLElement>('.fc-file.clash');
+      clashes.forEach(el => el.classList.remove('clash'));
+      const ownedFiles = lanes.querySelectorAll<HTMLElement>('.fc-file');
+      ownedFiles.forEach(el => el.classList.add('unowned'));
+
+      const stop = inView(root, () => {
+        stop();
+        const step = 0.18;
+        fan.querySelectorAll<HTMLElement>('.fc-agent').forEach((el, i) => animate(el, {opacity: [0, 1], scale: [0.4, 1]}, {duration: 0.3, delay: i * step}));
+        fan.querySelectorAll<SVGLineElement>('.fc-link').forEach((el, i) => animate(el, {opacity: [0, 1]}, {duration: 0.3, delay: i * step + 0.15}));
+        const clashAt = 10 * step + 0.4;
+        setTimeout(() => clashes.forEach(el => el.classList.add('clash')), clashAt * 1000);
+        animate(clashes, {x: [0, -3, 3, -2, 0]}, {duration: 0.4, delay: clashAt});
+        animate(fan.querySelectorAll('.fc-badge'), {opacity: [0, 1], scale: [0.4, 1]}, {duration: 0.3, delay: clashAt});
+
+        const lanesAt = clashAt + 0.8;
+        lanes.querySelectorAll<HTMLElement>('.fc-agent').forEach((el, i) => animate(el, {opacity: [0, 1], scale: [0.4, 1]}, {duration: 0.3, delay: lanesAt + i * 0.3}));
+        lanes.querySelectorAll<SVGLineElement>('.fc-link').forEach(el => animate(el, {opacity: [0, 0.75]}, {duration: 0.3, delay: lanesAt + Number(el.dataset.agent) * 0.3 + 0.15}));
+        ownedFiles.forEach(el => setTimeout(() => el.classList.remove('unowned'), (lanesAt + Number(el.dataset.owner) * 0.3 + 0.4) * 1000));
+      }, {amount: 0.5});
+    }
+  }
+</script>

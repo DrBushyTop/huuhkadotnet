@@ -1,0 +1,170 @@
+---
+title: "Hill climbing a UI with coding agents"
+slug: "hill-climbing-a-ui-with-coding-agents"
+publishedAt: "2026-11-17T08:00:00.000+02:00"
+updatedAt: "2026-11-17T08:00:00.000+02:00"
+description: "I let coding agents improve a UI against a score from two model reviewers for 48 hours. 23 rounds and 190 PRs later, here's what worked, what the scores got wrong, and when I'd stop."
+tags:
+  - "AI"
+  - "Developer Tools"
+tagSlugs:
+  - "ai"
+  - "developer-tools"
+draft: true
+featured: false
+series: []
+---
+import HillClimb from '../../components/HillClimb.astro';
+import ScoreRounds from '../../components/ScoreRounds.astro';
+import ScoreSpend from '../../components/ScoreSpend.astro';
+import LaneBars from '../../components/LaneBars.astro';
+import ScoreSheet from '../../components/ScoreSheet.astro';
+import RoundLoop from '../../components/RoundLoop.astro';
+import FileClash from '../../components/FileClash.astro';
+import BlindCheck from '../../components/BlindCheck.astro';
+import ReaderFigure from '../../components/ReaderFigure.astro';
+
+
+{/* DRAFT. Open questions are marked TODO. */}
+
+I've been wanting to try hill climbing a UI with coding agents for a while, and in early November I finally let it run on one of my own apps for two days. Two model reviewers scored the app every round, and agents built whatever the reviews asked for. This post goes through how I set it up, what I changed along the way and what the scores actually told me. It's not meant as a "this is how you should do it" type of thing, more as notes from one fairly expensive experiment.
+
+**The short version**
+
+- It works, and pretty quickly. The first few rounds gave a real, measurable improvement.
+- After that, the rounds kept making changes, but they were too small to move the score anymore. When a climb flattens out like that, I think you need to change how you climb: bigger changes and more risk, to look for a higher peak, if there even is one.
+- The reviewers could read their own earlier reports for most of the run, and that inflated the scores quite a bit. Make them blind from the start.
+- More agents didn't mean more output. Splitting the work so that each file had one owner did.
+- For me, the sweet spot was somewhere around rounds 4 to 10, which cost about $230 to $540 at list price. The whole run was about $1,540.
+
+### Background
+
+The idea isn't new. Andrej Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) has agents run experiments and keep what works, and Poteto described the general version on [Matt Pocock's channel](https://www.youtube.com/watch?v=MN9dGgmLyso) as "some kind of rubric or a way to judge or score something", and then "have an agent continually try to make improvements". What finally got me to try it was Theo's video [Agents Sucked At UI (Until Today)](https://www.youtube.com/watch?v=xq0eB8vxeqk). I started the day after it came out, without much of a plan.
+
+Hill climbing itself is a pretty simple loop. The agent can only see what's near it, so it makes a change, measures it, and keeps the change if the score goes up. It stops when no step nearby is higher, and it has no way of knowing whether that's actually the top of anything.
+
+<HillClimb />
+
+The catch is that you can end up on the nearest peak instead of the highest one.
+
+Some things are much easier to climb than others. With tests, evals or latency, a program gives you the score, and that number doesn't really move unless the code does. A UI doesn't have anything like that, so a model has to give the score, and model scores move around. In Theo's run a rival product's score went from 8.3 to 9.1 on screenshots nobody had changed, and as he puts it, if you give the same screenshot to the same model three times, you get three different scores. That noise ended up shaping pretty much everything in this run.
+
+Theo's own run got to a 9 in about an hour and a half, and a 10 after around 18 hours and $250 to $400, so the last steps get expensive pretty quickly. One thing I took from his video directly was to hide the target score from the reviewers.
+
+### The setup
+
+The target was the user research tool I've been building with agents. A researcher sets up tasks, a participant tries a prototype, and the session records the screen, voice and a transcript. I think it was a fair target, since it's a real app in daily use and it has a fixed visual style, so the agents couldn't just win by restyling everything.
+
+My first prompt asked for roughly four things:
+
+- Put every round through a council of reviewers.
+- Stop when every member scores it at least 9.5. (This one sentence ended up costing a lot of money.)
+- Don't tell the members what the target is.
+- Score higher than the rival products, consistently, in every ranking.
+
+Every PR also had to show what changed, with pins on before and after screenshots.
+
+Before any code was written, one agent built a benchmark from screenshots of rival products: 16 references across six products, each mapped to the part of the app it should beat. It came with fair warnings too: some images were clearly staged marketing, and still images can't show interaction.
+
+The council had two members, Opus 5.5 and GPT-6.1 Sol, both on extra high reasoning and read-only. Their brief made each of them a strict principal product designer, and they did walkthroughs on the running app, so they were judging behavior and not just pictures. Each filled in the same score sheet:
+
+<ScoreSheet />
+
+Opus summed up the first round with "Competent, honest and clean, but slow at the things a researcher does for hours." Then the loop started:
+
+<RoundLoop />
+
+The reviews were better than I expected. In the first round Opus found an actual bug during its walkthrough, where a search hit showed the wrong time compared to the timeline. The early asks were mostly structural and the later ones got small and specific. Sol was the more literal one, at times measuring pixels ("the pin was around x420 while the writing field...").
+
+### Pins on every PR
+
+With around 190 PRs in two days, I wasn't going to read every diff, so every PR had to show me what changed. The agents took their own screenshots and screen recordings with the built-in browser in T3 Code, at laptop and phone sizes. Then they put the before and after side by side, with numbered pins next to each change and a legend explaining each pin.
+
+<ReaderFigure label="A PR image with numbered pins" zoom>
+  <img src="/images/hill-climb/pr-pins.webp" alt="A PR image titled 'The corrected count says which moments, and what can be said about them'. On the left, Before: the Evidence header reads '5 observations in 3 sessions · 3 corrected' as plain text. On the right, After, opened: '3 corrected' is a toggle that opens a list of other corrections, each with a time, a participant and 'Same words, now a quote'. Legend: 1. The count was plain text. Nothing in the list showed which three moments it meant. 2. The count stays as compact as before and now opens. It is closed by default, and stays as you left it for the visit. 3. Each moment is named by participant and time. The time is the same source link the list has, with Back to finding on arrival. 4. It says only what the app can check. In this draft all three kept their words and became quotes, so no wording is called changed." width="2264" height="898" loading="lazy" />
+  <figcaption>One image from a PR, with the pins and legend drawn in by the agent. The participants are test data. Select the image to enlarge it.</figcaption>
+</ReaderFigure>
+
+One of the agents wrote a small Playwright script for this. It takes the screenshots, the crops, the pin positions and the notes, lays them out as an HTML page and screenshots that into one image. The images were attached to the PR with the `gh` CLI and never committed. The brief had two rules for the pins: put them beside the thing they mark, never on top of text, and look at each finished image before attaching it. Over the whole run, the PRs ended up with 1,274 pins.
+
+### Fewer agents, more PRs
+
+I didn't plan any of the rules I ended up changing. Most of them came from reading through a thread and getting annoyed at what was happening.
+
+The biggest one was parallelism. My first prompt said something like "if you want, you can parallelize", and the orchestrator happily did, with one agent per item. Building got about three times faster, but joining the work back together ate most of that.
+
+<LaneBars />
+
+The reason was the shape of the code. The agents kept editing the same files, so I switched to lanes, where each agent owns a set of files and takes several items.
+
+<FileClash />
+
+So the shape of the codebase set the limit, not how many agents I threw at it.
+
+### Other things I changed
+
+The checks were also in the way for a while. The verify script ran everything in series, about 20 minutes, and the council waited for it. Moving to a parallel CI run on a separate instance got that down to around 8 to 10 minutes. Rounds didn't actually get shorter though, since the orchestrator just picked bigger items to fill the time. That's fine, but I wouldn't call it a speedup.
+
+Images were the other limit. The reviewers take a lot of screenshots on their walkthroughs, and when Sol ran through OpenCode or Foundry, it hit a limit of 50 images. Codex with the OpenAI subscription never did. Sol didn't run through the same route every round, so that adds a bit of noise to its scores.
+
+### The results
+
+The app does look better, and everyone who has seen it seems to agree. {/* TODO: before and after screenshots, with synthetic data? */} The numbers are the more interesting part though.
+
+<ScoreRounds />
+
+Around round 18 I noticed that the reviewers could read the earlier rounds, including their own scores. So from round 19 I told them not to open any earlier report. Every row dropped at the same time, and a whole app doesn't get worse overnight, so that was the scoring changing, not the app. If you run a council like this, assume it can see its earlier scores unless you've blocked it.
+
+To get a number I could trust, the last round scored the old version and the final build side by side, blind, and the final build twice to see how much the score moves on its own.
+
+<BlindCheck />
+
+### The designer study
+
+The model scores are useful, but I don't think they're enough on their own, so I wanted real people to check the result too. Designers at Zure try the old and new versions hands-on, and then rate blind pairs of screenshots.
+
+{/* TODO: fill in after the study this week. Does it agree with the council on direction and size? What did the council miss, and what's overbuilt? Update the short version and the sweet spot if it changes them. */}
+TODO: study results.
+
+### Was it worth it?
+
+At list price, the whole run came to about $1,540. Subscriptions and Copilot's flat rate covered most of it, but the Foundry part was real money.
+
+| Part | List price |
+|---|---|
+| Implementation (Claude) | $1,134 |
+| Council | $215 |
+| Orchestrator | $138 |
+| Review | $53 |
+
+Almost all of the input tokens were cache reads, so without prompt caching this would have looked very different.
+
+Most of the improvement came early:
+
+<ScoreSpend />
+
+After round 10 the line keeps going up, but the blind rounds sit at 8.67 on later and better builds, so anything above that level probably wasn't real. That's why I'd put the sweet spot at around rounds 4 to 10. Stopping there would have missed some real fixes the scores couldn't see though, like removing a five-second stall and a bug where a written note could get lost.
+
+### Where it got stuck
+
+The run ended at 8.68, and the goal needed another 0.82. At the rate the blind rounds were going, that would have been something like 80 more rounds and $5,800, with a pretty small chance of ever getting there. If the reviewers can't reliably confirm the goal, the loop never stops, it just keeps spending money. Theo got to 10 with a council that could see its own history. I got to 8.9 with one that couldn't, and I suspect that explains a lot of the difference.
+
+<HillClimb variant="fog" />
+
+I can think of three reasons the scores stopped going up, and more rounds of the same loop won't tell them apart. My own rules limited what the agents could change; in one round Opus said about one of them: "That's the price of the ruling, and I have no design that beats it." I did try a round of bigger changes, but it doesn't show in the scores. For me this was the most interesting part: the scores show that the climb flattened out, but not why.
+
+The brief also said "Prefer removing things", and that didn't really happen. The agents added about 17,000 lines to the web app and removed about 4,000, plus over 23,000 lines of tests. I think score loops naturally reward adding things: a missing feature is easy to spot, and an unneeded one isn't.
+
+### Final thoughts
+
+I'll be doing this again, and next time I'll change a few things:
+
+- Make the council blind from round 1, and freeze the rival scores in the first round.
+- Score the same build twice before starting, to know how noisy the scores are.
+- Use lanes with file owners from the start instead of one agent per item.
+- Set a stop rule up front, based on the slope and not a target number. Something like three flat rounds.
+- End with real people looking at it.
+
+I'll also think more about what to climb in the first place. Anything a program can score is a lot cheaper and less noisy: load time, bundle size, latency, accessibility violations, flaky tests, or an eval for your own agent or MCP server. Somewhere in between are tasks an agent can try as a user, like setting something up in the app and counting whether it finishes and how many steps it takes, or seeing how often an agent finds answers from your docs. Removing code with the UI score as a floor instead of a target is another option, though I'm not convinced it's the most valuable thing to climb, since fewer lines isn't really a goal in itself.
+
+So yes, it works. It costs a bit, but it's a good way to get a lot of improvement quickly, as long as you measure the noise first, keep the reviewers blind and decide when to stop before you start. After that, it's mostly about knowing when to try something different.

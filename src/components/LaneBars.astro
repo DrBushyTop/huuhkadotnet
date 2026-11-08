@@ -1,0 +1,85 @@
+---
+// Estimated minutes for a round of about ten PRs, from the analysis of rounds 5 to 14.
+// Building and joining are separate: joining is merging, rebasing and fixing what collided.
+const max = 160;
+const rows = [
+  {name: 'One agent', note: 'Everything in one thread', build: 145, join: 15},
+  {name: 'Ten agents', note: 'One per item, all at once', build: 48, join: 42},
+  {name: 'Three or four lanes', note: 'One owner per file', build: 50, join: 18, chosen: true},
+];
+---
+<figure class="reader-figure lane-bars" data-width="text" data-lane-bars aria-label="Minutes per round by how the work was split">
+  <div class="lb-legend" aria-hidden="true"><span class="build">Building</span><span class="join">Joining</span></div>
+  <table>
+    <caption class="visually-hidden">Estimated minutes for a ten-PR round, building and joining</caption>
+    <thead class="visually-hidden"><tr><th scope="col">Split</th><th scope="col">Minutes</th></tr></thead>
+    <tbody>
+      {rows.map(row => (
+        <tr class:list={{chosen: row.chosen}}>
+          <th scope="row"><span class="lb-name">{row.name}</span><span class="lb-note">{row.note}</span></th>
+          <td>
+            <span class="lb-bar" aria-hidden="true">
+              <span class="lb-fill build" style={`--w:${row.build / max * 100}%`}></span>
+              <span class="lb-fill join" style={`--w:${row.join / max * 100}%`}></span>
+            </span>
+            <span class="lb-value">{row.build + row.join} min</span>
+            <span class="visually-hidden">{row.build} building, {row.join} joining</span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <figcaption>Estimated minutes for a round of about ten PRs. More agents built faster and then spent most of the saving on joining.</figcaption>
+</figure>
+
+<style>
+  .lane-bars { margin-block: 32px; }
+  .lb-legend { display: flex; gap: 18px; margin-bottom: 6px; font: 13px var(--nav-font); color: var(--ink); }
+  .lb-legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .lb-legend span::before { content: ''; width: 14px; height: 10px; border-radius: 2px; }
+  .lb-legend .build::before { background: var(--diagram-network); }
+  .lb-legend .join::before { background: var(--diagram-client); }
+  .lane-bars table { width: 100%; border-collapse: collapse; font-size: 15px; display: table; overflow: visible; }
+  .lane-bars tr { border: 0; }
+  .lane-bars :is(th, td) { padding: 10px 0; border: 0; background: none; vertical-align: middle; text-align: left; font-weight: 400; }
+  .lane-bars th { width: 34%; padding-right: 16px; }
+  .lb-name { display: block; color: var(--ink); font-family: var(--brand-font); font-weight: 500; line-height: 1.3; }
+  .chosen .lb-name { font-weight: 600; }
+  .lb-note { display: block; color: var(--muted); font-size: 13px; }
+  .lane-bars td { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+  .lb-bar { display: flex; gap: 2px; height: 16px; border-radius: 3px; background: var(--popular-ground); overflow: hidden; }
+  .lb-fill { display: block; width: var(--w); height: 100%; transform-origin: left center; }
+  .lb-fill.build { background: var(--diagram-network); }
+  .lb-fill.join { background: var(--diagram-client); }
+  .lb-value { font-family: var(--nav-font); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink); min-width: 7ch; text-align: right; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* On phones each label sits above a full-width bar. */
+  @media (max-width: 600px) {
+    .lane-bars tr { display: block; padding-block: 6px; }
+    .lane-bars :is(th, td) { padding: 0; }
+    .lane-bars th { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; width: auto; padding: 0 0 6px; }
+    .lb-name, .lb-note { display: inline; }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // Building grows first, then joining, row by row.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const chart of document.querySelectorAll<HTMLElement>('[data-lane-bars]')) {
+      if (chart.getBoundingClientRect().top < innerHeight) continue;
+      const rows = [...chart.querySelectorAll('tbody tr')];
+      const fills = chart.querySelectorAll<HTMLElement>('.lb-fill');
+      animate(fills, {scaleX: 0}, {duration: 0});
+      const stop = inView(chart, () => {
+        stop();
+        rows.forEach((row, i) => {
+          const [build, join] = row.querySelectorAll<HTMLElement>('.lb-fill');
+          animate(build, {scaleX: [0, 1]}, {duration: 0.7, delay: i * 0.5, ease: [0.16, 1, 0.3, 1]});
+          animate(join, {scaleX: [0, 1]}, {duration: 0.5, delay: i * 0.5 + 0.6, ease: [0.16, 1, 0.3, 1]});
+        });
+      }, {amount: 0.7});
+    }
+  }
+</script>

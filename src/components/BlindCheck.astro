@@ -1,0 +1,77 @@
+---
+// The last round as three bars per reviewer: the gain the score chart showed, the gain when
+// the old version and the final build were scored side by side blind, and how far two scores
+// of the same build differed. A real table; the script only grows the bars.
+const max = 3;
+const reviewers = [
+  {name: 'Opus 5.5', hue: 'server', chart: 2.80, blind: 1.87, noise: 0.09},
+  {name: 'GPT-6.1 Sol', hue: 'cloud', chart: 2.67, blind: 0.94, noise: 0.12},
+];
+const kinds = [
+  {key: 'chart', label: 'Score chart, round 1 to 18'},
+  {key: 'blind', label: 'Blind, old next to final'},
+  {key: 'noise', label: 'Same build, scored twice'},
+] as const;
+---
+<figure class="reader-figure blind-check" data-width="text" data-blind-check>
+  <table>
+    <caption class="visually-hidden">Score gain by reviewer: what the score chart showed, the blind side-by-side gain, and the difference between two scores of the same build</caption>
+    <thead class="visually-hidden"><tr><th scope="col">Measure</th><th scope="col">Points</th></tr></thead>
+    {reviewers.map(r => (
+      <tbody style={`--hue: var(--diagram-${r.hue})`}>
+        <tr class="bc-group"><th scope="rowgroup" colspan="2">{r.name}</th></tr>
+        {kinds.map(kind => (
+          <tr data-kind={kind.key}>
+            <th scope="row">{kind.label}</th>
+            <td>
+              <span class="bc-track" aria-hidden="true"><span class="bc-bar" style={`width:${r[kind.key] / max * 100}%`}></span></span>
+              <span class="bc-value">{kind.key === 'noise' ? '' : '+'}{r[kind.key].toFixed(2)}</span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    ))}
+  </table>
+  <figcaption>The blind gain is far bigger than the noise, so the improvement is real. It's a third to two thirds of what the chart showed.</figcaption>
+</figure>
+
+<style>
+  .blind-check { margin-block: 32px; }
+  .blind-check table { width: 100%; border-collapse: collapse; font-size: 15px; display: table; overflow: visible; }
+  .blind-check tr { border: 0; }
+  .blind-check :is(th, td) { padding: 5px 0; border: 0; background: none; vertical-align: middle; text-align: left; font-weight: 400; color: var(--ink); }
+  .blind-check th[scope="row"] { width: 42%; padding-right: 16px; font-size: 14px; color: var(--muted); }
+  .bc-group th { padding-top: 14px; font-family: var(--brand-font); font-weight: 600; }
+  .bc-group th::before { content: ''; display: inline-block; width: 14px; height: 3px; margin: 0 8px 4px 0; border-radius: 2px; background: var(--hue); }
+  .blind-check tbody:first-of-type .bc-group th { padding-top: 0; }
+  .blind-check td { display: grid; grid-template-columns: minmax(0, 1fr) 6ch; align-items: center; column-gap: 12px; }
+  .bc-track { height: 14px; border-radius: 3px; background: var(--popular-ground); }
+  .bc-bar { display: block; height: 100%; min-width: 3px; border-radius: 3px; background: var(--hue); transform-origin: left center; }
+  [data-kind="chart"] .bc-bar { background: transparent; border: 2px dashed var(--hue); }
+  [data-kind="noise"] .bc-bar { background: var(--muted); }
+  .bc-value { font: 13px var(--nav-font); font-variant-numeric: tabular-nums; text-align: right; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 600px) {
+    .blind-check tr:not(.bc-group) { display: block; padding-block: 3px; }
+    .blind-check th[scope="row"] { display: block; width: auto; padding: 0 0 3px; }
+    .blind-check td { padding: 0; }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // What the chart promised first, then what the blind test kept, then the noise.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-blind-check]')) {
+      if (root.getBoundingClientRect().top < innerHeight) continue;
+      const order = ['chart', 'blind', 'noise'];
+      const bars = order.map(kind => root.querySelectorAll<HTMLElement>(`[data-kind="${kind}"] .bc-bar`));
+      animate(bars.flatMap(b => [...b]), {scaleX: 0}, {duration: 0});
+      const stop = inView(root, () => {
+        stop();
+        bars.forEach((group, n) => animate(group, {scaleX: [0, 1]}, {duration: 0.8, delay: n * 0.9, ease: [0.16, 1, 0.3, 1]}));
+      }, {amount: 0.6});
+    }
+  }
+</script>

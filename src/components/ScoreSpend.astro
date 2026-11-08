@@ -1,0 +1,145 @@
+---
+// Mean council score against cumulative list-price spend, one point per round.
+// The blind rounds set a ceiling: anything the earlier rounds scored above it was memory.
+import data from '../data/hill-climb.json';
+const mean = data.opus.map((s, i) => (s + data.sol[i]) / 2);
+const maxSpend = 1400;
+const x = (dollars: number) => 3 + (dollars / maxSpend) * 94;
+const y = (s: number) => ((9.6 - s) / 3.4) * 100;
+const path = `M${mean.map((s, i) => `${x(data.spend[i]).toFixed(2)} ${y(s).toFixed(2)}`).join(' L')}`;
+const ceiling = 8.67;
+const sweet = {from: data.spend[3], to: data.spend[9]};
+---
+<figure class="reader-figure score-spend" data-width="wide" data-score-spend aria-label="Score against money spent">
+  <div class="ss-plot" tabindex="0" aria-label="Score against spend. Hover, tap or use the arrow keys to read each round.">
+    {[7, 8, 9].map(s => <span class="ss-grid" style={`top:${y(s)}%`} aria-hidden="true"><span>{s}</span></span>)}
+    <div class="ss-memory" data-step="1" style={`height:${y(ceiling)}%`} aria-hidden="true"><span>Above the blind level: memory, not design</span></div>
+    <span class="ss-ceiling" data-step="1" style={`top:${y(ceiling)}%`} aria-hidden="true"><span>Blind level 8.67</span></span>
+    <div class="ss-sweet" data-step="2" style={`left:${x(sweet.from)}%;width:${x(sweet.to) - x(sweet.from)}%`} aria-hidden="true"><span>Rounds 4 to 10</span></div>
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path class="ss-line" d={path} vector-effect="non-scaling-stroke" />
+    </svg>
+    {mean.map((s, i) => <span class:list={['ss-dot', {blind: i >= 18}]} data-round={i + 1} data-spend={data.spend[i]} data-score={s.toFixed(2)} data-x={x(data.spend[i])} style={`left:${x(data.spend[i])}%;top:${y(s)}%`} aria-hidden="true"></span>)}
+    <span class="ss-tip" role="status" hidden></span>
+    <span class="ss-mark" data-step="0" style={`left:${x(data.spend[3])}%;top:${y(mean[3])}%`} aria-hidden="true">1</span>
+  </div>
+  <div class="ss-axis" aria-hidden="true"><span>$0</span><span>Spend so far, list price</span><span>$1,400</span></div>
+  <p class="ss-key" data-step="0"><span class="ss-key-mark" aria-hidden="true">1</span> Round 4: $227 spent, mean score 8.23</p>
+  <table class="visually-hidden">
+    <caption>Mean score of both reviewers and cumulative spend in US dollars, by round</caption>
+    <thead><tr><th scope="col">Round</th><th scope="col">Spend</th><th scope="col">Mean score</th></tr></thead>
+    <tbody>{mean.map((s, i) => <tr><th scope="row">{i + 1}</th><td>{data.spend[i]}</td><td>{s.toFixed(2)}</td></tr>)}</tbody>
+  </table>
+  <figcaption>Mean score of both reviewers against what the run had cost by then. Grey points are the blind rounds.</figcaption>
+</figure>
+
+<style>
+  .score-spend { margin-block: 36px; }
+  .ss-plot { position: relative; aspect-ratio: 16 / 7; min-height: 240px; border-radius: 12px; background: var(--popular-ground); overflow: hidden; }
+  .ss-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ss-line { fill: none; stroke: var(--diagram-network); stroke-width: 3; stroke-linejoin: round; }
+  .ss-dot { position: absolute; width: 9px; height: 9px; translate: -50% -50%; border-radius: 50%; background: var(--diagram-network); box-shadow: 0 0 0 2px var(--popular-ground); }
+  .ss-dot.blind { background: var(--control-border); }
+  .ss-dot { transition: scale 150ms ease-out; }
+  .ss-dot[data-active] { scale: 1.6; box-shadow: 0 0 0 2px var(--popular-ground), 0 0 0 4px var(--ink); }
+  .ss-plot { touch-action: pan-y; cursor: crosshair; }
+  .ss-plot:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .ss-tip {
+    position: absolute; z-index: 2; translate: -50% calc(-100% - 14px); padding: 4px 8px; border-radius: 6px; pointer-events: none;
+    background: var(--ink); color: var(--paper); font: 12px/1.35 var(--nav-font); white-space: nowrap;
+  }
+  .ss-tip[data-below] { translate: -50% 14px; }
+  .ss-tip b { font-weight: 600; }
+  .ss-grid { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+  .ss-grid span { position: absolute; left: 6px; top: 2px; font: 11px var(--nav-font); color: var(--muted); }
+  .ss-memory {
+    position: absolute; left: 0; right: 0; top: 0;
+    background: color-mix(in oklab, var(--diagram-client) 10%, transparent);
+  }
+  .ss-memory span { position: absolute; left: 30px; top: 8px; font: 11px var(--nav-font); text-transform: uppercase; letter-spacing: .04em; color: var(--ink); }
+  .ss-ceiling { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--diagram-client); }
+  .ss-ceiling span { position: absolute; right: 10px; top: 4px; font: 12px var(--nav-font); color: var(--diagram-client); }
+  .ss-sweet { position: absolute; top: 0; bottom: 0; background: color-mix(in oklab, var(--diagram-network) 16%, transparent); border-inline: 1px solid var(--diagram-network); }
+  .ss-sweet span { position: absolute; left: 6px; bottom: 8px; font: 11px var(--nav-font); text-transform: uppercase; letter-spacing: .04em; color: var(--ink); white-space: nowrap; }
+  .ss-mark, .ss-key-mark {
+    display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); color: var(--paper); font: 600 11px var(--nav-font);
+  }
+  .ss-mark { position: absolute; translate: -50% -50%; box-shadow: 0 0 0 2px var(--popular-ground); }
+  .ss-key { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 15px; color: var(--ink); }
+  .ss-axis { display: flex; justify-content: space-between; padding: 6px 3%; font: 11px var(--nav-font); color: var(--muted); }
+  .score-spend figcaption { max-width: 720px; margin-inline: auto; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 760px) {
+    .ss-plot { aspect-ratio: 4 / 3; }
+    .ss-memory span { max-width: 45%; }
+  }
+</style>
+
+<script>
+  import { animate, inView, stagger } from 'motion';
+
+  // The line and points first, then the blind ceiling, then the rounds worth paying for.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-score-spend]')) {
+      const svg = root.querySelector<SVGElement>('svg')!;
+      const dots = root.querySelectorAll<HTMLElement>('.ss-dot');
+      const steps = [0, 1, 2].map(n => root.querySelectorAll<HTMLElement>(`[data-step="${n}"]`));
+      animate(svg, {clipPath: 'inset(0 100% 0 0)'}, {duration: 0});
+      animate([...dots, ...steps.flatMap(s => [...s])], {opacity: 0}, {duration: 0});
+      const stop = inView(root, () => {
+        stop();
+        animate(svg, {clipPath: ['inset(0 100% 0 0)', 'inset(0 0% 0 0)']}, {duration: 2, ease: 'linear'});
+        animate(dots, {opacity: [0, 1]}, {duration: 0.2, delay: stagger(2 / dots.length)});
+        steps.forEach((els, n) => animate(els, {opacity: [0, 1]}, {duration: 0.6, delay: 1 + n * 1.2}));
+      }, {amount: 0.6});
+    }
+  }
+
+  // Hover, tap or arrow keys pick the nearest round and show its spend and score.
+  for (const root of document.querySelectorAll<HTMLElement>('[data-score-spend]')) {
+    const plot = root.querySelector<HTMLElement>('.ss-plot')!;
+    const tip = root.querySelector<HTMLElement>('.ss-tip')!;
+    const dots = [...root.querySelectorAll<HTMLElement>('.ss-dot')];
+    let current = -1;
+    function show(i: number) {
+      current = i;
+      const dot = dots[i];
+      dots.forEach(d => d.toggleAttribute('data-active', d === dot));
+      const {round, spend, score} = dot.dataset;
+      tip.innerHTML = `<b>Round ${round}</b>${Number(round) > 18 ? ', blind' : ''} · $${Number(spend).toLocaleString('en-US')} · ${score}`;
+      tip.hidden = false;
+      tip.style.top = dot.style.top;
+      // The plot clips at its top edge, so near the top the tip goes below the dot.
+      tip.toggleAttribute('data-below', parseFloat(dot.style.top) < 30);
+      // Keep the tip inside the plot near the edges.
+      const half = tip.offsetWidth / 2 / plot.clientWidth * 100;
+      tip.style.left = `${Math.min(Math.max(Number(dot.dataset.x), half + 1), 99 - half)}%`;
+    }
+    function hide() {
+      current = -1;
+      tip.hidden = true;
+      dots.forEach(d => d.toggleAttribute('data-active', false));
+    }
+    function nearest(clientX: number) {
+      const box = plot.getBoundingClientRect();
+      const at = (clientX - box.left) / box.width * 100;
+      let best = 0;
+      dots.forEach((d, i) => { if (Math.abs(Number(d.dataset.x) - at) < Math.abs(Number(dots[best].dataset.x) - at)) best = i; });
+      return best;
+    }
+    plot.addEventListener('pointermove', e => show(nearest(e.clientX)));
+    plot.addEventListener('pointerdown', e => show(nearest(e.clientX)));
+    plot.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+    plot.addEventListener('blur', hide);
+    plot.addEventListener('keydown', e => {
+      const steps: Record<string, number> = {ArrowRight: 1, ArrowLeft: -1, Home: -dots.length, End: dots.length};
+      if (e.key === 'Escape') { hide(); return; }
+      if (!(e.key in steps)) return;
+      e.preventDefault();
+      const step = steps[e.key];
+      const from = current < 0 ? (step > 0 ? -1 : dots.length) : current;
+      show(Math.min(Math.max(from + step, 0), dots.length - 1));
+    });
+  }
+</script>
