@@ -27,7 +27,7 @@ FINISH: The build and tests pass. Browser checks confirm that cards and search m
 
 ## Homepage behavior
 
-The featured article is set by `lead` in `FieldNotesHome.astro`, currently "Talking to my coding agents with OpenWhispr and Microsoft Foundry". Its frontmatter image, excerpt, date, and reading estimate are shown. The previous lead, "Building your own PR reviewer with coding agents", stays first in the popular ranking. Three popular selections use the owner-supplied ranking.
+The featured article is set by `lead` in `FieldNotesHome.astro`, currently "Hill climbing a UI with coding agents". Its frontmatter image, excerpt, date, and reading estimate are shown. The previous lead, "Talking to my coding agents with OpenWhispr and Microsoft Foundry", goes first in the popular ranking, followed by "Building your own PR reviewer with coding agents". Three popular selections use the owner-supplied ranking.
 
 All article rows are available in a keyboard-focusable, independently scrolling region, including without JavaScript. There is no homepage pagination or automatic loading. Search filters only the list, leaving the hero and popular cards visible. Root `?q=` bookmarks search this list directly. Clear, Escape reset, query history, and the no-results state remain supported. Each search resets the list scroll position.
 
@@ -39,7 +39,7 @@ The selected `PopularPosts.astro` cards place artwork on the right. Cards and im
 
 ## Assets and boundaries
 
-The hero reuses the featured article's frontmatter image, currently `public/images/openwhispr-foundry/voice-route.png`, a still of the article's route diagram, framed with a hairline border and 12px radius. Popular cards reuse existing `CardImage` assets and the pre-existing `public/images/pasi.webp` fallback. Original raster files remain unchanged. No new imagery is needed.
+The hero reuses the featured article's frontmatter image, currently `public/images/hill-climb/hill-climb.png`, a still of the article's two-peak hill diagram, framed with a hairline border and 12px radius. Popular cards reuse existing `CardImage` assets and the pre-existing `public/images/pasi.webp` fallback. Original raster files remain unchanged. No new imagery is needed.
 
 Global DESIGN.md, tokens, and `.impeccable/design.json` remain unchanged. The pre-existing doctor warning that DESIGN.md is newer than its sidecar remains outside this task. Local noindex and preview analytics exclusions remain. No deployment or analytics change accompanies this work.
 

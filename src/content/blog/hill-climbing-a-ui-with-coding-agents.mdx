@@ -1,8 +1,8 @@
 ---
 title: "Hill climbing a UI with coding agents"
 slug: "hill-climbing-a-ui-with-coding-agents"
-publishedAt: "2026-11-17T08:00:00.000+02:00"
-updatedAt: "2026-11-17T08:00:00.000+02:00"
+publishedAt: "2026-11-11T12:39:00.000+02:00"
+updatedAt: "2026-11-11T12:39:00.000+02:00"
 description: "I let coding agents improve a UI against a score from two model reviewers for 48 hours. 23 rounds and 190 PRs later, here's what worked, what the scores got wrong, and when I'd stop."
 tags:
   - "AI"
@@ -10,7 +10,10 @@ tags:
 tagSlugs:
   - "ai"
   - "developer-tools"
-draft: true
+image: "/images/hill-climb/hill-climb.png"
+ogImage: "/images/hill-climb/hill-climb-og.png"
+imageAlt: "A score landscape with two peaks. The climber sits at 7.7 on the lower peak, and a higher peak rises to the right."
+draft: false
 featured: false
 series: []
 ---
@@ -23,9 +26,7 @@ import RoundLoop from '../../components/RoundLoop.astro';
 import FileClash from '../../components/FileClash.astro';
 import BlindCheck from '../../components/BlindCheck.astro';
 import ReaderFigure from '../../components/ReaderFigure.astro';
-
-
-{/* DRAFT. Open questions are marked TODO. */}
+import DesignerStudy from '../../components/DesignerStudy.astro';
 
 I've been wanting to try hill climbing a UI with coding agents for a while, and in early November I finally let it run on one of my own apps for two days. Two model reviewers scored the app every round, and agents built whatever the reviews asked for. This post goes through how I set it up, what I changed along the way and what the scores actually told me. It's not meant as a "this is how you should do it" type of thing, more as notes from one fairly expensive experiment.
 
@@ -35,6 +36,7 @@ I've been wanting to try hill climbing a UI with coding agents for a while, and 
 - After that, the rounds kept making changes, but they were too small to move the score anymore. When a climb flattens out like that, I think you need to change how you climb: bigger changes and more risk, to look for a higher peak, if there even is one.
 - The reviewers could read their own earlier reports for most of the run, and that inflated the scores quite a bit. Make them blind from the start.
 - More agents didn't mean more output. Splitting the work so that each file had one owner did.
+- Three designers agreed that the new version was better, but by less than the scores said, and they ranked round 10 above the final build. Their biggest complaint was how the app fits together, which no single screen score can catch.
 - For me, the sweet spot was somewhere around rounds 4 to 10, which cost about $230 to $540 at list price. The whole run was about $1,540.
 
 ### Background
@@ -121,10 +123,21 @@ To get a number I could trust, the last round scored the old version and the fin
 
 ### The designer study
 
-The model scores are useful, but I don't think they're enough on their own, so I wanted real people to check the result too. Designers at Zure try the old and new versions hands-on, and then rate blind pairs of screenshots.
+The model scores are useful, but I don't think they're enough on their own, so I wanted real people to check the result too. Three designers at Zure did the same five tasks in both the old and the new version. Then they compared screenshots without knowing which version was which: old against new for 12 screens, and four versions of six screens ranked from best to worst.
 
-{/* TODO: fill in after the study this week. Does it agree with the council on direction and size? What did the council miss, and what's overbuilt? Update the short version and the sweet spot if it changes them. */}
-TODO: study results.
+<DesignerStudy />
+
+The direction matched the council. Two of the three rated the new version clearly higher, more tasks got done in it, and 10 of the 12 screen pairs leaned towards the new one. The size didn't match though. On a scale from −2 to +2, the average vote was +0.47, about halfway between "no difference" and "slightly better". And round 10 ranked above the final build in 13 of 18 rankings, so the rounds after it probably didn't make things better, at least not in a way people could see. One result doesn't depend on the order: finding where a run went wrong worked for all three in the new version and for one in the old, since the drill-down only exists in the new one. They also liked the replay, with its cursor, timeline and success markers, and one of them called the transcript really, really good.
+
+What the council missed was mostly structure, not single screens. The designers couldn't tell where they were, how to get back, or how recordings, participants, observations and findings connect to each other. One of them described it as features laid out from a list and left to spread until they touched, with no user journey connecting them. A few more specific things came up too:
+
+- Nobody managed to capture a moment from a recording in either version. That one is a real problem, since it's pretty much the core job of the app, and that part of the UX clearly needs work.
+- Buttons with keyboard shortcut chips act on the first click, so people didn't dare press them. They wanted to choose first and then confirm.
+- The designers said the charts had no legends, so they couldn't tell a good result from a bad one. I don't fully agree with that one. The legends are there, but they're clearly not visible enough or distinct enough from the rest of the page, and the study didn't leave much time to take the information in.
+
+I think all of this points to the app needing a better overall story of the research process, one that the UI tells as you go. At the same time, that's the kind of thing people would probably learn after using the app once, and a single session can't show that.
+
+I do think the setup skewed the results against the app. The designers hadn't used it before, and I dropped them into the middle of a project full of data, without any introduction to the app itself. One of them had earlier tried an older version from the very start, entering their own test data, and back then wanted to use it in a real project right away. This time it felt a lot more confusing, even though the new version was clearly the better of the two. The designer who used the new version first saw no difference at all, so the order probably mattered too. With three people, I read this as a direction, not proof.
 
 ### Was it worth it?
 
@@ -143,7 +156,7 @@ Most of the improvement came early:
 
 <ScoreSpend />
 
-After round 10 the line keeps going up, but the blind rounds sit at 8.67 on later and better builds, so anything above that level probably wasn't real. That's why I'd put the sweet spot at around rounds 4 to 10. Stopping there would have missed some real fixes the scores couldn't see though, like removing a five-second stall and a bug where a written note could get lost.
+After round 10 the line keeps going up, but the blind rounds sit at 8.67 on later and better builds, so anything above that level probably wasn't real. The designers ranking round 10 above the final build points the same way. That's why I'd put the sweet spot at around rounds 4 to 10. Stopping there would have missed some real fixes the scores couldn't see though, like removing a five-second stall and a bug where a written note could get lost. So the later rounds were worth it for the fixes, not for the polish.
 
 ### Where it got stuck
 
@@ -151,9 +164,15 @@ The run ended at 8.68, and the goal needed another 0.82. At the rate the blind r
 
 <HillClimb variant="fog" />
 
-I can think of three reasons the scores stopped going up, and more rounds of the same loop won't tell them apart. My own rules limited what the agents could change; in one round Opus said about one of them: "That's the price of the ruling, and I have no design that beats it." I did try a round of bigger changes, but it doesn't show in the scores. For me this was the most interesting part: the scores show that the climb flattened out, but not why.
+I can think of three reasons the scores stopped going up, and more rounds of the same loop won't tell them apart:
 
-The brief also said "Prefer removing things", and that didn't really happen. The agents added about 17,000 lines to the web app and removed about 4,000, plus over 23,000 lines of tests. I think score loops naturally reward adding things: a missing feature is easy to spot, and an unneeded one isn't.
+- **A local peak.** My own rules limited what the agents could change. In one round Opus said about one of them: "That's the price of the ruling, and I have no design that beats it." I did try a round of bigger changes, but it doesn't show in the scores.
+- **Noise.** Two scores of the same build differ by about 0.1, so the app could still be improving without the scores being able to see it.
+- **The top of the scale.** The brief calls 10 reference-quality work, and the best rival scored 9.0. A strict, blind reviewer may not go much higher for any real product.
+
+For me this was the most interesting part: the scores show that the climb flattened out, but not why. The designer study adds one more thing: the reviewers scored the app screen by screen, and the biggest problems the designers found were in how the screens connect. A loop that scores screens can't climb towards that.
+
+The brief also said "Prefer removing things", and that didn't really happen. The agents added about 17,000 lines to the web app and removed about 4,000, plus over 23,000 lines of tests. I think score loops naturally reward adding things: a missing feature is easy to spot, and an unneeded one isn't. The designers noticed it too. Asked what was overbuilt, one of them answered "The whole application".
 
 ### Final thoughts
 
@@ -163,8 +182,11 @@ I'll be doing this again, and next time I'll change a few things:
 - Score the same build twice before starting, to know how noisy the scores are.
 - Use lanes with file owners from the start instead of one agent per item.
 - Set a stop rule up front, based on the slope and not a target number. Something like three flat rounds.
-- End with real people looking at it.
+- Give the agents a design system with layout rules before the first round, and tell them to ask instead of inventing when something is missing. Otherwise you get the average of every reference on the internet, and fixing the basics late is harder, because you first have to undo what's been built.
+- Put people at both ends: a researcher walking through their real work before round 1, and a study at the end. When people check the result, give them a proper introduction to the app first, and switch the order of the versions between people.
 
-I'll also think more about what to climb in the first place. Anything a program can score is a lot cheaper and less noisy: load time, bundle size, latency, accessibility violations, flaky tests, or an eval for your own agent or MCP server. Somewhere in between are tasks an agent can try as a user, like setting something up in the app and counting whether it finishes and how many steps it takes, or seeing how often an agent finds answers from your docs. Removing code with the UI score as a floor instead of a target is another option, though I'm not convinced it's the most valuable thing to climb, since fewer lines isn't really a goal in itself.
+The change I'm most interested in is what goes into the loop. This climb started from screenshots of rival products, and the council's score sheet was written by an agent. Now I have real feedback: the study found around ten specific failures, most of them with recordings behind them. That feedback could become both the council's brief and its score sheet, with rows like "can a first-time user capture a moment" or "can you always tell where you are". The loop itself would stay as automated as before, with no people inside it, and the study at the end stays as the check. My bet is that it would take a few rounds instead of 23, because it would be climbing the right hill. One of the designers said much the same thing: one round of design critique gives the big jump, and a loop built on precise user feedback could give much more interesting results. I haven't run that yet though.
 
-So yes, it works. It costs a bit, but it's a good way to get a lot of improvement quickly, as long as you measure the noise first, keep the reviewers blind and decide when to stop before you start. After that, it's mostly about knowing when to try something different.
+I'll also think more about what to climb in the first place. Anything a program can score is a lot cheaper and less noisy: load time, bundle size, latency, accessibility violations, flaky tests, or an eval for your own agent or MCP server. Somewhere in between are tasks an agent can try as a user, like setting something up in the app and counting whether it finishes and how many steps it takes, or seeing how often an agent finds answers from your docs. Removing code is another option, with the UI score and the study's tasks as a floor instead of a target, so that nothing people could already do breaks. I'm not convinced it's the most valuable thing to climb though, since fewer lines isn't really a goal in itself.
+
+So yes, it works. It costs a bit, but it's a good way to get a lot of improvement quickly, as long as you measure the noise first, keep the reviewers blind and decide when to stop before you start. And I'd start from what real people struggle with, not from what a model thinks good looks like. After that, it's mostly about knowing when to try something different.

@@ -8,6 +8,7 @@ const entries = await getPosts();
 // Lead stories in order of preference, with their image sizes. The first published one leads,
 // so a scheduled post can be listed first and takes over on its release day.
 const leads = [
+  {slug: 'hill-climbing-a-ui-with-coding-agents', width: 2016, height: 632},
   {slug: 'talking-to-coding-agents-with-openwhispr-and-microsoft-foundry', width: 2016, height: 446},
 ];
 const lead = leads.find(candidate => entries.some(post => post.data.slug === candidate.slug))!;
@@ -17,9 +18,9 @@ const posts = await Promise.all(entries.map(async entry => ({
 })));
 // Owner-supplied analytics ranking, excluding the front page.
 const popular = [
+  'talking-to-coding-agents-with-openwhispr-and-microsoft-foundry',
   'building-your-own-pr-reviewer-with-coding-agents',
   'connecting-opencode-with-microsoft-foundry-models',
-  'browser-verification-for-coding-agents-chrome-devtools-mcp-vs-agent-browser',
 ].map(slug => posts.find(post => post.slug === slug)!);
 ---
 <Base title="Huuhka.net | Pasi Huuhka">

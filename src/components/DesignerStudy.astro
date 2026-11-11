@@ -1,0 +1,145 @@
+---
+// The designer study in three panels: each person's rating of both builds, tasks completed,
+// and how often round 10 ranked above the final build. The text and tables are the content;
+// the script only moves the dots and fills the bars and squares.
+const people = [
+  {id: 'P1', old: 3, new: 7, first: 'old'},
+  {id: 'P2', old: 4, new: 4, first: 'new'},
+  {id: 'P3', old: 5, new: 8, first: 'old'},
+];
+const tasks = {total: 15, old: 6, new: 10};
+const rankings = {total: 18, round10: 13};
+const pct = (n: number) => (n / 10) * 100;
+---
+<figure class="reader-figure designer-study" data-width="wide" data-designer-study>
+  <div class="ds-panels">
+    <section class="ds-panel" aria-labelledby="ds-rating-title">
+      <h3 id="ds-rating-title" class="ds-title">Rating out of 10</h3>
+      <div class="ds-legend" aria-hidden="true"><span class="old">Old build</span><span class="new">New build</span></div>
+      <table class="ds-ratings">
+        <caption class="visually-hidden">Each designer's rating of the old and new build, out of 10</caption>
+        <thead class="visually-hidden"><tr><th scope="col">Designer</th><th scope="col">Old build</th><th scope="col">New build</th></tr></thead>
+        <tbody>
+          {people.map(p => (
+            <tr>
+              <th scope="row">{p.id}{p.first === 'new' && <span class="ds-first">new first</span>}</th>
+              <td class="ds-track-cell" colspan="2">
+                <span class="ds-track" aria-hidden="true">
+                  <span class="ds-span" style={`left:${pct(Math.min(p.old, p.new))}%;width:${pct(Math.abs(p.new - p.old))}%`}></span>
+                  <span class="ds-dot old" style={`left:${pct(p.old)}%`}></span>
+                  <span class="ds-dot new" data-from={pct(p.old)} style={`left:${pct(p.new)}%`}></span>
+                </span>
+                <span class="ds-value" aria-hidden="true">{p.old} → {p.new}</span>
+                <span class="visually-hidden">Old build {p.old}, new build {p.new}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="ds-panel" aria-labelledby="ds-tasks-title">
+      <h3 id="ds-tasks-title" class="ds-title">Tasks completed</h3>
+      <p class="ds-sub">Five tasks each, all three designers</p>
+      <dl class="ds-tasks">
+        {(['old', 'new'] as const).map(build => (
+          <div class="ds-task-row">
+            <dt>{build === 'old' ? 'Old build' : 'New build'}</dt>
+            <dd>
+              <span class="ds-cells" aria-hidden="true">
+                {Array.from({length: tasks.total}, (_, i) => <i class:list={[build, {done: i < tasks[build]}]}></i>)}
+              </span>
+              <span class="ds-count">{tasks[build]} of {tasks.total}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section class="ds-panel" aria-labelledby="ds-rank-title">
+      <h3 id="ds-rank-title" class="ds-title">Round 10 against the final build</h3>
+      <p class="ds-sub">Six screens, four versions each, ranked by three designers</p>
+      <span class="ds-grid" aria-hidden="true">
+        {Array.from({length: rankings.total}, (_, i) => <i class:list={{won: i < rankings.round10}}></i>)}
+      </span>
+      <p class="ds-count ds-rank-count">Round 10 ranked higher in {rankings.round10} of {rankings.total}</p>
+    </section>
+  </div>
+  <figcaption>The designer study. Not everyone used the builds in the same order, and the one who used the new build first rated both the same.</figcaption>
+</figure>
+
+<style>
+  .designer-study { margin-block: 36px; }
+  .ds-panels { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px; }
+  .ds-panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--popular-ground); }
+  .ds-title { margin: 0; font: 600 16px/1.3 var(--brand-font); color: var(--ink); }
+  .ds-sub { margin: 0; font: 13px/1.4 var(--nav-font); color: var(--muted); }
+  .ds-legend { display: flex; gap: 14px; font: 13px var(--nav-font); color: var(--ink); }
+  .ds-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .ds-legend span::before { content: ''; width: 10px; height: 10px; border-radius: 50%; }
+  .ds-legend .old::before { background: var(--paper); border: 2px solid var(--control-border); box-sizing: border-box; }
+  .ds-legend .new::before { background: var(--diagram-network); }
+
+  .ds-ratings { width: 100%; margin: 0; border-collapse: collapse; display: table; overflow: visible; font-size: 15px; }
+  .ds-ratings tr { border: 0; }
+  .ds-ratings :is(th, td) { padding: 8px 0; border: 0; background: none; vertical-align: middle; text-align: left; font-weight: 400; }
+  .ds-ratings th { width: 5.5em; padding-right: 10px; font: 600 13px var(--nav-font); color: var(--ink); }
+  .ds-first { display: block; white-space: nowrap; font-weight: 400; font-size: 11px; line-height: 1.2; color: var(--muted); }
+  .ds-track-cell { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
+  .ds-track { position: relative; height: 14px; border-radius: 7px; background: color-mix(in oklab, var(--ink) 6%, transparent); }
+  .ds-span { position: absolute; top: 5px; height: 4px; background: color-mix(in oklab, var(--diagram-network) 45%, transparent); transform-origin: left center; }
+  .ds-dot { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; translate: -50% -50%; box-sizing: border-box; }
+  .ds-dot.old { background: var(--paper); border: 2px solid var(--control-border); }
+  .ds-dot.new { background: var(--diagram-network); }
+  .ds-value { min-width: 4.5ch; font: 13px var(--nav-font); font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; white-space: nowrap; }
+
+  .ds-tasks { display: flex; flex-direction: column; gap: 12px; margin: 4px 0 0; }
+  .ds-task-row { display: flex; flex-direction: column; gap: 4px; }
+  .ds-task-row dt { font: 13px var(--nav-font); color: var(--ink); }
+  .ds-task-row dd { display: flex; align-items: center; gap: 10px; margin: 0; }
+  .ds-cells { display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); gap: 3px; flex: 1; max-width: 220px; }
+  .ds-cells i { aspect-ratio: 1; border-radius: 2px; background: color-mix(in oklab, var(--ink) 8%, transparent); }
+  .ds-cells i.done.old { background: var(--control-border); }
+  .ds-cells i.done.new { background: var(--diagram-network); }
+  .ds-count { font: 13px var(--nav-font); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+
+  .ds-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; max-width: 168px; margin-top: 4px; }
+  .ds-grid i { aspect-ratio: 1; border-radius: 3px; background: color-mix(in oklab, var(--ink) 8%, transparent); }
+  .ds-grid i.won { background: var(--diagram-cloud); }
+  .ds-rank-count { margin: 0; white-space: normal; }
+
+  .designer-study figcaption { margin: 16px auto 0; max-width: 720px; text-align: center; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  @media (max-width: 900px) {
+    .ds-panels { grid-template-columns: 1fr 1fr; }
+    .ds-panel:first-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 600px) {
+    .ds-panels { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // New-build dots slide over from the old rating, then the task cells and ranking squares fill in.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-designer-study]')) {
+      if (root.getBoundingClientRect().top < innerHeight) continue;
+      const dots = [...root.querySelectorAll<HTMLElement>('.ds-dot.new')];
+      const spans = root.querySelectorAll<HTMLElement>('.ds-span');
+      const cells = root.querySelectorAll<HTMLElement>('.ds-cells i.done, .ds-grid i.won');
+      const targets = dots.map(dot => dot.style.left);
+      dots.forEach(dot => { dot.style.left = `${dot.dataset.from}%`; });
+      animate(spans, {scaleX: 0}, {duration: 0});
+      animate(cells, {opacity: 0, scale: 0.5}, {duration: 0});
+      const stop = inView(root, () => {
+        stop();
+        dots.forEach((dot, i) => animate(dot, {left: [`${dot.dataset.from}%`, targets[i]]}, {duration: 0.8, delay: 0.2 + i * 0.12, ease: [0.16, 1, 0.3, 1]}));
+        spans.forEach((span, i) => animate(span, {scaleX: [0, 1]}, {duration: 0.8, delay: 0.2 + i * 0.12, ease: [0.16, 1, 0.3, 1]}));
+        cells.forEach((cell, i) => animate(cell, {opacity: [0, 1], scale: [0.5, 1]}, {duration: 0.25, delay: 0.9 + i * 0.03}));
+      }, {amount: 0.4});
+    }
+  }
+</script>
