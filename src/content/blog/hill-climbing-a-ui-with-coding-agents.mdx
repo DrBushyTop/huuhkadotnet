@@ -49,7 +49,9 @@ Hill climbing itself is a pretty simple loop. The agent can only see what's near
 
 The catch is that you can end up on the nearest peak instead of the highest one.
 
-Some things are much easier to climb than others. With tests, evals or latency, a program gives you the score, and that number doesn't really move unless the code does. A UI doesn't have anything like that, so a model has to give the score, and model scores move around. In Theo's run a rival product's score went from 8.3 to 9.1 on screenshots nobody had changed, and as he puts it, if you give the same screenshot to the same model three times, you get three different scores. That noise ended up shaping pretty much everything in this run.
+This is where I think agents are a really good fit. They don't get tired or bored, so they keep trying steps long after a person would have stopped. And if you guide them to, they can take bigger and riskier steps as the climb goes on, which is how you get off a lower peak. Say you want a test suite to run faster: an agent can try a wild idea, measure it and throw it away if it didn't help, again and again, without anyone watching. Given enough time, something that concrete can be pushed pretty much as far as it goes.
+
+Some things are much easier to climb than others. With tests, evals or latency, a program gives you the score, and that number doesn't really move unless the code does. A UI doesn't have anything like that, and no rubric really covers everything about it, so a model has to give the score, and model scores move around. In Theo's run a rival product's score went from 8.3 to 9.1 on screenshots nobody had changed, and as he puts it, if you give the same screenshot to the same model three times, you get three different scores. That noise ended up shaping pretty much everything in this run.
 
 Theo's own run got to a 9 in about an hour and a half, and a 10 after around 18 hours and $250 to $400, so the last steps get expensive pretty quickly. One thing I took from his video directly was to hide the target score from the reviewers.
 
