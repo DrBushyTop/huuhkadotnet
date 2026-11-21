@@ -15,9 +15,14 @@ function required(name) {
   return value;
 }
 
-function priorMonth(now) {
-  const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-  return first.toISOString().slice(0, 7);
+/** ISO week before `now`, such as `2026-W46`. Each weekly export is recorded under it. */
+export function priorWeek(now) {
+  // The ISO week belongs to the year of its Thursday.
+  const thursday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7));
+  thursday.setUTCDate(thursday.getUTCDate() + 3 - (thursday.getUTCDay() + 6) % 7);
+  const year = thursday.getUTCFullYear();
+  const week = Math.ceil(((thursday - Date.UTC(year, 0, 1)) / 86400000 + 1) / 7);
+  return `${year}-W${String(week).padStart(2, '0')}`;
 }
 
 /** Rebuilds the report from every archived export and publishes it. */
@@ -30,19 +35,21 @@ async function rebuild(container, state) {
 
 export async function run({bootstrap = false, rebuildOnly = false, now = new Date()} = {}) {
   const container = archiveClient(required('AZURE_STORAGE_ACCOUNT'));
-  const state = await readJson(container, 'state.json', {months: {}, snapshots: []});
+  const state = await readJson(container, 'state.json', {weeks: {}, snapshots: []});
+  // Monthly runs before November 2026 stay under `months` as history.
+  state.weeks ??= {};
   if (rebuildOnly) {
     const report = await rebuild(container, state);
     console.log(`Republished ${report.totals.views} page views from ${state.snapshots.length} archived export(s).`);
     return;
   }
-  const month = priorMonth(now);
-  let run = state.months[month];
+  const week = priorWeek(now);
+  let run = state.weeks[week];
 
   const staleRequest = run?.status === 'requesting' && Date.parse(run.requestedAt) < now.getTime() - 60 * 60 * 1000;
-  if (!bootstrap && now.getUTCDate() >= 2 && (!run || run.status === 'failed' || staleRequest)) {
+  if (!bootstrap && (!run || run.status === 'failed' || staleRequest)) {
     run = {status: 'requesting', requestedAt: now.toISOString()};
-    state.months[month] = run;
+    state.weeks[week] = run;
     await writeJson(container, 'state.json', state);
     try {
       await requestUmamiExport({
@@ -52,7 +59,7 @@ export async function run({bootstrap = false, rebuildOnly = false, now = new Dat
       });
       run.status = 'requested';
       await writeJson(container, 'state.json', state);
-      console.log(`Requested Umami export for ${month}.`);
+      console.log(`Requested Umami export for ${week}.`);
     } catch (error) {
       run.status = 'failed';
       await writeJson(container, 'state.json', state);
@@ -70,9 +77,9 @@ export async function run({bootstrap = false, rebuildOnly = false, now = new Dat
     if (!bootstrap && Date.parse(requestedAt) < now.getTime() - 48 * 60 * 60 * 1000) {
       run.status = 'failed';
       await writeJson(container, 'state.json', state);
-      throw new Error(`No Umami export email arrived within 48 hours for ${month}.`);
+      throw new Error(`No Umami export email arrived within 48 hours for ${week}.`);
     }
-    console.log(`Export email pending for ${month}.`);
+    console.log(`Export email pending for ${week}.`);
     return;
   }
 
@@ -94,7 +101,7 @@ export async function run({bootstrap = false, rebuildOnly = false, now = new Dat
     await writeJson(container, 'state.json', state);
   }
   const report = await rebuild(container, state);
-  if (bootstrap) state.months[month] = {status: 'completed', requestedAt: email.created_at, completedAt: new Date().toISOString(), bootstrap: true};
+  if (bootstrap) state.weeks[week] = {status: 'completed', requestedAt: email.created_at, completedAt: new Date().toISOString(), bootstrap: true};
   else {
     run.status = 'completed';
     run.completedAt = new Date().toISOString();

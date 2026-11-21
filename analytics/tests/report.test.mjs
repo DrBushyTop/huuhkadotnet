@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import {strToU8, zipSync} from 'fflate';
 import {buildReport, readExport} from '../src/report.mjs';
 import {exportUrl} from '../src/resend.mjs';
+import {priorWeek} from '../src/run.mjs';
 
 const websiteId = '3f673ea9-160f-4880-8d92-226feaa1e6d9';
 const header = 'website_id,session_id,visit_id,event_id,url_path,referrer_domain,browser,country,event_type,event_name,created_at';
@@ -55,4 +56,14 @@ test('accepts only the observed Umami signed ZIP host', () => {
   const good = 'https://umami-public.s3.eu-central-1.amazonaws.com/export.zip?X-Amz-Signature=abc';
   assert.equal(exportUrl({text: `Download: ${good}`}).href, good);
   assert.throws(() => exportUrl({text: 'https://example.org/export.zip?X-Amz-Signature=abc'}), /expected ZIP/);
+});
+
+test('weekly runs are keyed by the previous ISO week', () => {
+  assert.equal(priorWeek(new Date('2026-11-21T11:00:00Z')), '2026-W46');
+  assert.equal(priorWeek(new Date('2026-11-23T00:00:00Z')), '2026-W47');
+  assert.equal(priorWeek(new Date('2026-11-29T23:59:59Z')), '2026-W47');
+  // 2026 has 53 ISO weeks, and 2027-01-01 still belongs to week 53.
+  assert.equal(priorWeek(new Date('2027-01-08T12:00:00Z')), '2026-W53');
+  assert.equal(priorWeek(new Date('2027-01-11T12:00:00Z')), '2027-W01');
+  assert.equal(priorWeek(new Date('2025-01-06T00:00:00Z')), '2025-W01');
 });

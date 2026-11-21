@@ -158,7 +158,7 @@ export function Dashboard({sources}: {sources: Sources}) {
           Visitors are distinct Umami sessions, visits are distinct visits, and views are page views. A bounce is a visit
           with a single page view. Visit duration is the time between a visit's first and last page view, averaged over
           visits. Referrers and other visit details come from the first page view. Relative ranges end at the latest
-          archived data, which arrives from monthly Umami Cloud exports. Umami data updated {new Date(data.report.generatedAt).toLocaleDateString('en', {dateStyle: 'medium'})}.
+          archived data, which arrives from weekly Umami Cloud exports. Umami data updated {new Date(data.report.generatedAt).toLocaleDateString('en', {dateStyle: 'medium'})}.
         </p>
         {baseline && (
           <p>

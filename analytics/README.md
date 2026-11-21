@@ -17,9 +17,10 @@ Code and data ship separately:
 
 ## How the job runs
 
-The Container Apps job wakes every six hours. On the second day of a new month,
-it signs in to Umami with Playwright and requests a `Last 6 months` export for
-`huuhkadotnet`. Later runs check the Resend inbound mailbox. Umami currently
+The Container Apps job wakes every six hours. On its first run of each ISO week
+(Monday 00:00 UTC), it signs in to Umami with Playwright and requests a
+`Last 6 months` export for `huuhkadotnet`. The run is recorded under the week
+that just ended, such as `2026-W47`. Later runs check the Resend inbound mailbox. Umami currently
 sends a signed ZIP link from `support@umami.is`; the link observed on September
 24, 2026 expires after three days. The ZIP contains `website_event.csv`,
 `event_data.csv`, and `session_data.csv`.
@@ -40,7 +41,7 @@ with `Content-Encoding: gzip`.
 
 Run modes, set as container args:
 
-- `src/run.mjs`: the scheduled monthly flow.
+- `src/run.mjs`: the scheduled weekly flow.
 - `src/run.mjs --bootstrap`: import an export email from the last 72 hours.
 - `src/run.mjs --rebuild`: rebuild and republish `umami.json` from archived ZIPs
   without touching Umami or email. Use after report format changes.
@@ -118,7 +119,7 @@ range, comparison, interval, time zone, metric, and filters are kept in the
 query string, so any view can be bookmarked.
 
 Relative ranges such as "Last 7 days" end at the latest archived page view, not
-at the current time, because exports arrive monthly.
+at the current time, because exports arrive weekly.
 
 Umami and GA4 are both *contributors* in `viewer/src/lib/combined.ts`. Each
 answers the same questions for any range and filters: additive counts (views,
@@ -236,14 +237,16 @@ previous `umami.json` in place.
 
 ## Recovery and limits
 
-- The monthly request and email handoff are recorded in `state.json` in the
-  `umami` container. If no email arrives for 48 hours, the job marks the attempt
+- The weekly request and email handoff are recorded under `weeks` in
+  `state.json` in the `umami` container. Monthly runs before November 2026
+  stay under `months`. If no email arrives for 48 hours, the job marks the attempt
   failed and requests again on its next run.
 - If Umami changes its login, export form, sender, ZIP contents, or download
   host, the job fails closed and sends an alert. Review the new format before
   changing the selectors or allowlist.
 - ZIP archives currently have a 100 MB compressed download limit. The rebuild
-  reads all archived ZIPs into memory. Revisit this if traffic or retention
+  reads all archived ZIPs into memory. Weekly exports add about 52 ZIPs a year;
+  in November 2026 the largest was 170 KB. Revisit this if traffic or retention
   approaches the 2 GiB job memory limit.
 - The viewer computes everything in the browser. At a few hundred thousand page
   views this stays fast; beyond about 10–20 MB of JSON, split the report by year.
