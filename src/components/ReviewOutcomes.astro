@@ -1,0 +1,99 @@
+---
+// What the implementing agent did with every finding from each reviewer, as a share of that
+// reviewer's findings. Sol covers both hosts: the ChatGPT plan and Foundry.
+const outcomes = [
+  {id: 'fixed', label: 'Fixed'},
+  {id: 'declined', label: 'Declined or deferred'},
+  {id: 'kept', label: 'No change'},
+  {id: 'wrong', label: 'Wrong'},
+] as const;
+const reviewers = [
+  {id: 'gemini', name: 'Gemini 4 Neon', counts: {fixed: 315, declined: 17, kept: 24, wrong: 3}},
+  {id: 'codex', name: 'GPT-6.2 Sol', counts: {fixed: 356, declined: 51, kept: 41, wrong: 2}},
+];
+const total = (r: typeof reviewers[number]) => Object.values(r.counts).reduce((a, b) => a + b, 0);
+const pct = (n: number, of: number) => Math.round((n / of) * 100);
+---
+<figure class="reader-figure review-outcomes" data-width="wide" data-review-outcomes>
+  <div class="ro-legend" aria-hidden="true">
+    {outcomes.map(o => <span class={o.id}>{o.label}</span>)}
+  </div>
+  <div class="ro-rows">
+    {reviewers.map(r => {
+      const of = total(r);
+      return (
+        <div class:list={['ro-row', r.id]}>
+          <div class="ro-head">
+            <span class="ro-name">{r.name}</span>
+            <span class="ro-total">{of} findings</span>
+          </div>
+          <div class="ro-bar" aria-hidden="true">
+            {outcomes.map(o => (
+              <span class:list={['ro-seg', o.id]} style={`flex:${r.counts[o.id]}`}>
+                {o.id === 'fixed' && <span class="ro-in">{pct(r.counts.fixed, of)}% fixed</span>}
+              </span>
+            ))}
+          </div>
+          <p class="ro-wrong" aria-hidden="true">{r.counts.wrong} wrong</p>
+        </div>
+      );
+    })}
+  </div>
+  <table class="visually-hidden">
+    <caption>Outcome of each reviewer's findings</caption>
+    <thead><tr><th scope="col">Reviewer</th>{outcomes.map(o => <th scope="col">{o.label}</th>)}<th scope="col">Total</th></tr></thead>
+    <tbody>{reviewers.map(r => <tr><th scope="row">{r.name}</th>{outcomes.map(o => <td>{r.counts[o.id]}</td>)}<td>{total(r)}</td></tr>)}</tbody>
+  </table>
+  <figcaption>Every finding from the night and what the implementing agent did with it. "No change" means it was acknowledged or left without a visible answer.</figcaption>
+</figure>
+
+<style>
+  .review-outcomes { margin-block: 36px; }
+  .ro-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 14px; font: 13px var(--nav-font); color: var(--ink); }
+  .ro-legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .ro-legend span::before { content: ''; width: 12px; height: 12px; border-radius: 3px; background: var(--seg); }
+  .ro-legend .fixed::before { background: linear-gradient(135deg, var(--diagram-cloud) 50%, var(--diagram-network) 50%); }
+  .ro-rows { display: flex; flex-direction: column; gap: 18px; }
+  .gemini { --hue: var(--diagram-cloud); }
+  .codex { --hue: var(--diagram-network); }
+  .ro-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 6px; font: 13px var(--nav-font); }
+  .ro-name { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); }
+  .ro-name::before { content: ''; width: 12px; height: 12px; border-radius: 3px; background: var(--hue); }
+  .ro-total { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ro-bar { display: flex; gap: 2px; height: 34px; }
+  .ro-seg { position: relative; min-width: 4px; transform-origin: left center; }
+  .ro-seg:first-child { border-radius: 6px 0 0 6px; }
+  .ro-seg:last-child { border-radius: 0 6px 6px 0; }
+  .fixed { --seg: var(--hue); }
+  .declined { --seg: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
+  .kept { --seg: color-mix(in oklab, var(--ink) 18%, var(--paper)); }
+  .wrong { --seg: var(--diagram-client); }
+  .ro-seg { background: var(--seg); }
+  .ro-in { position: absolute; left: 12px; top: 50%; translate: 0 -50%; font: 600 13px var(--nav-font); color: var(--paper); white-space: nowrap; }
+  .ro-wrong { margin: 6px 0 0; text-align: right; font: 12px var(--nav-font); color: var(--diagram-client); }
+  .review-outcomes figcaption { max-width: 720px; margin: 16px auto 0; text-align: center; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // Each bar fills left to right, one outcome after another, so the fixed share lands first.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-review-outcomes]')) {
+      if (root.getBoundingClientRect().top < innerHeight) continue;
+      const rows = [...root.querySelectorAll<HTMLElement>('.ro-row')];
+      const segs = rows.map(row => [...row.querySelectorAll<HTMLElement>('.ro-seg')]);
+      const labels = root.querySelectorAll<HTMLElement>('.ro-in, .ro-wrong');
+      animate(segs.flat(), {scaleX: 0}, {duration: 0});
+      animate(labels, {opacity: 0}, {duration: 0});
+      const stop = inView(root, () => {
+        stop();
+        segs.forEach((row, r) => row.forEach((seg, i) => {
+          animate(seg, {scaleX: [0, 1]}, {duration: i === 0 ? 0.9 : 0.35, delay: 0.15 + r * 0.25 + (i === 0 ? 0 : 0.8 + i * 0.18), ease: [0.16, 1, 0.3, 1]});
+        }));
+        animate(labels, {opacity: [0, 1]}, {duration: 0.4, delay: 1.6});
+      }, {amount: 0.5});
+    }
+  }
+</script>

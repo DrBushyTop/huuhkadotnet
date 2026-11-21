@@ -1,0 +1,97 @@
+---
+title: "Testing Gemini 4 Neon as a code reviewer"
+slug: "testing-gemini-4-neon-as-a-code-reviewer"
+publishedAt: "2026-11-21T13:22:00.000+02:00"
+updatedAt: "2026-11-21T13:22:00.000+02:00"
+description: "Gemini 4 Neon has been hyped as the best Google model in a while, so I ran it next to my usual GPT-6.2 Sol reviewer for a night. Here's how they compared on findings, cost and speed."
+tags:
+  - "AI"
+  - "Developer Tools"
+  - "GitHub Copilot"
+  - "OpenCode"
+tagSlugs:
+  - "ai"
+  - "developer-tools"
+  - "github-copilot"
+  - "opencode"
+image: "/images/neon-review/neon-review.png"
+ogImage: "/images/neon-review/neon-review-og.png"
+imageAlt: "Two stacked bars of review findings. 88% of Gemini 4 Neon's 359 findings were fixed and 3 were wrong; 79% of GPT-6.2 Sol's 450 were fixed and 2 were wrong."
+draft: false
+featured: false
+series: []
+---
+import ReviewHeadToHead from '../../components/ReviewHeadToHead.astro';
+import ReviewOutcomes from '../../components/ReviewOutcomes.astro';
+import ReviewCost from '../../components/ReviewCost.astro';
+
+Gemini 4 Neon is still quite new, and there's been a lot of hype around it being the best Google model in a good while. I normally have GPT-6.2 Sol review everything my coding agents write, so I wanted to see how Neon holds up in the same job. For one night I ran both side by side on a project where Claude Opus agents were working through an Azure and .NET backlog.
+
+In the morning OpenCode told me the Neon reviews alone had cost $115.78 at list price. That got me curious whether they were worth it, so I had agents go through every review and check what happened to each finding.
+
+**The short version**
+
+- The models are very comparable. Neither hallucinated, only 5 of their 809 findings were wrong, and both caught real bugs the other missed.
+- Sol had the edge on the bugs that matter. It caught 34 high-severity bugs that Neon missed and that then got fixed. Neon caught 17 that Sol missed.
+- Neon is slow. A median review took 11.4 minutes against Sol's 5.8, and cost about twice as much at list price.
+- I'll keep defaulting to Sol. It's faster, and my subscriptions already cover it.
+
+## The setup
+
+Both models got the same review job. Once the implementing agent finished a slice of work, each reviewer got the brief, the diff and the evidence, and reported findings with a file, a line and a severity. They get a rough scale for what high, medium and low mean, but in the end each reviewer decides the severity itself. The implementer then fixed or answered them, and a re-review checked just those fixes. Neon ran through GitHub Copilot in OpenCode and Sol through Codex, both at `xhigh` reasoning.
+
+Sol runs on my ChatGPT plan, and falls back to the same model on Foundry when the plan hits its usage limit. That happened a dozen times during the night, but I've counted both as Sol here.
+
+I also added one thing to my flow during the night. Some changes kept going in loops: each round fixed the last findings, the reviewers found new ones in the same place, and sometimes the fixes pulled the change in the wrong direction. So now, if a change still gets findings after three rounds, Claude Opus first gives a second opinion on whether the approach itself is the problem. That's about my workflow rather than the models, so its findings aren't counted here.
+
+## Head to head
+
+<ReviewHeadToHead />
+
+On the rounds both reviewed, the raw counts are pretty much even, so the difference is in what got found. Severity is each reviewer's own label, and Sol is quicker to call something high, so I looked at the high-severity findings that actually got fixed and that the other model didn't catch. Looking at those, Sol found twice as many, 34 against Neon's 17.
+
+Some of Sol's best catches:
+
+- An inherited environment variable could redirect the model endpoint, which would have sent the agent's bearer token and the whole chat to another host.
+- A cancelled activation could roll back a newer version, because a pointer was written after a lock was released.
+- A repeated optional token claim made a valid request fail with a 500. Neon had called the same code "behaviorally equivalent".
+
+Neon caught things Sol missed too:
+
+- With a new token-cache policy, the auth library rethrew "refresh needed" errors, so users were never sent back to sign in.
+- A default-port check could be bypassed, which let a sandboxed preview reach a private internal API.
+- A publish span used a kind the exporter drops, so the whole operation disappeared from telemetry.
+
+## What happened to the findings
+
+<ReviewOutcomes />
+
+Sol has more findings in total because it also reviewed rounds Neon didn't. Neon's fix rate looks better, 88% against 79%, but most of that is small stuff, which the implementer fixes because it's cheap to do. More of Sol's findings got declined as out of scope.
+
+The five wrong findings were misreadings, not made-up code. Neon flagged a crash in a state the code can't reach, an invisible character that was already escaped and a test step that was repeated on purpose. Sol said cancelling could rerun a handler that had already started, which the design allows, and reported a formatting mismatch that didn't exist.
+
+What I care about more are the approvals. Neon approved 11 of its 43 reviews and Sol 8 of 68, and three times Neon approved a change that still had a high-severity bug in it:
+
+- A smoke-test script had a line PowerShell couldn't parse, so it stopped before any credential check ran.
+- A failed reply could give a removed user their access back.
+- Trace context leaked into child operations.
+
+Sol caught all three, and none of its own approvals let a high-severity bug through.
+
+## Cost and speed
+
+<ReviewCost />
+
+On speed and cost the gap is much clearer. A median Neon review took 11.4 minutes against Sol's 5.8, and cost about twice as much. Even the Sol reviews that fell back to Foundry, which were the bigger ones, came out cheaper than Neon for about the same time.
+
+The wait is what I'd actually feel in regular use. Even with the agents running in the background, waiting twice as long for every review adds up quickly, especially in my flow where every small slice gets its own review and re-review.
+
+These are list prices, not what I actually ended up paying. Copilot pricing depends on your plan, and the ChatGPT plan is a flat fee anyway.
+
+## So which one?
+
+Neon is a good reviewer, and a lot closer to Sol than I expected. But it's slower, and Sol still had the edge on the bugs that matter. So I'll keep Sol as my default, also because my subscriptions already cover it and I don't have one for Neon.
+
+Where I can't lean on subscriptions, I might next try Neon as the main implementing model instead, since it seems capable enough. I'm not convinced it would be the cheapest option though. Google models have had worse cache rates than the competition in my experience, and an implementer rereads its context constantly.
+
+If you run a test like this yourself, don't stop at total findings or fix rates. The raw counts made these two look even and the fix rate made Neon look better. The serious bugs that actually got fixed told a different story.

@@ -1,0 +1,112 @@
+---
+// Neon and Sol on the 42 rounds where both reviewed the same change. Each group shares one
+// scale, so the bars compare across rows as well as between the two reviewers.
+const groups = [
+  {
+    title: 'All findings',
+    rows: [
+      {label: 'Raised', gemini: 359, codex: 354},
+      {label: 'Fixed', gemini: 315, codex: 281},
+      {label: 'Fixed, only this one found it', gemini: 187, codex: 157},
+    ],
+  },
+  {
+    title: 'High severity',
+    rows: [
+      {label: 'Raised', gemini: 49, codex: 87},
+      {label: 'Fixed', gemini: 47, codex: 69},
+      {label: 'Fixed, only this one found it', gemini: 17, codex: 34, key: true},
+    ],
+  },
+];
+const reviewers = [
+  {id: 'gemini', name: 'Gemini 4 Neon'},
+  {id: 'codex', name: 'GPT-6.2 Sol'},
+] as const;
+---
+<figure class="reader-figure review-h2h" data-width="wide" data-review-h2h>
+  <div class="rh-legend" aria-hidden="true">
+    {reviewers.map(r => <span class={r.id}>{r.name}</span>)}
+  </div>
+  <div class="rh-groups">
+    {groups.map(group => {
+      const max = Math.max(...group.rows.flatMap(row => [row.gemini, row.codex]));
+      return (
+        <section class="rh-group">
+          <h3 class="rh-title">{group.title}</h3>
+          <table>
+            <caption class="visually-hidden">{group.title}, on rounds where both models reviewed the same change</caption>
+            <thead class="visually-hidden"><tr><th scope="col">Measure</th>{reviewers.map(r => <th scope="col">{r.name}</th>)}</tr></thead>
+            <tbody>
+              {group.rows.map(row => (
+                <tr class:list={['rh-row', {key: row.key}]}>
+                  <th scope="row">{row.label}</th>
+                  {reviewers.map(r => (
+                    <td class:list={['rh-cell', r.id]}>
+                      <span class="rh-track" aria-hidden="true"><span class="rh-bar" style={`width:${(row[r.id] / max) * 100}%`}></span></span>
+                      <span class="rh-num" data-value={row[r.id]}>{row[r.id]}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      );
+    })}
+  </div>
+  <figcaption>Only rounds where both models reviewed the same change. Severity is each reviewer's own label.</figcaption>
+</figure>
+
+<style>
+  .review-h2h { margin-block: 36px; }
+  .rh-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 12px; font: 13px var(--nav-font); color: var(--ink); }
+  .rh-legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .rh-legend span::before { content: ''; width: 12px; height: 12px; border-radius: 3px; background: var(--hue); }
+  .gemini { --hue: var(--diagram-cloud); }
+  .codex { --hue: var(--diagram-network); }
+  .rh-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .rh-group { min-width: 0; padding: 16px 18px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--popular-ground); }
+  .rh-title { margin: 0 0 4px; font: 600 16px/1.3 var(--brand-font); color: var(--ink); }
+  .rh-group table { width: 100%; margin: 0; border-collapse: collapse; display: table; overflow: visible; }
+  .rh-group :is(th, td) { padding: 0; border: 0; background: none; text-align: left; font-weight: 400; }
+  .rh-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; padding-block: 10px; border-top: 1px solid var(--line); }
+  .rh-row:first-child { border-top: 0; }
+  .rh-row th { font: 13px/1.35 var(--nav-font); color: var(--ink); }
+  .rh-row.key th { font-weight: 600; }
+  .rh-cell { display: grid; grid-template-columns: minmax(0, 1fr) 3.2ch; align-items: center; gap: 10px; }
+  .rh-track { height: 12px; }
+  .rh-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--hue); transform-origin: left center; }
+  .rh-num { font: 13px var(--nav-font); font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+  .rh-row.key .rh-num { font-weight: 600; }
+  .review-h2h figcaption { max-width: 720px; margin: 16px auto 0; text-align: center; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 680px) {
+    .rh-groups { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // The bars grow from zero and the numbers count up with them, group by group.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-review-h2h]')) {
+      if (root.getBoundingClientRect().top < innerHeight) continue;
+      const bars = [...root.querySelectorAll<HTMLElement>('.rh-bar')];
+      const nums = [...root.querySelectorAll<HTMLElement>('.rh-num')];
+      animate(bars, {scaleX: 0}, {duration: 0});
+      nums.forEach(n => { n.textContent = '0'; });
+      const stop = inView(root, () => {
+        stop();
+        bars.forEach((bar, i) => {
+          const delay = 0.15 + Math.floor(i / 6) * 0.5 + (i % 6) * 0.07;
+          animate(bar, {scaleX: [0, 1]}, {duration: 0.8, delay, ease: [0.16, 1, 0.3, 1]});
+          const num = nums[i];
+          const target = Number(num.dataset.value);
+          animate(0, target, {duration: 0.8, delay, ease: [0.16, 1, 0.3, 1], onUpdate: v => { num.textContent = String(Math.round(v)); }});
+        });
+      }, {amount: 0.4});
+    }
+  }
+</script>

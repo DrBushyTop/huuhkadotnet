@@ -1,0 +1,206 @@
+---
+// Cost against time for every finished review, at list price. Each reviewer gets a median
+// marker; Sol's two clusters are the ChatGPT plan (fast, small) and Foundry (slower, larger).
+import points from '../data/review-costs.json';
+const maxMin = 20;
+const maxCost = 4.5;
+const x = (min: number) => 4 + (min / maxMin) * 92;
+const y = (cost: number) => 4 + (1 - cost / maxCost) * 88;
+const reviews = points;
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length / 2;
+  return sorted.length % 2 ? sorted[Math.floor(mid)] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+const names = {gemini: 'Gemini 4 Neon', codex: 'GPT-6.2 Sol'};
+const short = {gemini: 'Neon', codex: 'Sol'};
+const models = (['gemini', 'codex'] as const).map(m => {
+  const own = reviews.filter(p => p.model === m);
+  return {id: m, min: median(own.map(p => p.min)), cost: median(own.map(p => p.cost)), count: own.length};
+});
+const kinds: Record<string, string> = {'first review': 'first review', 're-review': 're-review'};
+const stats = [
+  {label: 'Total for the night', gemini: '$115.78', codex: '$82.62'},
+  {label: 'Per finished review', gemini: '$2.69', codex: '$1.22'},
+  {label: 'Per fixed high-severity finding', gemini: '$2.46', codex: '$0.94'},
+  {label: 'Median time per review', gemini: '11.4 min', codex: '5.8 min'},
+];
+---
+<figure class="reader-figure review-cost" data-width="wide" data-review-cost>
+  <div class="rc-legend" aria-hidden="true">
+    {models.map(m => <span class={m.id}>{names[m.id]}</span>)}
+    <span class="median">Median review</span>
+  </div>
+  <div class="rc-frame">
+    <span class="rc-ylabel" aria-hidden="true">Cost per review</span>
+    <div class="rc-plot" tabindex="0" aria-label="Cost against time for each review. Hover, tap or use the arrow keys to read each review.">
+      {[1, 2, 3, 4].map(c => <span class="rc-grid h" style={`top:${y(c)}%`} aria-hidden="true"><span>${c}</span></span>)}
+      {[5, 10, 15].map(m => <span class="rc-grid v" style={`left:${x(m)}%`} aria-hidden="true"></span>)}
+      {reviews.map(p => (
+        <span
+          class:list={['rc-dot', p.model]}
+          data-x={x(p.min)}
+          data-y={y(p.cost)}
+          data-from-x={x(models.find(m => m.id === p.model)!.min)}
+          data-from-y={y(models.find(m => m.id === p.model)!.cost)}
+          data-tip={`<b>${short[p.model as 'gemini' | 'codex']}</b>, ${kinds[p.kind]} · ${p.min} min · $${p.cost.toFixed(2)}`}
+          style={`left:${x(p.min)}%;top:${y(p.cost)}%`}
+          aria-hidden="true"
+        ></span>
+      ))}
+      {models.map(m => (
+        <span class:list={['rc-median', m.id]} style={`left:${x(m.min)}%;top:${y(m.cost)}%`} aria-hidden="true">
+          <span class="rc-median-label">{short[m.id]} · {m.min} min · ${m.cost.toFixed(2)}</span>
+        </span>
+      ))}
+      <span class="rc-tip" role="status" hidden></span>
+    </div>
+  </div>
+  <div class="rc-axis" aria-hidden="true">
+    {[0, 5, 10, 15, 20].map(m => <span style={`left:${x(m)}%`}>{m}</span>)}
+    <span class="rc-xlabel">Minutes per review</span>
+  </div>
+  <table class="rc-stats">
+    <caption class="visually-hidden">Cost and time per review at list price</caption>
+    <thead><tr><td></td><th scope="col" class="gemini">Neon</th><th scope="col" class="codex">Sol</th></tr></thead>
+    <tbody>
+      {stats.map(s => <tr><th scope="row">{s.label}</th><td>{s.gemini}</td><td>{s.codex}</td></tr>)}
+    </tbody>
+  </table>
+  <table class="visually-hidden">
+    <caption>Each finished review: reviewer, kind, minutes and list-price cost in US dollars</caption>
+    <thead><tr><th scope="col">Reviewer</th><th scope="col">Kind</th><th scope="col">Minutes</th><th scope="col">Cost</th></tr></thead>
+    <tbody>{reviews.map(p => <tr><td>{names[p.model as 'gemini' | 'codex']}</td><td>{kinds[p.kind]}</td><td>{p.min}</td><td>{p.cost.toFixed(2)}</td></tr>)}</tbody>
+  </table>
+  <figcaption>One dot per finished review, at list price. Sol's fast, cheap group ran on the ChatGPT plan, and the slower one on Foundry.</figcaption>
+</figure>
+
+<style>
+  .review-cost { margin-block: 36px; }
+  .gemini { --hue: var(--diagram-cloud); }
+  .codex { --hue: var(--diagram-network); }
+  .rc-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 12px; font: 13px var(--nav-font); color: var(--ink); }
+  .rc-legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .rc-legend span::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--hue); }
+  .rc-legend .median::before { width: 14px; height: 14px; background: none; box-shadow: inset 0 0 0 2.5px var(--ink); }
+  .rc-frame { position: relative; }
+  .rc-ylabel { display: block; margin-bottom: 6px; font: 11px var(--nav-font); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .rc-plot { position: relative; aspect-ratio: 16 / 8; min-height: 260px; border-radius: 12px; background: var(--popular-ground); touch-action: pan-y; cursor: crosshair; }
+  .rc-plot:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .rc-grid.h { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+  .rc-grid.h span { position: absolute; left: 6px; top: 2px; font: 11px var(--nav-font); color: var(--muted); }
+  .rc-grid.v { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+  .rc-dot {
+    position: absolute; width: 10px; height: 10px; translate: -50% -50%; border-radius: 50%;
+    background: color-mix(in oklab, var(--hue) 78%, transparent); box-shadow: 0 0 0 1.5px var(--popular-ground); transition: scale 150ms ease-out;
+  }
+  .rc-dot[data-active] { scale: 1.7; z-index: 3; background: var(--hue); }
+  .rc-median {
+    position: absolute; z-index: 2; width: 22px; height: 22px; translate: -50% -50%; border-radius: 50%;
+    box-shadow: inset 0 0 0 3px var(--ink), 0 0 0 2px var(--popular-ground); pointer-events: none;
+  }
+  .rc-median-label {
+    position: absolute; left: 50%; bottom: calc(100% + 6px); translate: -50% 0; padding: 2px 7px; border-radius: 5px;
+    background: var(--ink); color: var(--paper); font: 600 12px var(--nav-font); white-space: nowrap;
+  }
+  .rc-tip {
+    position: absolute; z-index: 4; translate: -50% calc(-100% - 14px); padding: 5px 8px; border-radius: 6px; pointer-events: none;
+    background: var(--ink); color: var(--paper); font: 12px/1.4 var(--nav-font); white-space: nowrap;
+  }
+  .rc-tip[data-below] { translate: -50% 14px; }
+  .rc-axis { position: relative; height: 40px; font: 11px var(--nav-font); color: var(--muted); }
+  .rc-axis span { position: absolute; top: 6px; translate: -50% 0; white-space: nowrap; }
+  .rc-axis .rc-xlabel { left: 50%; top: 22px; text-transform: uppercase; letter-spacing: .04em; }
+  .rc-stats { width: 100%; margin: 14px 0 0; border-collapse: collapse; display: table; font-size: 15px; }
+  .rc-stats :is(th, td) { padding: 9px 12px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .rc-stats tbody th { text-align: left; font-weight: 400; line-height: 1.35; color: var(--ink); }
+  .rc-stats thead th { font: 600 13px var(--nav-font); color: var(--ink); }
+  .rc-stats thead th::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 50%; background: var(--hue); }
+  .rc-stats td { font: 600 15px var(--nav-font); color: var(--ink); white-space: nowrap; }
+  .rc-stats tr:last-child :is(th, td) { border-bottom: 0; }
+  .review-cost figcaption { max-width: 720px; margin: 16px auto 0; text-align: center; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (max-width: 760px) {
+    .rc-plot { aspect-ratio: 1 / 1; }
+    .rc-dot { width: 8px; height: 8px; }
+    .rc-stats :is(th, td) { padding-inline: 6px; }
+  }
+</style>
+
+<script>
+  import { animate, inView } from 'motion';
+
+  // Each reviewer's dots burst out from its median to where each review landed, then the
+  // median markers settle on top. Without motion, everything shows in place.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const root of document.querySelectorAll<HTMLElement>('[data-review-cost]')) {
+      if (root.getBoundingClientRect().top < innerHeight) continue;
+      const dots = [...root.querySelectorAll<HTMLElement>('.rc-dot')];
+      const medians = root.querySelectorAll<HTMLElement>('.rc-median');
+      dots.forEach(dot => { dot.style.left = `${dot.dataset.fromX}%`; dot.style.top = `${dot.dataset.fromY}%`; dot.style.opacity = '0'; });
+      animate(medians, {opacity: 0, scale: 0.4}, {duration: 0});
+      const stop = inView(root, () => {
+        stop();
+        dots.forEach((dot, i) => {
+          const delay = 0.1 + (dot.classList.contains('codex') ? 0.25 : 0) + (i % 12) * 0.03;
+          animate(dot, {
+            left: [`${dot.dataset.fromX}%`, `${dot.dataset.x}%`],
+            top: [`${dot.dataset.fromY}%`, `${dot.dataset.y}%`],
+            opacity: [0, 1],
+          }, {duration: 0.9, delay, ease: [0.16, 1, 0.3, 1]});
+        });
+        animate(medians, {opacity: [0, 1], scale: [0.4, 1]}, {duration: 0.45, delay: 1.2, ease: [0.34, 1.56, 0.64, 1]});
+      }, {amount: 0.5});
+    }
+  }
+
+  // Hover, tap or arrow keys pick the nearest review and show what it was and cost.
+  for (const root of document.querySelectorAll<HTMLElement>('[data-review-cost]')) {
+    const plot = root.querySelector<HTMLElement>('.rc-plot')!;
+    const tip = root.querySelector<HTMLElement>('.rc-tip')!;
+    const dots = [...root.querySelectorAll<HTMLElement>('.rc-dot')].sort((a, b) => Number(a.dataset.x) - Number(b.dataset.x));
+    let current = -1;
+    function show(i: number) {
+      current = i;
+      const dot = dots[i];
+      dots.forEach(d => d.toggleAttribute('data-active', d === dot));
+      tip.innerHTML = dot.dataset.tip!;
+      tip.hidden = false;
+      tip.style.top = `${dot.dataset.y}%`;
+      tip.toggleAttribute('data-below', Number(dot.dataset.y) < 30);
+      const half = tip.offsetWidth / 2 / plot.clientWidth * 100;
+      tip.style.left = `${Math.min(Math.max(Number(dot.dataset.x), half + 1), 99 - half)}%`;
+    }
+    function hide() {
+      current = -1;
+      tip.hidden = true;
+      dots.forEach(d => d.toggleAttribute('data-active', false));
+    }
+    function nearest(e: PointerEvent) {
+      const box = plot.getBoundingClientRect();
+      const px = (e.clientX - box.left) / box.width * 100;
+      const py = (e.clientY - box.top) / box.height * 100;
+      const ratio = box.height / box.width;
+      let best = 0, bestD = Infinity;
+      dots.forEach((d, i) => {
+        const dx = Number(d.dataset.x) - px, dy = (Number(d.dataset.y) - py) * ratio;
+        const dist = dx * dx + dy * dy;
+        if (dist < bestD) { bestD = dist; best = i; }
+      });
+      return best;
+    }
+    plot.addEventListener('pointermove', e => show(nearest(e)));
+    plot.addEventListener('pointerdown', e => show(nearest(e)));
+    plot.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+    plot.addEventListener('blur', hide);
+    plot.addEventListener('keydown', e => {
+      const steps: Record<string, number> = {ArrowRight: 1, ArrowLeft: -1, Home: -dots.length, End: dots.length};
+      if (e.key === 'Escape') { hide(); return; }
+      if (!(e.key in steps)) return;
+      e.preventDefault();
+      const step = steps[e.key];
+      const from = current < 0 ? (step > 0 ? -1 : dots.length) : current;
+      show(Math.min(Math.max(from + step, 0), dots.length - 1));
+    });
+  }
+</script>
