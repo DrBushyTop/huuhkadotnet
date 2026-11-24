@@ -423,7 +423,7 @@ switches to its menu at 1240px to leave room for the full link labels. Articles 
 
 ### Privacy and comments
 
-The footer includes Privacy. Umami analytics has no banner or settings panel.
+The footer includes Privacy. On phones it stays one row: the owner name drops below 440px instead of stacking the links. Umami analytics has no banner or settings panel.
 The privacy page explains cookieless collection, Do Not Track, and separate
 third-party embeds. Keep these details out of the article reading flow.
 

@@ -47,7 +47,7 @@ const absolute = (path:string) => new URL(path,Astro.site).href;
     <Header />
     <slot />
     <footer class:list={['site-footer', 'page-width', {'reading-footer':reading}]}>
-      <p>© {new Date().getFullYear()} Pasi Huuhka</p>
+      <p>© {new Date().getFullYear()}<span class="footer-owner"> Pasi Huuhka</span></p>
       <nav aria-label="Footer"><a href="/community-activities/">Community activities</a><a href="/rss/">RSS feed</a><a href="/privacy/">Privacy</a></nav>
     </footer>
     <Analytics />

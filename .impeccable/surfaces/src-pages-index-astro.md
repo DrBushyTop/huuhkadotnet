@@ -19,7 +19,7 @@ OWN-WORLD: White light-mode ground, dark ink, fine rules, and incumbent Geist ti
 
 STORY: Read the featured article, open a popular post, or search all articles by title or tag. Dates and reading estimates come from the content.
 
-FIRST VIEWPORT: The author introduction precedes the hero, popular cards, and search above the independently scrolling list. The footer stays pinned.
+FIRST VIEWPORT: The author introduction precedes the hero, popular cards, and search above the independently scrolling list. On large desktops the footer stays pinned; elsewhere it closes the page.
 
 FORM: One homepage at `/`. The article list needs no pagination.
 
@@ -31,7 +31,7 @@ The featured article is set by `lead` in `FieldNotesHome.astro`, currently "Hill
 
 All article rows are available in a keyboard-focusable, independently scrolling region, including without JavaScript. There is no homepage pagination or automatic loading. Search filters only the list, leaving the hero and popular cards visible. Root `?q=` bookmarks search this list directly. Clear, Escape reset, query history, and the no-results state remain supported. Each search resets the list scroll position.
 
-On desktops wider than 1000px and at least 760px high, the layout fits the viewport and only the list scrolls. The hero, cards, search, and footer stay in place. At desktop heights from 760px to 820px, tighter introduction and hero spacing preserves list space. Narrow or short screens allow page scrolling, with the footer pinned and the list at 55dvh.
+On desktops wider than 1000px and at least 760px high, the layout fits the viewport and only the list scrolls. The hero, cards, search, and footer stay in place. At desktop heights from 760px to 820px, tighter introduction and hero spacing preserves list space. Narrow or short screens allow page scrolling, with the list at 55dvh and a one-row footer at the end of the page rather than pinned.
 
 ## Popular component choice
 

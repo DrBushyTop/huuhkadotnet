@@ -177,6 +177,11 @@ html { scroll-padding-top: 80px; }
 .site-footer [data-privacy-settings] { min-height: 44px; }
 .site-footer a { color: var(--link); white-space: nowrap; }
 .site-footer a:hover { text-decoration: underline; }
+.site-footer p { white-space: nowrap; }
+
+@media (max-width: 440px) {
+  .footer-owner { display: none; }
+}
 
 @media (min-width: 701px) and (max-width: 1000px) {
   .page-width { width: calc(100% - 64px); }
@@ -188,8 +193,8 @@ html { scroll-padding-top: 80px; }
   .page-width { width: calc(100% - 40px); }
   .article-grid { grid-template-columns: 1fr; gap: 28px; }
   .article-content { padding: 20px; }
-  .site-footer { margin-top: 45px; gap: 9px; flex-direction: column; padding-bottom: 28px; }
-  .site-footer nav { margin-left: 0; }
+  .site-footer { margin-top: 45px; flex-wrap: wrap; gap: 6px 12px; padding-bottom: 28px; font-size: 12px; }
+  .site-footer nav { flex-wrap: nowrap; gap: 14px; }
 }
 
 @media (max-width: 1240px) {

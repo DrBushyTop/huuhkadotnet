@@ -132,8 +132,8 @@ const popular = [
 </script>
 
 <style>
-  :global(body:has(.field-notes)) { background: light-dark(#fff, #24273a); min-height: 100dvh; padding-bottom: 62px; }
-  :global(body:has(.field-notes) .site-footer) { position: fixed; inset: auto 0 0; z-index: 9; margin: 0 auto; padding-block: 12px; min-height: 50px; background: light-dark(#fff, #24273a); align-items: center; font-size: 13px; }
+  :global(body:has(.field-notes)) { background: light-dark(#fff, #24273a); min-height: 100dvh; }
+  :global(body:has(.field-notes) .site-footer) { margin-top: 32px; padding-block: 12px; min-height: 50px; align-items: center; font-size: 13px; }
   .field-notes { --notes-ink: light-dark(#20242b, #cad3f5); --notes-muted: light-dark(#626975, #a5adcb); --notes-line: light-dark(#e1e4e8, #494d64); color: var(--notes-ink); }
   .notes-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 10px; border-bottom: 1px solid var(--notes-line); }
   .notes-intro { display: flex; align-items: center; gap: 14px; }
@@ -178,7 +178,8 @@ const popular = [
   .notes-empty p { margin-block: 8px 12px; color: var(--notes-muted); }
   .notes-empty button { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; }
   @media (min-width: 1001px) and (min-height: 760px) {
-    :global(body:has(.field-notes)) { height: 100dvh; overflow: hidden; padding-bottom: 0; }
+    :global(body:has(.field-notes)) { height: 100dvh; overflow: hidden; }
+    :global(body:has(.field-notes) .site-footer) { position: fixed; inset: auto 0 0; z-index: 9; margin: 0 auto; background: light-dark(#fff, #24273a); }
     .field-notes { height: calc(100dvh - 64px - 54px); display: flex; flex-direction: column; }
     .notes-toolbar, .notes-hero { flex-shrink: 0; }
     .notes-writing { min-height: 0; flex: 1; display: flex; flex-direction: column; padding-bottom: 8px; }
@@ -199,8 +200,7 @@ const popular = [
     .notes-row { grid-template-columns: 98px 50px minmax(0, 1fr) 18px; gap: 14px; }
   }
   @media (max-width: 700px) {
-    :global(body:has(.field-notes)) { padding-bottom: 96px; }
-    :global(body:has(.field-notes) .site-footer) { width: calc(100% - 40px); align-items: start; gap: 4px; padding-block: 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    :global(body:has(.field-notes) .site-footer) { margin-top: 24px; font-size: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
     .field-notes { width: calc(100% - 40px); }
     .notes-toolbar { display: block; padding-block: 18px; }
     .notes-portrait { width: 56px; height: 56px; }
