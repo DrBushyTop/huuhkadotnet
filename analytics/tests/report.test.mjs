@@ -53,9 +53,12 @@ test('rejects a different website before publishing any aggregate', () => {
 });
 
 test('accepts only the observed Umami signed ZIP host', () => {
-  const good = 'https://umami-public.s3.eu-central-1.amazonaws.com/export.zip?X-Amz-Signature=abc';
-  assert.equal(exportUrl({text: `Download: ${good}`}).href, good);
+  const good = 'https://export.e342c835fa086e33dc7f75c2b976d5cc.eu.r2.cloudflarestorage.com/export/b5389298.zip?X-Amz-Signature=abc&x-id=GetObject';
+  assert.equal(exportUrl({text: `Download Export ${good}\n`}).href, good);
   assert.throws(() => exportUrl({text: 'https://example.org/export.zip?X-Amz-Signature=abc'}), /expected ZIP/);
+  assert.throws(() => exportUrl({text: 'https://export.other.eu.r2.cloudflarestorage.com/export/x.zip?X-Amz-Signature=abc'}), /expected ZIP/);
+  assert.throws(() => exportUrl({text: 'https://umami-public.s3.eu-central-1.amazonaws.com/export.zip?X-Amz-Signature=abc'}), /expected ZIP/);
+  assert.throws(() => exportUrl({text: good.replace('X-Amz-Signature', 'X-Amz-Other')}), /unsigned/);
 });
 
 test('weekly runs are keyed by the previous ISO week', () => {

@@ -1,7 +1,8 @@
 const api = 'https://api.resend.com';
 const exportSender = 'support@umami.is';
 const exportSubject = 'Website export completed';
-const downloadHost = 'umami-public.s3.eu-central-1.amazonaws.com';
+// Umami moved export downloads from S3 to Cloudflare R2 between 2 and 23 November 2026.
+const downloadHost = 'export.e342c835fa086e33dc7f75c2b976d5cc.eu.r2.cloudflarestorage.com';
 
 async function getJson(path, key) {
   const response = await fetch(`${api}${path}`, {headers: {Authorization: `Bearer ${key}`}});

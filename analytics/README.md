@@ -20,9 +20,11 @@ Code and data ship separately:
 The Container Apps job wakes every six hours. On its first run of each ISO week
 (Monday 00:00 UTC), it signs in to Umami with Playwright and requests a
 `Last 6 months` export for `huuhkadotnet`. The run is recorded under the week
-that just ended, such as `2026-W47`. Later runs check the Resend inbound mailbox. Umami currently
-sends a signed ZIP link from `support@umami.is`; the link observed on September
-24, 2026 expires after three days. The ZIP contains `website_event.csv`,
+that just ended, such as `2026-W47`. Later runs check the Resend inbound mailbox.
+Umami sends a signed ZIP link from `support@umami.is`. Since November 2026 the
+link points at Cloudflare R2 (`export.e342c835….eu.r2.cloudflarestorage.com`);
+before that it was S3. The email says the link expires in 24 hours, but the
+link from November 23 still worked after 29 hours. The ZIP contains `website_event.csv`,
 `event_data.csv`, and `session_data.csv`.
 
 The job saves the original ZIP in the private `umami` container, keyed by
